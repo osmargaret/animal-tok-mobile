@@ -5,14 +5,12 @@ import MobileHeader from "@/components/MobileHeader";
 import VideoPost from "@/components/VideoPost";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
-import AuthModal from "@/components/AuthModal";
 import EventsModal from "@/components/EventsModal";
 import { feedPosts } from "@/data/feedData";
 
-const Index = () => {
+const Feed = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
@@ -33,8 +31,8 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
-      <DesktopSidebar onAuthOpen={() => setAuthOpen(true)} onEventsOpen={() => setEventsOpen(true)} />
-      <MobileHeader onAuthOpen={() => setAuthOpen(true)} />
+      <DesktopSidebar onEventsOpen={() => setEventsOpen(true)} />
+      <MobileHeader />
 
       <main className="h-full lg:ml-60">
         <div
@@ -50,12 +48,11 @@ const Index = () => {
         </div>
       </main>
 
-      <BottomNav onAuthOpen={() => setAuthOpen(true)} />
+      <BottomNav />
       <CommentsPanel post={feedPosts[activeIndex]} open={commentsOpen} onClose={() => setCommentsOpen(false)} />
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <EventsModal open={eventsOpen} onClose={() => setEventsOpen(false)} />
     </div>
   );
 };
 
-export default Index;
+export default Feed;
