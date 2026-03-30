@@ -1,10 +1,9 @@
-import { Home, Compass, Plus, MessageCircle, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Home, Compass, Plus, MessageCircle, User, LogOut } from "lucide-react";
 
-interface BottomNavProps {
-  onAuthOpen: () => void;
-}
+const BottomNav = () => {
+  const { user, logout } = useAuth();
 
-const BottomNav = ({ onAuthOpen }: BottomNavProps) => {
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-border">
       <div className="flex items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -16,7 +15,14 @@ const BottomNav = ({ onAuthOpen }: BottomNavProps) => {
           </div>
         </button>
         <NavItem icon={<MessageCircle className="w-5 h-5" />} label="Inbox" badge={3} />
-        <NavItem icon={<User className="w-5 h-5" />} label="Me" onClick={onAuthOpen} />
+        {user ? (
+          <button onClick={logout} className="flex flex-col items-center gap-0.5">
+            <LogOut className="w-5 h-5 text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground">Logout</span>
+          </button>
+        ) : (
+          <NavItem icon={<User className="w-5 h-5" />} label="Me" />
+        )}
       </div>
     </nav>
   );
