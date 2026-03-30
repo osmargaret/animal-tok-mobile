@@ -1,0 +1,64 @@
+import { Heart, Compass, Users, Calendar, ShoppingBag, UserPlus, MessageCircle, Radio } from "lucide-react";
+
+interface DesktopSidebarProps {
+  onAuthOpen: () => void;
+  onEventsOpen: () => void;
+}
+
+const DesktopSidebar = ({ onAuthOpen, onEventsOpen }: DesktopSidebarProps) => {
+  return (
+    <aside className="hidden lg:flex flex-col w-60 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
+      <div className="flex items-center gap-2 px-5 py-5">
+        <span className="text-2xl">🐾</span>
+        <span className="text-xl font-bold text-foreground">AnimalTok</span>
+      </div>
+
+      <div className="flex gap-2 px-5 mb-4">
+        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/20 text-destructive text-xs font-semibold">
+          <Radio className="w-3 h-3" /> Live
+        </button>
+        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 text-primary text-xs font-semibold">
+          <Compass className="w-3 h-3" /> Explore
+        </button>
+      </div>
+
+      <div className="px-5 mb-2">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Explore</p>
+      </div>
+
+      <nav className="flex flex-col gap-1 px-3 flex-1">
+        <SidebarItem icon={<Users className="w-4 h-4" />} label="Communities" />
+        <SidebarItem icon={<Calendar className="w-4 h-4" />} label="Events" onClick={onEventsOpen} />
+        <SidebarItem icon={<ShoppingBag className="w-4 h-4" />} label="Marketplace" />
+        <SidebarItem icon={<UserPlus className="w-4 h-4" />} label="Friends" badge={2} />
+        <SidebarItem icon={<MessageCircle className="w-4 h-4" />} label="Messages" badge={3} />
+      </nav>
+
+      <div className="px-5 py-4 border-t border-sidebar-border">
+        <button
+          onClick={onAuthOpen}
+          className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+        >
+          Sign in
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+const SidebarItem = ({ icon, label, badge, onClick }: { icon: React.ReactNode; label: string; badge?: number; onClick?: () => void }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm"
+  >
+    {icon}
+    <span className="flex-1 text-left">{label}</span>
+    {badge && (
+      <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+        {badge}
+      </span>
+    )}
+  </button>
+);
+
+export default DesktopSidebar;
