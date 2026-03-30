@@ -21,12 +21,13 @@ const ActionIcons = ({ post, onCommentOpen }: ActionIconsProps) => {
         <MessageCircle className="w-7 h-7 text-foreground" />
         <span className="text-[11px] text-foreground/80">{post.comments.toLocaleString()}</span>
       </button>
-      <button onClick={() => setSaved(!saved)} className="flex flex-col items-center gap-1">
-        <Bookmark className={`w-7 h-7 transition-colors ${saved ? "fill-primary text-primary" : "text-foreground"}`} />
-        <span className="text-[11px] text-foreground/80">{post.saves.toLocaleString()}</span>
-      </button>
       <button className="flex flex-col items-center gap-1">
         <Share2 className="w-7 h-7 text-foreground" />
+        <span className="text-[11px] text-foreground/80">Share</span>
+      </button>
+      <button onClick={() => setSaved(!saved)} className="flex flex-col items-center gap-1">
+        <Bookmark className={`w-7 h-7 transition-colors ${saved ? "fill-primary text-primary" : "text-foreground"}`} />
+        <span className="text-[11px] text-foreground/80">Save</span>
       </button>
     </div>
   );
