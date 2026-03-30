@@ -1,16 +1,61 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useRef, useEffect } from "react";
+import DesktopSidebar from "@/components/DesktopSidebar";
+import BottomNav from "@/components/BottomNav";
+import MobileHeader from "@/components/MobileHeader";
+import VideoPost from "@/components/VideoPost";
+import ActionIcons from "@/components/ActionIcons";
+import CommentsPanel from "@/components/CommentsPanel";
+import AuthModal from "@/components/AuthModal";
+import EventsModal from "@/components/EventsModal";
+import { feedPosts } from "@/data/feedData";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const feedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+
+    const handleScroll = () => {
+      const scrollTop = feed.scrollTop;
+      const height = feed.clientHeight;
+      const index = Math.round(scrollTop / height);
+      setActiveIndex(Math.min(index, feedPosts.length - 1));
+    };
+
+    feed.addEventListener("scroll", handleScroll, { passive: true });
+    return () => feed.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="h-[100dvh] overflow-hidden bg-background">
+      <DesktopSidebar onAuthOpen={() => setAuthOpen(true)} onEventsOpen={() => setEventsOpen(true)} />
+      <MobileHeader onAuthOpen={() => setAuthOpen(true)} />
+
+      <main className="h-full lg:ml-60">
+        <div
+          ref={feedRef}
+          className="h-full overflow-y-auto snap-y-mandatory scrollbar-hide"
+        >
+          {feedPosts.map((post, i) => (
+            <div key={post.id} className="h-[100dvh] relative">
+              <VideoPost post={post} isActive={i === activeIndex} />
+              <ActionIcons post={post} onCommentOpen={() => setCommentsOpen(true)} />
+            </div>
+          ))}
+        </div>
+      </main>
+
+      <BottomNav onAuthOpen={() => setAuthOpen(true)} />
+      <CommentsPanel post={feedPosts[activeIndex]} open={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <EventsModal open={eventsOpen} onClose={() => setEventsOpen(false)} />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
