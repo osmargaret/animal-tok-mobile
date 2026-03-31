@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Landing from "./pages/Landing";
 import Feed from "./pages/Feed";
+import HandlerProfile from "./pages/HandlerProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
