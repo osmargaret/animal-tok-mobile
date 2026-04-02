@@ -19,7 +19,7 @@ const BottomNav = () => {
             <Plus className="w-5 h-5 text-primary-foreground" />
           </div>
         </button>
-        <NavItem icon={<MessageCircle className="w-5 h-5" />} label="Inbox" badge={3} />
+        <NavItem icon={<MessageCircle className="w-5 h-5" />} label="Inbox" badge={3} active={isActive("/inbox")} onClick={() => navigate("/inbox")} />
         <NavItem
           icon={<User className="w-5 h-5" />}
           label="Profile"
