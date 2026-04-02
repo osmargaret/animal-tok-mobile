@@ -8,6 +8,7 @@ import Landing from "./pages/Landing";
 import Feed from "./pages/Feed";
 import HandlerProfile from "./pages/HandlerProfile";
 import Inbox from "./pages/Inbox";
+import MyStore from "./pages/MyStore";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
