@@ -148,8 +148,8 @@ const PetCard = ({
   </div>
 );
 
-const QuickLink = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
-  <button className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground">
+const QuickLink = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
+  <button onClick={onClick} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground">
     <span className="text-primary">{icon}</span>
     {label}
   </button>
