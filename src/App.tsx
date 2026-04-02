@@ -9,6 +9,7 @@ import Feed from "./pages/Feed";
 import HandlerProfile from "./pages/HandlerProfile";
 import Inbox from "./pages/Inbox";
 import MyStore from "./pages/MyStore";
+import CreatePost from "./pages/CreatePost";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><HandlerProfile /></ProtectedRoute>} />
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
