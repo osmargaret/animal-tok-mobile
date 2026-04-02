@@ -97,7 +97,7 @@ const HandlerProfile = () => {
 
         {/* Quick Links */}
         <div className="px-5 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" />
+          <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" onClick={() => navigate("/store")} />
           <QuickLink icon={<Bookmark className="w-5 h-5" />} label="Saved" />
           <QuickLink icon={<Calendar className="w-5 h-5" />} label="Calendar" />
           <QuickLink icon={<User className="w-5 h-5" />} label="Profile" />
