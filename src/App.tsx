@@ -38,6 +38,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><HandlerProfile /></ProtectedRoute>} />
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
