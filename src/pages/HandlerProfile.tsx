@@ -97,7 +97,7 @@ const HandlerProfile = () => {
 
         {/* Quick Links */}
         <div className="px-5 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" />
+          <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" onClick={() => navigate("/store")} />
           <QuickLink icon={<Bookmark className="w-5 h-5" />} label="Saved" />
           <QuickLink icon={<Calendar className="w-5 h-5" />} label="Calendar" />
           <QuickLink icon={<User className="w-5 h-5" />} label="Profile" />
@@ -148,8 +148,8 @@ const PetCard = ({
   </div>
 );
 
-const QuickLink = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
-  <button className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground">
+const QuickLink = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
+  <button onClick={onClick} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground">
     <span className="text-primary">{icon}</span>
     {label}
   </button>

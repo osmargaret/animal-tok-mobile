@@ -8,6 +8,7 @@ import Landing from "./pages/Landing";
 import Feed from "./pages/Feed";
 import HandlerProfile from "./pages/HandlerProfile";
 import Inbox from "./pages/Inbox";
+import MyStore from "./pages/MyStore";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><HandlerProfile /></ProtectedRoute>} />
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
+            <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
