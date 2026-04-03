@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
@@ -11,14 +12,15 @@ const stories = [
 ];
 
 const messages = [
-  { name: "THE CREATIVE GIFTSHOP", status: "Sent", subtitle: "BHXITBYLOLA", emoji: "🎁", hasUnread: false },
-  { name: "Anuadenuga channel 🎉", status: "Active yesterday", emoji: "🎊", hasUnread: false },
-  { name: "Adenola Ayodele", status: "Say hi to Adenola Ayodele", emoji: "👤", badge: 4 },
-  { name: "TOBI", status: "Say hi to TOBI", emoji: "🧑", badge: 2 },
-  { name: "Gideon's chariot.", status: "", emoji: "⚡", badge: 4 },
+  { name: "THE CREATIVE GIFTSHOP", status: "Sent", subtitle: "BHXITBYLOLA", emoji: "🎁", hasUnread: false, slug: "the-creative-giftshop" },
+  { name: "Anuadenuga channel 🎉", status: "Active yesterday", emoji: "🎊", hasUnread: false, slug: "anuadenuga-channel" },
+  { name: "Adenola Ayodele", status: "Say hi to Adenola Ayodele", emoji: "👤", badge: 4, slug: "adenola-ayodele" },
+  { name: "TOBI", status: "Say hi to TOBI", emoji: "🧑", badge: 2, slug: "tobi" },
+  { name: "Gideon's chariot.", status: "", emoji: "⚡", badge: 4, slug: "gideons-chariot" },
 ];
 
 const Inbox = () => {
+  const navigate = useNavigate();
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
       <DesktopSidebar onEventsOpen={() => {}} />
@@ -91,6 +93,7 @@ const Inbox = () => {
             {messages.map((m) => (
               <button
                 key={m.name}
+                onClick={() => navigate(`/message/${m.slug}`)}
                 className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-secondary/60 transition-colors w-full text-left"
               >
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-xl border border-border shrink-0">
