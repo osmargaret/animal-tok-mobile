@@ -12,6 +12,7 @@ import MyStore from "./pages/MyStore";
 import CreatePost from "./pages/CreatePost";
 import MessageView from "./pages/MessageView";
 import Explore from "./pages/Explore";
+import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
