@@ -92,7 +92,7 @@ const Explore = () => {
                   <p className="text-sm font-semibold text-primary">{t.tag}</p>
                   <p className="text-xs text-muted-foreground">{t.posts}</p>
                 </div>
-                <span className="text-xs font-medium text-green-400">{t.trend}</span>
+                <span className="text-xs font-medium text-emerald-400">{t.trend}</span>
               </button>
             ))}
           </div>
