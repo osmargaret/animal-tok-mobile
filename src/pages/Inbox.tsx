@@ -12,14 +12,15 @@ const stories = [
 ];
 
 const messages = [
-  { name: "THE CREATIVE GIFTSHOP", status: "Sent", subtitle: "BHXITBYLOLA", emoji: "🎁", hasUnread: false },
-  { name: "Anuadenuga channel 🎉", status: "Active yesterday", emoji: "🎊", hasUnread: false },
-  { name: "Adenola Ayodele", status: "Say hi to Adenola Ayodele", emoji: "👤", badge: 4 },
-  { name: "TOBI", status: "Say hi to TOBI", emoji: "🧑", badge: 2 },
-  { name: "Gideon's chariot.", status: "", emoji: "⚡", badge: 4 },
+  { name: "THE CREATIVE GIFTSHOP", status: "Sent", subtitle: "BHXITBYLOLA", emoji: "🎁", hasUnread: false, slug: "the-creative-giftshop" },
+  { name: "Anuadenuga channel 🎉", status: "Active yesterday", emoji: "🎊", hasUnread: false, slug: "anuadenuga-channel" },
+  { name: "Adenola Ayodele", status: "Say hi to Adenola Ayodele", emoji: "👤", badge: 4, slug: "adenola-ayodele" },
+  { name: "TOBI", status: "Say hi to TOBI", emoji: "🧑", badge: 2, slug: "tobi" },
+  { name: "Gideon's chariot.", status: "", emoji: "⚡", badge: 4, slug: "gideons-chariot" },
 ];
 
 const Inbox = () => {
+  const navigate = useNavigate();
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
       <DesktopSidebar onEventsOpen={() => {}} />
