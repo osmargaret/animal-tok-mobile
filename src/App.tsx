@@ -10,6 +10,7 @@ import HandlerProfile from "./pages/HandlerProfile";
 import Inbox from "./pages/Inbox";
 import MyStore from "./pages/MyStore";
 import CreatePost from "./pages/CreatePost";
+import MessageView from "./pages/MessageView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
