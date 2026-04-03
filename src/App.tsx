@@ -11,6 +11,7 @@ import Inbox from "./pages/Inbox";
 import MyStore from "./pages/MyStore";
 import CreatePost from "./pages/CreatePost";
 import MessageView from "./pages/MessageView";
+import Explore from "./pages/Explore";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+            <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
             <Route path="/message/:contactId" element={<ProtectedRoute><MessageView /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
