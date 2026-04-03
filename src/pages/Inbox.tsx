@@ -93,6 +93,7 @@ const Inbox = () => {
             {messages.map((m) => (
               <button
                 key={m.name}
+                onClick={() => navigate(`/message/${m.slug}`)}
                 className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-secondary/60 transition-colors w-full text-left"
               >
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-xl border border-border shrink-0">
