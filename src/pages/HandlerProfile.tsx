@@ -117,19 +117,23 @@ const StatItem = ({ value, label }: { value: string; label: string }) => (
 );
 
 const PetCard = ({
+  id,
   name,
   breed,
   followers,
   emoji,
   gradient,
 }: {
+  id: string;
   name: string;
   breed: string;
   followers: string;
   emoji: string;
   gradient: string;
-}) => (
-  <div className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors">
+}) => {
+  const navigate = useNavigate();
+  return (
+  <div onClick={() => navigate(`/animal/${id}`)} className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors cursor-pointer">
     <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl border-2 border-border`}>
       {emoji}
     </div>
