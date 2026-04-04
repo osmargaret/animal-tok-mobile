@@ -8,7 +8,8 @@ interface DesktopSidebarProps {
 }
 
 const DesktopSidebar = ({ onEventsOpen }: DesktopSidebarProps) => {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <aside className="hidden lg:flex flex-col w-60 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
