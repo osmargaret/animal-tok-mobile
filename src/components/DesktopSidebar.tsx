@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Heart, Compass, Users, Calendar, ShoppingBag, UserPlus, MessageCircle, Radio, LogOut } from "lucide-react";
+import AuthModal from "@/components/AuthModal";
 
 interface DesktopSidebarProps {
   onEventsOpen: () => void;
 }
 
 const DesktopSidebar = ({ onEventsOpen }: DesktopSidebarProps) => {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <aside className="hidden lg:flex flex-col w-60 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
@@ -37,7 +40,7 @@ const DesktopSidebar = ({ onEventsOpen }: DesktopSidebarProps) => {
       </nav>
 
       {/* User profile section */}
-      {user && (
+      {isAuthenticated && user ? (
         <div className="px-4 py-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-full bg-primary/30 flex items-center justify-center text-lg border-2 border-primary">
@@ -56,7 +59,17 @@ const DesktopSidebar = ({ onEventsOpen }: DesktopSidebarProps) => {
             Log out
           </button>
         </div>
+      ) : (
+        <div className="px-4 py-4 border-t border-sidebar-border">
+          <button
+            onClick={() => setAuthOpen(true)}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors"
+          >
+            Sign in / Create account
+          </button>
+        </div>
       )}
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </aside>
   );
 };
