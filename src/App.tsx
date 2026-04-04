@@ -41,6 +41,7 @@ const App = () => (
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
             <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/animal/:animalId" element={<ProtectedRoute><AnimalProfile /></ProtectedRoute>} />
             <Route path="/message/:contactId" element={<ProtectedRoute><MessageView /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
