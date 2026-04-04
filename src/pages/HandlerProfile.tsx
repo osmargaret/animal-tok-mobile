@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 const pets = [
   {
+    id: "bella",
     name: "Bella",
     breed: "Labrador · 3 yrs",
     followers: "1.2K followers",
@@ -14,6 +15,7 @@ const pets = [
     gradient: "from-amber-500/20 to-orange-500/20",
   },
   {
+    id: "whiskers",
     name: "Whiskers",
     breed: "Maine Coon · 5 yrs",
     followers: "890 followers",
@@ -21,6 +23,7 @@ const pets = [
     gradient: "from-purple-500/20 to-pink-500/20",
   },
   {
+    id: "spirit",
     name: "Spirit",
     breed: "Arabian · 8 yrs",
     followers: "2.3K followers",
