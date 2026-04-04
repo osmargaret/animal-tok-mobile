@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Heart, Compass, Users, Calendar, ShoppingBag, UserPlus, MessageCircle, Radio, LogOut } from "lucide-react";
+import AuthModal from "@/components/AuthModal";
 
 interface DesktopSidebarProps {
   onEventsOpen: () => void;
