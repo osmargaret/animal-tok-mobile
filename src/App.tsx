@@ -19,12 +19,7 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/feed" replace /> : <>{children}</>;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/feed" replace />;
 };
 
 const App = () => (
