@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 const pets = [
   {
+    id: "bella",
     name: "Bella",
     breed: "Labrador · 3 yrs",
     followers: "1.2K followers",
@@ -14,6 +15,7 @@ const pets = [
     gradient: "from-amber-500/20 to-orange-500/20",
   },
   {
+    id: "whiskers",
     name: "Whiskers",
     breed: "Maine Coon · 5 yrs",
     followers: "890 followers",
@@ -21,6 +23,7 @@ const pets = [
     gradient: "from-purple-500/20 to-pink-500/20",
   },
   {
+    id: "spirit",
     name: "Spirit",
     breed: "Arabian · 8 yrs",
     followers: "2.3K followers",
@@ -117,19 +120,23 @@ const StatItem = ({ value, label }: { value: string; label: string }) => (
 );
 
 const PetCard = ({
+  id,
   name,
   breed,
   followers,
   emoji,
   gradient,
 }: {
+  id: string;
   name: string;
   breed: string;
   followers: string;
   emoji: string;
   gradient: string;
-}) => (
-  <div className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors">
+}) => {
+  const navigate = useNavigate();
+  return (
+  <div onClick={() => navigate(`/animal/${id}`)} className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors cursor-pointer">
     <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl border-2 border-border`}>
       {emoji}
     </div>
@@ -146,7 +153,8 @@ const PetCard = ({
       </button>
     </div>
   </div>
-);
+  );
+};
 
 const QuickLink = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
   <button onClick={onClick} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground">
