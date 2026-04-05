@@ -1,7 +1,10 @@
 import { useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Plus, ChevronRight, Users, Activity, Bell, Send } from "lucide-react";
 
 const stories = [
@@ -21,12 +24,21 @@ const messages = [
 
 const Inbox = () => {
   const navigate = useNavigate();
+  const handleRefresh = useCallback(async () => {
+    await new Promise((r) => setTimeout(r, 1200));
+  }, []);
+
+  const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: handleRefresh,
+  });
+
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
       <DesktopSidebar onEventsOpen={() => {}} />
       <MobileHeader />
 
-      <main className="h-full lg:ml-60 overflow-y-auto pb-20 lg:pb-0">
+      <main ref={containerRef} className="h-full lg:ml-60 overflow-y-auto pb-20 lg:pb-0 relative">
+        <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
         {/* Header */}
         <div className="px-5 pt-4 pb-2">
           <h1 className="text-xl font-bold text-foreground">Inbox</h1>
