@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
@@ -6,6 +6,8 @@ import VideoPost from "@/components/VideoPost";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
 import EventsModal from "@/components/EventsModal";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { feedPosts } from "@/data/feedData";
 
 const Feed = () => {
@@ -13,6 +15,14 @@ const Feed = () => {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
+
+  const handleRefresh = useCallback(async () => {
+    await new Promise((r) => setTimeout(r, 1200));
+  }, []);
+
+  const { containerRef: pullRef, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: handleRefresh,
+  });
 
   useEffect(() => {
     const feed = feedRef.current;
@@ -29,14 +39,24 @@ const Feed = () => {
     return () => feed.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Merge refs
+  const setRefs = useCallback(
+    (el: HTMLDivElement | null) => {
+      feedRef.current = el;
+      (pullRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    },
+    [pullRef]
+  );
+
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
       <DesktopSidebar onEventsOpen={() => setEventsOpen(true)} />
       <MobileHeader />
 
-      <main className="h-full lg:ml-60">
+      <main className="h-full lg:ml-60 relative">
+        <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
         <div
-          ref={feedRef}
+          ref={setRefs}
           className="h-full overflow-y-auto snap-y-mandatory scrollbar-hide"
         >
           {feedPosts.map((post, i) => (
