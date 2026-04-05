@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
+import ProfileSwitcher from "@/components/ProfileSwitcher";
 
 const MobileHeader = () => {
   const { user, isAuthenticated } = useAuth();
@@ -20,9 +21,7 @@ const MobileHeader = () => {
               <Search className="w-5 h-5" />
             </button>
             {isAuthenticated && user ? (
-              <div className="w-7 h-7 rounded-full bg-primary/30 flex items-center justify-center text-sm border border-primary">
-                {user.avatar}
-              </div>
+              <ProfileSwitcher />
             ) : (
               <button
                 onClick={() => setAuthOpen(true)}
