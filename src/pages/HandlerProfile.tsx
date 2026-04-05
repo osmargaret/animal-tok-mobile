@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { Edit2, Plus, ShoppingBag, Bookmark, Calendar, User, Heart, MessageCircle } from "lucide-react";
+import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const pets = [
