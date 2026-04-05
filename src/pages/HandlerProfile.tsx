@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { Edit2, Plus, ShoppingBag, Bookmark, Calendar, User, Heart, MessageCircle } from "lucide-react";
+import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const pets = [
@@ -101,9 +101,8 @@ const HandlerProfile = () => {
         {/* Quick Links */}
         <div className="px-5 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" onClick={() => navigate("/store")} />
-          <QuickLink icon={<Bookmark className="w-5 h-5" />} label="Saved" />
-          <QuickLink icon={<Calendar className="w-5 h-5" />} label="Calendar" />
-          <QuickLink icon={<User className="w-5 h-5" />} label="Profile" />
+          <QuickLink icon={<Calendar className="w-5 h-5" />} label="Events" onClick={() => navigate("/events")} />
+          <QuickLink icon={<Store className="w-5 h-5" />} label="Marketplace" />
         </div>
       </main>
 
