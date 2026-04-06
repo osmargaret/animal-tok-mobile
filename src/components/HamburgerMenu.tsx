@@ -30,7 +30,7 @@ const HamburgerMenu = ({ open, onClose }: HamburgerMenuProps) => {
       id: animal.id,
       name: animal.name,
       username: `@${animal.name.toLowerCase()}`,
-      avatar: animal.avatar,
+      avatar: animal.emoji,
       type: "animal",
     });
     setPetSwitchOpen(false);
@@ -138,7 +138,7 @@ const HamburgerMenu = ({ open, onClose }: HamburgerMenuProps) => {
                       }`}
                     >
                       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm">
-                        {animal.avatar}
+                        {animal.emoji}
                       </div>
                       <div className="text-left">
                         <span className="text-sm">{animal.name}</span>
