@@ -88,7 +88,7 @@ const HamburgerMenu = ({ open, onClose }: HamburgerMenuProps) => {
               <div className={`w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl ${
                 activeProfile?.type === "animal" ? "border-2 border-green-500" : ""
               }`}>
-                {activeProfile?.type === "animal" ? activeProfile.avatar : animalProfiles[0]?.avatar || "🐾"}
+                {activeProfile?.type === "animal" ? activeProfile.avatar : animalProfiles[0]?.emoji || "🐾"}
               </div>
               <div className="flex-1 text-left">
                 <p className="text-sm font-semibold">
