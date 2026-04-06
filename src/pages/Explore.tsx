@@ -1,152 +1,197 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, X, TrendingUp, MapPin, Star, ChevronRight } from "lucide-react";
+import { Search, X, TrendingUp, MapPin, Star, ChevronRight, Play, Calendar, ShoppingBag, Wrench } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import MobileHeader from "@/components/MobileHeader";
+import DesktopSidebar from "@/components/DesktopSidebar";
 
-const categories = [
-  { emoji: "🐕", label: "Dogs", count: "12.5K" },
-  { emoji: "🐈", label: "Cats", count: "9.8K" },
-  { emoji: "🦜", label: "Birds", count: "4.2K" },
-  { emoji: "🐴", label: "Horses", count: "3.1K" },
-  { emoji: "🐠", label: "Fish", count: "2.7K" },
-  { emoji: "🐇", label: "Rabbits", count: "1.9K" },
-  { emoji: "🦎", label: "Reptiles", count: "1.4K" },
-  { emoji: "🐹", label: "Small Pets", count: "1.1K" },
+const exploreTabs = ["Posts", "Live Video", "Events", "Products", "Services"] as const;
+
+const postItems = [
+  { id: 1, image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=300&h=300&fit=crop", type: "image" as const },
+  { id: 2, image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&h=300&fit=crop", type: "video" as const },
+  { id: 3, image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=300&h=300&fit=crop", type: "image" as const },
+  { id: 4, image: "https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=300&h=300&fit=crop", type: "video" as const },
+  { id: 5, image: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=300&h=300&fit=crop", type: "image" as const },
+  { id: 6, image: "https://images.unsplash.com/photo-1520301255226-bf5f144451c1?w=300&h=300&fit=crop", type: "video" as const },
+  { id: 7, image: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&h=300&fit=crop", type: "image" as const },
+  { id: 8, image: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=300&h=300&fit=crop", type: "video" as const },
+  { id: 9, image: "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=300&h=300&fit=crop", type: "image" as const },
 ];
 
-const trendingTags = [
-  { tag: "#puppylove", posts: "24.5K posts", trend: "+12%" },
-  { tag: "#catlife", posts: "18.3K posts", trend: "+8%" },
-  { tag: "#exoticpets", posts: "6.7K posts", trend: "+23%" },
-  { tag: "#pettraining", posts: "11.2K posts", trend: "+5%" },
-  { tag: "#rescuepets", posts: "9.1K posts", trend: "+15%" },
+const liveVideos = [
+  { id: 1, title: "Morning walk with Max 🐕", viewer: 234, avatar: "🐕", name: "Max", image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop" },
+  { id: 2, title: "Cat yoga session 🧘‍♀️", viewer: 567, avatar: "🐈", name: "Luna", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=300&fit=crop" },
+  { id: 3, title: "Parrot singing contest 🎤", viewer: 123, avatar: "🦜", name: "Coco", image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=400&h=300&fit=crop" },
+  { id: 4, title: "Horse racing practice 🏇", viewer: 892, avatar: "🐴", name: "Spirit", image: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=400&h=300&fit=crop" },
 ];
 
-const featuredHandlers = [
-  { name: "Bailey's World", handle: "@bailey.thelab", avatar: "🐕", followers: "45.2K", verified: true },
-  { name: "Luna Cat", handle: "@luna.cat", avatar: "🐈", followers: "32.1K", verified: true },
-  { name: "Coco Parrot", handle: "@coco.parrot", avatar: "🦜", followers: "28.7K", verified: false },
-  { name: "Max the Horse", handle: "@max.horse", avatar: "🐴", followers: "19.3K", verified: true },
+const eventItems = [
+  { id: 1, title: "Dog Park Meetup", date: "Apr 12", location: "Central Park", attendees: 45, image: "🐕" },
+  { id: 2, title: "Cat Show 2024", date: "Apr 18", location: "Convention Center", attendees: 200, image: "🐈" },
+  { id: 3, title: "Horse Training Camp", date: "Apr 25", location: "Green Valley Ranch", attendees: 30, image: "🐴" },
+  { id: 4, title: "Pet Adoption Day", date: "May 1", location: "City Hall", attendees: 150, image: "🐾" },
 ];
 
-const nearbyPets = [
-  { name: "Rocky", breed: "German Shepherd", distance: "0.5 mi", image: "https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=200&h=200&fit=crop" },
-  { name: "Whiskers", breed: "Persian Cat", distance: "1.2 mi", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop" },
-  { name: "Tweety", breed: "Canary", distance: "2.0 mi", image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=200&h=200&fit=crop" },
-  { name: "Buddy", breed: "Golden Retriever", distance: "3.1 mi", image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop" },
+const productItems = [
+  { id: 1, name: "Premium Dog Food", price: "$24.99", seller: "PetNutrition", image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200&h=200&fit=crop" },
+  { id: 2, name: "Cat Tower Deluxe", price: "$89.99", seller: "CatWorld", image: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=200&h=200&fit=crop" },
+  { id: 3, name: "Pet GPS Tracker", price: "$49.99", seller: "TechPets", image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop" },
+  { id: 4, name: "Bird Seeds Mix", price: "$12.99", seller: "BirdLover", image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=200&h=200&fit=crop" },
+];
+
+const serviceItems = [
+  { id: 1, name: "Dog Grooming", provider: "PawSpa", price: "From $35", location: "2.1 mi", icon: "🛁" },
+  { id: 2, name: "Pet Sitting", provider: "PetWatch", price: "From $25/day", location: "1.5 mi", icon: "🏠" },
+  { id: 3, name: "Vet Checkup", provider: "Dr. Sarah's", price: "From $50", location: "3.0 mi", icon: "🩺" },
+  { id: 4, name: "Dog Training", provider: "K9 Academy", price: "From $40", location: "4.2 mi", icon: "🎓" },
 ];
 
 const Explore = () => {
   const [search, setSearch] = useState("");
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<typeof exploreTabs[number]>("Posts");
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 lg:pb-4">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
-        <h1 className="text-lg font-bold mb-3">Explore</h1>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search animals, handlers, tags..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
+      <DesktopSidebar onEventsOpen={() => {}} />
+      <MobileHeader />
+
+      <main className="lg:ml-60">
+        {/* Header with search */}
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] lg:pt-4 pb-3">
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search animals, handlers, tags..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              autoFocus
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+            {exploreTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  activeTab === tab ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          {/* Posts tab - grid of images/videos */}
+          {activeTab === "Posts" && (
+            <div className="grid grid-cols-3 gap-1">
+              {postItems.map((item) => (
+                <div key={item.id} className="relative aspect-square overflow-hidden rounded-sm">
+                  <img src={item.image} alt="" className="w-full h-full object-cover" />
+                  {item.type === "video" && (
+                    <div className="absolute top-1.5 right-1.5">
+                      <Play className="w-3.5 h-3.5 text-white fill-white drop-shadow-md" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Live Video tab */}
+          {activeTab === "Live Video" && (
+            <div className="space-y-3">
+              {liveVideos.map((v) => (
+                <div key={v.id} className="rounded-xl overflow-hidden bg-card border border-border">
+                  <div className="relative h-44">
+                    <img src={v.image} alt={v.title} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> LIVE
+                    </div>
+                    <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-0.5 rounded-full text-[10px]">
+                      {v.viewer} watching
+                    </div>
+                  </div>
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-lg">{v.avatar}</div>
+                    <div>
+                      <p className="text-sm font-semibold">{v.title}</p>
+                      <p className="text-xs text-muted-foreground">{v.name}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Events tab */}
+          {activeTab === "Events" && (
+            <div className="space-y-3">
+              {eventItems.map((e) => (
+                <div key={e.id} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">
+                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">{e.image}</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{e.title}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Calendar className="w-3 h-3" /> {e.date} · <MapPin className="w-3 h-3" /> {e.location}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{e.attendees} attending</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Products tab */}
+          {activeTab === "Products" && (
+            <div className="grid grid-cols-2 gap-3">
+              {productItems.map((p) => (
+                <div key={p.id} className="rounded-xl bg-card border border-border overflow-hidden">
+                  <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
+                  <div className="p-3">
+                    <p className="text-sm font-semibold line-clamp-1">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.seller}</p>
+                    <p className="text-sm font-bold text-primary mt-1">{p.price}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Services tab */}
+          {activeTab === "Services" && (
+            <div className="space-y-3">
+              {serviceItems.map((s) => (
+                <div key={s.id} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">
+                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">{s.icon}</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.provider}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-medium text-primary">{s.price}</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                        <MapPin className="w-3 h-3" /> {s.location}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
-        {/* Categories */}
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Categories</h2>
-          <div className="grid grid-cols-4 gap-3">
-            {categories.map((cat) => (
-              <button key={cat.label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
-                <span className="text-2xl">{cat.emoji}</span>
-                <span className="text-xs font-medium">{cat.label}</span>
-                <span className="text-[10px] text-muted-foreground">{cat.count}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Trending */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-primary" /> Trending
-            </h2>
-            <button className="text-xs text-primary">See all</button>
-          </div>
-          <div className="space-y-1">
-            {trendingTags.map((t) => (
-              <button key={t.tag} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition-colors">
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-primary">{t.tag}</p>
-                  <p className="text-xs text-muted-foreground">{t.posts}</p>
-                </div>
-                <span className="text-xs font-medium text-emerald-400">{t.trend}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Featured Handlers */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Star className="w-4 h-4 text-primary" /> Featured Handlers
-            </h2>
-            <button className="text-xs text-primary">See all</button>
-          </div>
-          <div className="space-y-2">
-            {featuredHandlers.map((h) => (
-              <button key={h.handle} className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
-                <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl">
-                  {h.avatar}
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold">{h.name}</span>
-                    {h.verified && <span className="text-primary text-xs">✓</span>}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{h.handle} · {h.followers} followers</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Nearby */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-primary" /> Nearby
-            </h2>
-            <button className="text-xs text-primary">See all</button>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-            {nearbyPets.map((p) => (
-              <div key={p.name} className="flex-shrink-0 w-36 rounded-xl bg-card border border-border overflow-hidden">
-                <img src={p.image} alt={p.name} className="w-full h-28 object-cover" />
-                <div className="p-2.5">
-                  <p className="text-sm font-semibold">{p.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{p.breed}</p>
-                  <p className="text-[11px] text-primary mt-1">📍 {p.distance}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
+      </main>
 
       <BottomNav />
     </div>

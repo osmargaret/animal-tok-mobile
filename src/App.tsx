@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Landing from "./pages/Landing";
 import Feed from "./pages/Feed";
+import Landing from "./pages/Landing";
 import HandlerProfile from "./pages/HandlerProfile";
 import Inbox from "./pages/Inbox";
 import MyStore from "./pages/MyStore";
@@ -14,6 +14,8 @@ import MessageView from "./pages/MessageView";
 import Explore from "./pages/Explore";
 import Events from "./pages/Events";
 import AnimalProfile from "./pages/AnimalProfile";
+import Marketplace from "./pages/Marketplace";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,13 +36,14 @@ const App = () => (
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<Feed />} />
             <Route path="/login" element={<Landing />} />
-            <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><HandlerProfile /></ProtectedRoute>} />
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
-            <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
+            <Route path="/explore" element={<Explore />} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/animal/:animalId" element={<ProtectedRoute><AnimalProfile /></ProtectedRoute>} />
             <Route path="/message/:contactId" element={<ProtectedRoute><MessageView /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />

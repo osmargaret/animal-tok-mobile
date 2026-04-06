@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search } from "lucide-react";
+import { Search, Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import AuthModal from "@/components/AuthModal";
-import ProfileSwitcher from "@/components/ProfileSwitcher";
+import HamburgerMenu from "@/components/HamburgerMenu";
 
 const MobileHeader = () => {
   const { user, isAuthenticated } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -17,11 +20,13 @@ const MobileHeader = () => {
             <span className="text-base font-bold text-foreground">AnimalTok</span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-muted-foreground">
+            <button className="text-muted-foreground" onClick={() => navigate("/explore")}>
               <Search className="w-5 h-5" />
             </button>
             {isAuthenticated && user ? (
-              <ProfileSwitcher />
+              <button onClick={() => setMenuOpen(true)} className="text-muted-foreground">
+                <Menu className="w-5 h-5" />
+              </button>
             ) : (
               <button
                 onClick={() => setAuthOpen(true)}
@@ -34,6 +39,7 @@ const MobileHeader = () => {
         </div>
       </header>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </>
   );
 };
