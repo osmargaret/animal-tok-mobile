@@ -15,6 +15,8 @@ import Explore from "./pages/Explore";
 import Events from "./pages/Events";
 import AnimalProfile from "./pages/AnimalProfile";
 import Marketplace from "./pages/Marketplace";
+import ProductDetail from "./pages/ProductDetail";
+import ServiceDetail from "./pages/ServiceDetail";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +45,8 @@ const App = () => (
             <Route path="/explore" element={<Explore />} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
             <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/product/:productId" element={<ProductDetail />} />
+            <Route path="/service/:serviceId" element={<ServiceDetail />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/animal/:animalId" element={<ProtectedRoute><AnimalProfile /></ProtectedRoute>} />
             <Route path="/message/:contactId" element={<ProtectedRoute><MessageView /></ProtectedRoute>} />
