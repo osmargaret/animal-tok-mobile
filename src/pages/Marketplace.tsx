@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, X, SlidersHorizontal, Star, MapPin, ChevronRight, ShoppingBag, Wrench } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import MobileHeader from "@/components/MobileHeader";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -27,6 +30,7 @@ const services = [
 const Marketplace = () => {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Products");
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 lg:pb-4">
@@ -78,7 +82,7 @@ const Marketplace = () => {
           {activeTab === "Products" ? (
             <div className="grid grid-cols-2 gap-3">
               {products.map((p) => (
-                <div key={p.id} className="rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors">
+                <div key={p.id} onClick={() => navigate(`/product/${p.id}`)} className="cursor-pointer rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors">
                   <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
                   <div className="p-3">
                     <p className="text-sm font-semibold line-clamp-1">{p.name}</p>
@@ -97,7 +101,7 @@ const Marketplace = () => {
           ) : (
             <div className="space-y-3">
               {services.map((s) => (
-                <button key={s.id} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
+                <button key={s.id} onClick={() => navigate(`/service/${s.id}`)} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
                   <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">
                     {s.icon}
                   </div>
