@@ -2,8 +2,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle } from "lucide-react";
+import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const pets = [
   {
@@ -33,8 +34,12 @@ const pets = [
 ];
 
 const HandlerProfile = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, activeProfile } = useAuth();
   const navigate = useNavigate();
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // If viewing as another profile (not the handler themselves), show follow/message
+  const isOwnProfile = isAuthenticated && activeProfile?.type === "handler";
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
@@ -66,12 +71,38 @@ const HandlerProfile = () => {
               </div>
             </div>
 
-            {/* Edit Button */}
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
-              <Edit2 className="w-3.5 h-3.5" />
-              Edit
-            </button>
+            {/* Edit Button (own profile) */}
+            {isOwnProfile && (
+              <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            )}
           </div>
+
+          {/* Follow + Message (other users viewing this handler) */}
+          {isAuthenticated && !isOwnProfile && (
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setIsFollowing(!isFollowing)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  isFollowing
+                    ? "bg-secondary text-secondary-foreground border border-border"
+                    : "bg-primary text-primary-foreground"
+                }`}
+              >
+                <UserPlus className="w-4 h-4" />
+                {isFollowing ? "Following" : "Follow"}
+              </button>
+              <button
+                onClick={() => navigate("/message/handler")}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Message
+              </button>
+            </div>
+          )}
         </div>
 
         {/* My Pets Section */}
@@ -102,7 +133,7 @@ const HandlerProfile = () => {
         <div className="px-5 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" onClick={() => navigate("/store")} />
           <QuickLink icon={<Calendar className="w-5 h-5" />} label="Events" onClick={() => navigate("/events")} />
-          <QuickLink icon={<Store className="w-5 h-5" />} label="Marketplace" />
+          <QuickLink icon={<Store className="w-5 h-5" />} label="Marketplace" onClick={() => navigate("/marketplace")} />
         </div>
       </main>
 
@@ -135,23 +166,23 @@ const PetCard = ({
 }) => {
   const navigate = useNavigate();
   return (
-  <div onClick={() => navigate(`/animal/${id}`)} className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors cursor-pointer">
-    <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl border-2 border-border`}>
-      {emoji}
-    </div>
-    <h3 className="text-sm font-semibold text-foreground">{name}</h3>
-    <p className="text-[11px] text-muted-foreground">{breed}</p>
-    <p className="text-[11px] text-primary font-medium">{followers}</p>
+    <div onClick={() => navigate(`/animal/${id}`)} className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors cursor-pointer">
+      <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl border-2 border-border`}>
+        {emoji}
+      </div>
+      <h3 className="text-sm font-semibold text-foreground">{name}</h3>
+      <p className="text-[11px] text-muted-foreground">{breed}</p>
+      <p className="text-[11px] text-primary font-medium">{followers}</p>
 
-    <div className="flex gap-2 mt-1">
-      <button className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors">
-        <Heart className="w-3.5 h-3.5 text-muted-foreground" />
-      </button>
-      <button className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors">
-        <MessageCircle className="w-3.5 h-3.5 text-muted-foreground" />
-      </button>
+      <div className="flex gap-2 mt-1">
+        <button className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors">
+          <Heart className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+        <button className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors">
+          <MessageCircle className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+      </div>
     </div>
-  </div>
   );
 };
 

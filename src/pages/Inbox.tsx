@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Plus, ChevronRight, Users, Activity, Bell, Send } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const stories = [
   { name: "Create", emoji: "➕", isCreate: true },
@@ -14,16 +15,31 @@ const stories = [
   { name: "JARVIS AI", emoji: "🤖", gradient: "from-blue-500/30 to-cyan-500/30" },
 ];
 
-const messages = [
-  { name: "THE CREATIVE GIFTSHOP", status: "Sent", subtitle: "BHXITBYLOLA", emoji: "🎁", hasUnread: false, slug: "the-creative-giftshop" },
-  { name: "Anuadenuga channel 🎉", status: "Active yesterday", emoji: "🎊", hasUnread: false, slug: "anuadenuga-channel" },
-  { name: "Adenola Ayodele", status: "Say hi to Adenola Ayodele", emoji: "👤", badge: 4, slug: "adenola-ayodele" },
-  { name: "TOBI", status: "Say hi to TOBI", emoji: "🧑", badge: 2, slug: "tobi" },
-  { name: "Gideon's chariot.", status: "", emoji: "⚡", badge: 4, slug: "gideons-chariot" },
-];
+const allMessages: Record<string, { name: string; status: string; subtitle?: string; emoji: string; hasUnread?: boolean; badge?: number; slug: string }[]> = {
+  handler: [
+    { name: "THE CREATIVE GIFTSHOP", status: "Sent", subtitle: "BHXITBYLOLA", emoji: "🎁", hasUnread: false, slug: "the-creative-giftshop" },
+    { name: "Anuadenuga channel 🎉", status: "Active yesterday", emoji: "🎊", hasUnread: false, slug: "anuadenuga-channel" },
+  ],
+  bella: [
+    { name: "Luna the Cat", status: "Let's meet at the park!", emoji: "🐈", badge: 2, slug: "luna-cat" },
+    { name: "Coco Parrot", status: "Sent a photo", emoji: "🦜", hasUnread: false, slug: "coco-parrot" },
+    { name: "Max the Husky", status: "Woof! 🐾", emoji: "🐕", badge: 1, slug: "max-husky" },
+  ],
+  whiskers: [
+    { name: "Mittens", status: "Found a new box!", emoji: "🐱", badge: 3, slug: "mittens" },
+    { name: "Shadow", status: "Nap time?", emoji: "🐈‍⬛", hasUnread: false, slug: "shadow" },
+  ],
+  spirit: [
+    { name: "Thunder", status: "Race you tomorrow!", emoji: "🐴", badge: 1, slug: "thunder" },
+    { name: "Star", status: "Great show today!", emoji: "⭐", hasUnread: false, slug: "star" },
+    { name: "Rider Club", status: "New event posted", emoji: "🏇", badge: 4, slug: "rider-club" },
+  ],
+};
 
 const Inbox = () => {
   const navigate = useNavigate();
+  const { activeProfile } = useAuth();
+
   const handleRefresh = useCallback(async () => {
     await new Promise((r) => setTimeout(r, 1200));
   }, []);
@@ -31,6 +47,15 @@ const Inbox = () => {
   const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: handleRefresh,
   });
+
+  const profileId = activeProfile?.id || "handler";
+  const profileType = activeProfile?.type || "handler";
+  const messages = useMemo(() => {
+    if (profileType === "handler") return allMessages.handler;
+    return allMessages[profileId] || [];
+  }, [profileId, profileType]);
+
+  const profileLabel = activeProfile ? activeProfile.name : "You";
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background">
@@ -42,6 +67,7 @@ const Inbox = () => {
         {/* Header */}
         <div className="px-5 pt-4 pb-2">
           <h1 className="text-xl font-bold text-foreground">Inbox</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Messages for {profileLabel}</p>
         </div>
 
         {/* Stories Row */}
@@ -70,7 +96,7 @@ const Inbox = () => {
           title="New followers"
           badge={2}
           items={[
-            { emoji: "✨", name: "FABULOUS", text: "started following you." },
+            { emoji: "✨", name: "FABULOUS", text: `started following ${profileLabel}.` },
           ]}
         />
 
@@ -101,33 +127,40 @@ const Inbox = () => {
             <span className="text-sm font-semibold text-foreground">Messages</span>
           </div>
 
-          <div className="flex flex-col gap-1">
-            {messages.map((m) => (
-              <button
-                key={m.name}
-                onClick={() => navigate(`/message/${m.slug}`)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-secondary/60 transition-colors w-full text-left"
-              >
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-xl border border-border shrink-0">
-                  {m.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
-                  {m.status && (
-                    <p className="text-xs text-muted-foreground truncate">{m.status}</p>
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <Send className="w-10 h-10 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No messages yet for {profileLabel}</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {messages.map((m) => (
+                <button
+                  key={m.slug}
+                  onClick={() => navigate(`/message/${m.slug}`)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-secondary/60 transition-colors w-full text-left"
+                >
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-xl border border-border shrink-0">
+                    {m.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
+                    {m.status && (
+                      <p className="text-xs text-muted-foreground truncate">{m.status}</p>
+                    )}
+                    {m.subtitle && (
+                      <p className="text-[11px] text-muted-foreground/60">{m.subtitle}</p>
+                    )}
+                  </div>
+                  {m.badge && (
+                    <span className="w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
+                      {m.badge}
+                    </span>
                   )}
-                  {m.subtitle && (
-                    <p className="text-[11px] text-muted-foreground/60">{m.subtitle}</p>
-                  )}
-                </div>
-                {m.badge && (
-                  <span className="w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
-                    {m.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 

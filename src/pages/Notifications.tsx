@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Settings, Heart, MessageCircle, UserPlus, Calendar, ShoppingBag, Bell, Check, CheckCheck } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Notification {
   id: number;
@@ -12,19 +13,25 @@ interface Notification {
   time: string;
   read: boolean;
   avatar: string;
+  profileId?: string; // which profile this notification belongs to
 }
 
-const initialNotifications: Notification[] = [
-  { id: 1, type: "like", title: "Bella got a like!", message: "🐕 @luna.cat liked Bella's photo", time: "2m ago", read: false, avatar: "🐈" },
-  { id: 2, type: "comment", title: "New comment", message: "🦜 @coco.parrot commented: 'So cute!'", time: "15m ago", read: false, avatar: "🦜" },
-  { id: 3, type: "follow", title: "New follower", message: "@dog.lover started following Bella", time: "1h ago", read: false, avatar: "🐕" },
-  { id: 4, type: "event", title: "Event reminder", message: "Dog Park Meetup starts in 2 hours", time: "2h ago", read: true, avatar: "📅" },
-  { id: 5, type: "order", title: "Order update", message: "Your Premium Dog Food has shipped!", time: "3h ago", read: true, avatar: "📦" },
-  { id: 6, type: "like", title: "Spirit got likes!", message: "5 people liked Spirit's new video", time: "4h ago", read: true, avatar: "🐴" },
-  { id: 7, type: "comment", title: "New comment", message: "@horse.fan replied to your comment", time: "5h ago", read: true, avatar: "💬" },
-  { id: 8, type: "system", title: "Welcome!", message: "Complete your profile to get more followers", time: "1d ago", read: true, avatar: "🐾" },
-  { id: 9, type: "follow", title: "New follower", message: "@petlover99 started following Spirit", time: "1d ago", read: true, avatar: "🐴" },
-  { id: 10, type: "event", title: "Event created", message: "Your 'Horse Show' event is live!", time: "2d ago", read: true, avatar: "🎪" },
+const allNotifications: Notification[] = [
+  // Bella's notifications
+  { id: 1, type: "like", title: "Bella got a like!", message: "🐈 @luna.cat liked Bella's photo", time: "2m ago", read: false, avatar: "🐈", profileId: "bella" },
+  { id: 2, type: "comment", title: "New comment", message: "🦜 @coco.parrot commented: 'So cute!'", time: "15m ago", read: false, avatar: "🦜", profileId: "bella" },
+  { id: 3, type: "follow", title: "New follower", message: "@dog.lover started following Bella", time: "1h ago", read: false, avatar: "🐕", profileId: "bella" },
+  { id: 4, type: "event", title: "Event reminder", message: "Dog Park Meetup starts in 2 hours", time: "2h ago", read: true, avatar: "📅", profileId: "bella" },
+  // Whiskers' notifications
+  { id: 5, type: "like", title: "Whiskers got likes!", message: "3 people liked Whiskers' box photo", time: "30m ago", read: false, avatar: "🐱", profileId: "whiskers" },
+  { id: 6, type: "follow", title: "New follower", message: "@catfan started following Whiskers", time: "3h ago", read: true, avatar: "🐱", profileId: "whiskers" },
+  // Spirit's notifications
+  { id: 7, type: "like", title: "Spirit got likes!", message: "5 people liked Spirit's new video", time: "4h ago", read: true, avatar: "🐴", profileId: "spirit" },
+  { id: 8, type: "comment", title: "New comment", message: "@horse.fan replied to your comment", time: "5h ago", read: true, avatar: "💬", profileId: "spirit" },
+  { id: 9, type: "event", title: "Event created", message: "Your 'Horse Show' event is live!", time: "2d ago", read: true, avatar: "🎪", profileId: "spirit" },
+  // Handler notifications
+  { id: 10, type: "order", title: "Order update", message: "Your Premium Dog Food has shipped!", time: "3h ago", read: true, avatar: "📦", profileId: "handler" },
+  { id: 11, type: "system", title: "Welcome!", message: "Complete your profile to get more followers", time: "1d ago", read: true, avatar: "🐾", profileId: "handler" },
 ];
 
 const iconMap = {
@@ -37,14 +44,22 @@ const iconMap = {
 };
 
 const Notifications = () => {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { activeProfile } = useAuth();
+  const [notifications, setNotifications] = useState(allNotifications);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
+  const profileId = activeProfile?.type === "animal" ? activeProfile.id : "handler";
+  const profileLabel = activeProfile ? activeProfile.name : "You";
+
+  const scopedNotifications = useMemo(() => {
+    return notifications.filter((n) => n.profileId === profileId);
+  }, [notifications, profileId]);
+
+  const unreadCount = scopedNotifications.filter((n) => !n.read).length;
+  const filtered = filter === "unread" ? scopedNotifications.filter((n) => !n.read) : scopedNotifications;
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => n.profileId === profileId ? { ...n, read: true } : n));
   };
 
   const markRead = (id: number) => {
@@ -79,6 +94,8 @@ const Notifications = () => {
             </div>
           </div>
 
+          <p className="text-xs text-muted-foreground mb-2">Showing for {profileLabel}</p>
+
           <div className="flex gap-2">
             <button
               onClick={() => setFilter("all")}
@@ -103,7 +120,9 @@ const Notifications = () => {
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Bell className="w-12 h-12 text-muted-foreground mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">No unread notifications</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                {filter === "unread" ? "No unread notifications" : `No notifications for ${profileLabel}`}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">You're all caught up! 🎉</p>
             </div>
           ) : (
