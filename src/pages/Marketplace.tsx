@@ -4,8 +4,6 @@ import { Search, X, SlidersHorizontal, Star, MapPin, ChevronRight, ShoppingBag, 
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import MobileHeader from "@/components/MobileHeader";
-import DesktopSidebar from "@/components/DesktopSidebar";
 
 const tabs = ["Products", "Services"] as const;
 
