@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, Heart, MessageCircle, Share2, Bookmark, Grid3X3, Lock, BookmarkCheck, ThumbsUp, CalendarDays, FileText, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, Eye, Heart, MessageCircle, Share2, Bookmark, Grid3X3, Lock, BookmarkCheck, ThumbsUp, CalendarDays, FileText, Play, RefreshCw, UserPlus } from "lucide-react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import { animalProfiles } from "@/data/animalProfiles";
@@ -7,7 +7,7 @@ import { animalFeeds } from "@/data/animalFeedData";
 import { useAuth } from "@/contexts/AuthContext";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const tabs = [
   { id: "feed", label: "Feed", icon: Play },
@@ -25,11 +25,13 @@ const AnimalProfile = () => {
   const [activeTab, setActiveTab] = useState("feed");
   const [feedIndex, setFeedIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const animal = animalProfiles.find((a) => a.id === animalId);
   const animalFeed = animalFeeds[animalId || ""] || [];
 
+  const isOwnAnimal = isAuthenticated && activeProfile?.type === "handler";
   const isActiveAnimal = activeProfile?.type === "animal" && activeProfile?.id === animalId;
 
   useEffect(() => {
@@ -67,6 +69,10 @@ const AnimalProfile = () => {
     });
   };
 
+  const handleMessage = () => {
+    navigate(`/message/${animal.id}`);
+  };
+
   const totalViews = animal.posts.reduce((s, p) => s + p.views, 0);
   const totalLikes = animal.posts.reduce((s, p) => s + p.likes, 0);
   const totalComments = animal.posts.reduce((s, p) => s + p.comments, 0);
@@ -80,9 +86,7 @@ const AnimalProfile = () => {
       <DesktopSidebar onEventsOpen={() => {}} />
 
       {activeTab === "feed" && animalFeed.length > 0 ? (
-        /* Full-screen feed view */
         <main className="h-full lg:ml-60 relative">
-          {/* Floating header */}
           <div className="absolute top-0 left-0 right-0 z-20 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] flex items-center gap-3">
             <button onClick={() => setActiveTab("posts")} className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
               <ArrowLeft className="w-5 h-5 text-white" />
@@ -109,15 +113,13 @@ const AnimalProfile = () => {
             )}
           </div>
 
-          {/* Video Feed */}
           <div ref={feedRef} className="h-full overflow-y-auto snap-y-mandatory scrollbar-hide">
-            {animalFeed.map((post, i) => (
+            {animalFeed.map((post) => (
               <div key={post.id} className="h-[100dvh] relative snap-start">
                 <div className="absolute inset-0">
                   <img src={post.posterUrl} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
                 </div>
-                {/* Caption */}
                 <div className="absolute bottom-24 left-0 right-16 px-4">
                   <p className="text-white text-sm font-medium mb-1">{post.caption}</p>
                   <p className="text-white/60 text-xs">{post.hashtags}</p>
@@ -132,7 +134,6 @@ const AnimalProfile = () => {
           )}
         </main>
       ) : (
-        /* Profile view */
         <main className="h-full lg:ml-60 overflow-y-auto pb-20 lg:pb-0">
           {/* Top Bar */}
           <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
@@ -143,7 +144,7 @@ const AnimalProfile = () => {
               <h1 className="text-base font-semibold text-foreground truncate">{animal.name}</h1>
               <p className="text-xs text-muted-foreground">{animal.breed} · {animal.age}</p>
             </div>
-            {isAuthenticated && !isActiveAnimal && (
+            {isAuthenticated && isOwnAnimal && !isActiveAnimal && (
               <button onClick={handleSwitchToAnimal} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
                 <RefreshCw className="w-3.5 h-3.5" />
                 Switch to {animal.name}
@@ -169,12 +170,37 @@ const AnimalProfile = () => {
             </div>
             <h2 className="mt-3 text-xl font-bold text-foreground">{animal.name}</h2>
             <p className="text-sm text-muted-foreground">{animal.username}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{animal.breed} · {animal.age}</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">{animal.bio}</p>
+
+            {/* Follow + Message Buttons (visible to non-owners) */}
+            {isAuthenticated && !isOwnAnimal && !isActiveAnimal && (
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setIsFollowing(!isFollowing)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    isFollowing
+                      ? "bg-secondary text-secondary-foreground border border-border"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+                <button
+                  onClick={handleMessage}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Message
+                </button>
+              </div>
+            )}
 
             {/* Stats Row */}
             <div className="flex gap-8 mt-4">
               <StatBlock value={formatNum(animal.following)} label="Following" />
-              <StatBlock value={formatNum(animal.followers)} label="Followers" />
+              <StatBlock value={formatNum(animal.followers + (isFollowing ? 1 : 0))} label="Followers" />
               <StatBlock value={formatNum(animal.likes)} label="Likes" />
             </div>
           </div>
