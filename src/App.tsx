@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { MessagingProvider } from "@/contexts/MessagingContext";
 import Feed from "./pages/Feed";
 import Landing from "./pages/Landing";
 import HandlerProfile from "./pages/HandlerProfile";
@@ -33,6 +34,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        <MessagingProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
@@ -53,6 +55,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </MessagingProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
