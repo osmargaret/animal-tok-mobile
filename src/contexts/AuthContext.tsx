@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export interface MockUser {
   id: string;
@@ -36,38 +36,61 @@ export const useAuth = () => {
 };
 
 const MOCK_USER: MockUser = {
-  id: "1",
+  id: "handler-1",
   name: "Alex Morgan",
   username: "@alex.morgan",
   email: "alex@example.com",
   avatar: "🐾",
 };
 
+const USER_KEY = "animaltok_user";
+const PROFILE_KEY = "animaltok_active_profile";
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<MockUser | null>(null);
-  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(null);
+  const [user, setUser] = useState<MockUser | null>(() => {
+    try {
+      const raw = localStorage.getItem(USER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(() => {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_KEY);
+  }, [user]);
+
+  useEffect(() => {
+    if (activeProfile) localStorage.setItem(PROFILE_KEY, JSON.stringify(activeProfile));
+    else localStorage.removeItem(PROFILE_KEY);
+  }, [activeProfile]);
+
+  const handlerProfile = (u: MockUser): ActiveProfile => ({
+    id: u.id,
+    name: u.name,
+    username: u.username,
+    avatar: u.avatar,
+    type: "handler",
+  });
 
   const login = (_email: string, _password: string) => {
     setUser(MOCK_USER);
-    setActiveProfile({
-      id: MOCK_USER.id,
-      name: MOCK_USER.name,
-      username: MOCK_USER.username,
-      avatar: MOCK_USER.avatar,
-      type: "handler",
-    });
+    setActiveProfile(handlerProfile(MOCK_USER));
   };
 
   const signup = (name: string, email: string, username: string) => {
     const newUser = { ...MOCK_USER, name, email, username: `@${username}` };
     setUser(newUser);
-    setActiveProfile({
-      id: newUser.id,
-      name: newUser.name,
-      username: newUser.username,
-      avatar: newUser.avatar,
-      type: "handler",
-    });
+    setActiveProfile(handlerProfile(newUser));
   };
 
   const logout = () => {
@@ -75,24 +98,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setActiveProfile(null);
   };
 
-  const switchProfile = (profile: ActiveProfile) => {
-    setActiveProfile(profile);
-  };
+  const switchProfile = (profile: ActiveProfile) => setActiveProfile(profile);
 
   const switchToHandler = () => {
-    if (user) {
-      setActiveProfile({
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        avatar: user.avatar,
-        type: "handler",
-      });
-    }
+    if (user) setActiveProfile(handlerProfile(user));
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, activeProfile, login, signup, logout, switchProfile, switchToHandler }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        activeProfile,
+        login,
+        signup,
+        logout,
+        switchProfile,
+        switchToHandler,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
