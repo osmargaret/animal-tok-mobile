@@ -4,11 +4,13 @@ import { Search, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthModal from "@/components/AuthModal";
 import HamburgerMenu from "@/components/HamburgerMenu";
+import ProfileSwitcherModal from "@/components/ProfileSwitcherModal";
 
 const MobileHeader = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, activeProfile } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -20,13 +22,27 @@ const MobileHeader = () => {
             <span className="text-base font-bold text-foreground">AnimalTok</span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-muted-foreground" onClick={() => navigate("/explore")}>
+            <button className="text-muted-foreground" onClick={() => navigate("/explore")} aria-label="Search">
               <Search className="w-5 h-5" />
             </button>
             {isAuthenticated && user ? (
-              <button onClick={() => setMenuOpen(true)} className="text-muted-foreground">
-                <Menu className="w-5 h-5" />
-              </button>
+              <>
+                <button
+                  onClick={() => setSwitcherOpen(true)}
+                  aria-label="Switch profile"
+                  className="relative w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-lg border border-primary/40 active:scale-95 transition-transform"
+                >
+                  {activeProfile?.avatar || user.avatar}
+                  <span
+                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
+                      activeProfile?.type === "animal" ? "bg-green-500" : "bg-primary"
+                    }`}
+                  />
+                </button>
+                <button onClick={() => setMenuOpen(true)} className="text-muted-foreground" aria-label="Menu">
+                  <Menu className="w-5 h-5" />
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => setAuthOpen(true)}
@@ -40,6 +56,7 @@ const MobileHeader = () => {
       </header>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <ProfileSwitcherModal open={switcherOpen} onClose={() => setSwitcherOpen(false)} />
     </>
   );
 };
