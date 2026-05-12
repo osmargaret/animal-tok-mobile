@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { animalProfiles } from "@/data/animalProfiles";
 
 export type MessageType = "text" | "image" | "video" | "document" | "voice" | "location";
@@ -10,6 +10,9 @@ export interface ChatMessage {
   text?: string;
   fileName?: string;
   duration?: string;
+  /** data URL or blob URL for image/video/voice */
+  mediaUrl?: string;
+  mediaMime?: string;
   createdAt: number;
 }
 
@@ -27,6 +30,11 @@ interface MessagingContextType {
   sendMessage: (myId: string, otherId: string, msg: Omit<ChatMessage, "id" | "createdAt" | "senderId">) => void;
   conversationsFor: (myId: string) => Array<{ contact: ChatContact; lastMessage?: ChatMessage; unread: number }>;
   markRead: (myId: string, otherId: string) => void;
+  unreadTotal: (myId: string) => number;
+  /** mark current user as typing (auto-expires after ~3s) */
+  setTyping: (myId: string, otherId: string) => void;
+  /** is the OTHER side currently typing? */
+  isTyping: (myId: string, otherId: string) => boolean;
 }
 
 const MessagingContext = createContext<MessagingContextType | null>(null);
@@ -90,8 +98,25 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
+  // typing state: { [convKey]: { [userId]: lastTypedTimestamp } } — kept in memory + tiny tick
+  const [typing, setTypingState] = useState<Record<string, Record<string, number>>>({});
+  const [, force] = useState(0);
+  const tickRef = useRef<number | null>(null);
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    // Re-render every 1s so "typing..." cleans up after 3s
+    tickRef.current = window.setInterval(() => force((n) => n + 1), 1000);
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    } catch {
+      // payload too large (e.g. base64 images) — skip persisting
+    }
   }, [conversations]);
 
   useEffect(() => {
@@ -120,7 +145,7 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     const key = conversationKey(myId, otherId);
     const newMsg: ChatMessage = {
       ...msg,
-      id: `${myId}-${Date.now()}`,
+      id: `${myId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       senderId: myId,
       createdAt: Date.now(),
     };
@@ -128,6 +153,12 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
       ...prev,
       [key]: [...(prev[key] || []), newMsg],
     }));
+    // sender stops typing
+    setTypingState((prev) => {
+      const conv = { ...(prev[key] || {}) };
+      delete conv[myId];
+      return { ...prev, [key]: conv };
+    });
   };
 
   const markRead = (myId: string, otherId: string) => {
@@ -153,9 +184,37 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
       .sort((a, b) => (b.lastMessage?.createdAt ?? 0) - (a.lastMessage?.createdAt ?? 0));
   };
 
+  const unreadTotal = (myId: string) =>
+    conversationsFor(myId).reduce((sum, c) => sum + c.unread, 0);
+
+  const setTyping: MessagingContextType["setTyping"] = (myId, otherId) => {
+    const key = conversationKey(myId, otherId);
+    setTypingState((prev) => ({
+      ...prev,
+      [key]: { ...(prev[key] || {}), [myId]: Date.now() },
+    }));
+  };
+
+  const isTyping: MessagingContextType["isTyping"] = (myId, otherId) => {
+    const key = conversationKey(myId, otherId);
+    const ts = typing[key]?.[otherId];
+    if (!ts) return false;
+    return Date.now() - ts < 3000;
+  };
+
   return (
     <MessagingContext.Provider
-      value={{ contacts, getContact, getConversation, sendMessage, conversationsFor, markRead }}
+      value={{
+        contacts,
+        getContact,
+        getConversation,
+        sendMessage,
+        conversationsFor,
+        markRead,
+        unreadTotal,
+        setTyping,
+        isTyping,
+      }}
     >
       {children}
     </MessagingContext.Provider>
