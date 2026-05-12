@@ -23,7 +23,7 @@ const MessageView = () => {
   const navigate = useNavigate();
   const { contactId } = useParams<{ contactId: string }>();
   const { activeProfile } = useAuth();
-  const { getContact, getConversation, sendMessage, markRead } = useMessaging();
+  const { getContact, getConversation, sendMessage, markRead, setTyping, isTyping } = useMessaging();
 
   const myId = activeProfile?.id || "";
   const contact = getContact(contactId || "");
@@ -37,6 +37,10 @@ const MessageView = () => {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,43 +61,120 @@ const MessageView = () => {
     );
   }
 
-  const send = (type: ChatMessage["type"], text?: string, fileName?: string, duration?: string) => {
-    sendMessage(myId, contactId, { type, text, fileName, duration });
+  const otherTyping = isTyping(myId, contactId);
+
+  const send = (msg: Omit<ChatMessage, "id" | "createdAt" | "senderId">) => {
+    sendMessage(myId, contactId, msg);
   };
 
   const handleSend = () => {
     if (!inputText.trim()) return;
-    send("text", inputText.trim());
+    send({ type: "text", text: inputText.trim() });
     setInputText("");
   };
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+  const handleInputChange = (v: string) => {
+    setInputText(v);
+    if (v.trim()) setTyping(myId, contactId);
+  };
+
+  const handlePickPhoto = () => {
+    setShowAttachMenu(false);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      send({
+        type: file.type.startsWith("video/") ? "video" : "image",
+        mediaUrl: url,
+        mediaMime: file.type,
+        fileName: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) recordedChunksRef.current.push(ev.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onload = () => {
+          const mins = Math.floor(recordingTime / 60);
+          const secs = recordingTime % 60;
+          send({
+            type: "voice",
+            mediaUrl: reader.result as string,
+            mediaMime: "audio/webm",
+            duration: `${mins}:${secs.toString().padStart(2, "0")}`,
+          });
+          setRecordingTime(0);
+        };
+        reader.readAsDataURL(blob);
+      };
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch (err) {
+      toast.error("Microphone access denied");
+    }
   };
 
   const stopRecording = () => {
     setIsRecording(false);
     if (recordingInterval.current) clearInterval(recordingInterval.current);
-    const mins = Math.floor(recordingTime / 60);
-    const secs = recordingTime % 60;
-    send("voice", undefined, undefined, `${mins}:${secs.toString().padStart(2, "0")}`);
-    setRecordingTime(0);
+    mediaRecorderRef.current?.stop();
   };
 
   const cancelRecording = () => {
     setIsRecording(false);
     if (recordingInterval.current) clearInterval(recordingInterval.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current?.stream.getTracks().forEach((t) => t.stop());
+      };
+      mediaRecorderRef.current.stop();
+    }
+    recordedChunksRef.current = [];
     setRecordingTime(0);
   };
 
   const handleAttachment = (type: "image" | "video" | "document" | "location") => {
+    if (type === "image" || type === "video") return handlePickPhoto();
     setShowAttachMenu(false);
-    if (type === "location") send("location", "📍 Shared location");
-    else if (type === "image") send("image", "📷 Photo");
-    else if (type === "video") send("video", "🎬 Video");
-    else send("document", "📄 Document", undefined, undefined);
+    if (type === "location") send({ type: "location", text: "📍 Shared location" });
+    else send({ type: "document", text: "📄 Document", fileName: "Document.pdf" });
+  };
+
+  const togglePlay = (msgId: string) => {
+    const audio = audioRefs.current[msgId];
+    if (!audio) return;
+    if (playingVoice === msgId) {
+      audio.pause();
+      setPlayingVoice(null);
+    } else {
+      // pause others
+      Object.entries(audioRefs.current).forEach(([id, a]) => {
+        if (id !== msgId && a) a.pause();
+      });
+      audio.play().catch(() => toast.error("Could not play voice note"));
+      setPlayingVoice(msgId);
+    }
   };
 
   const formatRecordTime = (s: number) => {
@@ -110,26 +191,43 @@ const MessageView = () => {
     return (
       <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} mb-2`}>
         <div
-          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+          className={`max-w-[75%] rounded-2xl px-3 py-2 ${
             isMe
               ? "bg-primary text-primary-foreground rounded-br-md"
               : "bg-card border border-border text-foreground rounded-bl-md"
           }`}
         >
-          {msg.type === "text" && <p className="text-sm leading-relaxed">{msg.text}</p>}
+          {msg.type === "text" && <p className="text-sm leading-relaxed px-1">{msg.text}</p>}
 
           {msg.type === "image" && (
             <div>
-              <div className={`w-48 h-32 rounded-lg mb-1 flex items-center justify-center text-4xl ${isMe ? "bg-primary-foreground/10" : "bg-secondary"}`}>
-                📷
-              </div>
-              <p className="text-xs opacity-70">Photo</p>
+              {msg.mediaUrl ? (
+                <img
+                  src={msg.mediaUrl}
+                  alt={msg.fileName || "Photo"}
+                  className="max-w-[240px] max-h-[280px] rounded-lg object-cover"
+                />
+              ) : (
+                <div className={`w-48 h-32 rounded-lg flex items-center justify-center text-4xl ${isMe ? "bg-primary-foreground/10" : "bg-secondary"}`}>
+                  📷
+                </div>
+              )}
             </div>
           )}
 
           {msg.type === "video" && (
-            <div className={`w-48 h-32 rounded-lg flex items-center justify-center relative ${isMe ? "bg-primary-foreground/10" : "bg-secondary"}`}>
-              <span className="text-4xl">🎬</span>
+            <div>
+              {msg.mediaUrl ? (
+                <video
+                  src={msg.mediaUrl}
+                  controls
+                  className="max-w-[240px] max-h-[280px] rounded-lg"
+                />
+              ) : (
+                <div className={`w-48 h-32 rounded-lg flex items-center justify-center ${isMe ? "bg-primary-foreground/10" : "bg-secondary"}`}>
+                  <span className="text-4xl">🎬</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -144,14 +242,31 @@ const MessageView = () => {
           )}
 
           {msg.type === "voice" && (
-            <div className="flex items-center gap-2 min-w-[160px]">
+            <div className="flex items-center gap-2 min-w-[180px] py-1">
               <button
-                onClick={() => setPlayingVoice(playingVoice === msg.id ? null : msg.id)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isMe ? "bg-primary-foreground/20" : "bg-primary/20"}`}
+                onClick={() => togglePlay(msg.id)}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isMe ? "bg-primary-foreground/20" : "bg-primary/20"}`}
               >
                 {playingVoice === msg.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               </button>
-              <p className="text-xs opacity-70">{msg.duration}</p>
+              <div className="flex-1 flex items-center gap-0.5 h-6">
+                {Array.from({ length: 18 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`w-0.5 rounded-full ${isMe ? "bg-primary-foreground/60" : "bg-primary/60"}`}
+                    style={{ height: `${30 + Math.abs(Math.sin(i * 1.3)) * 70}%` }}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] opacity-70 shrink-0">{msg.duration}</span>
+              {msg.mediaUrl && (
+                <audio
+                  ref={(el) => (audioRefs.current[msg.id] = el)}
+                  src={msg.mediaUrl}
+                  onEnded={() => setPlayingVoice(null)}
+                  className="hidden"
+                />
+              )}
             </div>
           )}
 
@@ -184,7 +299,20 @@ const MessageView = () => {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{contact.name}</p>
           <p className="text-xs text-muted-foreground truncate">
-            {contact.subtitle ? `${contact.subtitle} · ` : ""}You're chatting as {activeProfile?.name}
+            {otherTyping ? (
+              <span className="text-primary font-medium inline-flex items-center gap-1">
+                typing
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                </span>
+              </span>
+            ) : (
+              <>
+                {contact.subtitle ? `${contact.subtitle} · ` : ""}You're chatting as {activeProfile?.name}
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -219,10 +347,27 @@ const MessageView = () => {
               </span>
             </div>
             {messages.map(renderMessage)}
+            {otherTyping && (
+              <div className="flex justify-start mb-2">
+                <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3 inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            )}
           </>
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
 
       {isRecording && (
         <div className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border-t border-border shrink-0">
@@ -243,7 +388,7 @@ const MessageView = () => {
       {showAttachMenu && (
         <div className="px-4 py-3 bg-card border-t border-border grid grid-cols-4 gap-3 shrink-0">
           {[
-            { icon: ImageIcon, label: "Image", type: "image" as const, color: "text-green-500" },
+            { icon: ImageIcon, label: "Photo", type: "image" as const, color: "text-green-500" },
             { icon: Video, label: "Video", type: "video" as const, color: "text-blue-500" },
             { icon: FileText, label: "Document", type: "document" as const, color: "text-orange-500" },
             { icon: MapPin, label: "Location", type: "location" as const, color: "text-red-500" },
@@ -274,7 +419,7 @@ const MessageView = () => {
             <input
               type="text"
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -290,7 +435,7 @@ const MessageView = () => {
               <Send className="w-5 h-5 text-primary-foreground" />
             </button>
           ) : (
-            <button onMouseDown={startRecording} className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+            <button onClick={startRecording} className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
               <Mic className="w-5 h-5 text-primary-foreground" />
             </button>
           )}
