@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
+import { EngagementProvider } from "@/contexts/EngagementContext";
+import CreateAd from "./pages/CreateAd";
 import Feed from "./pages/Feed";
 import Landing from "./pages/Landing";
 import HandlerProfile from "./pages/HandlerProfile";
@@ -34,6 +36,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        <EngagementProvider>
         <MessagingProvider>
         <BrowserRouter>
           <Routes>
@@ -44,6 +47,7 @@ const App = () => (
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+            <Route path="/create-ad" element={<ProtectedRoute><CreateAd /></ProtectedRoute>} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
             <Route path="/marketplace" element={<Marketplace />} />
@@ -56,6 +60,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
         </MessagingProvider>
+        </EngagementProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

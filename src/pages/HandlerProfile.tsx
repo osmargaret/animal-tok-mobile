@@ -1,10 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 
 const pets = [
   {
@@ -35,8 +35,10 @@ const pets = [
 
 const HandlerProfile = () => {
   const { user, isAuthenticated, activeProfile } = useAuth();
+  const { isFollowing: getFollowing, toggleFollow } = useEngagement();
   const navigate = useNavigate();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const handlerId = user?.id || "handler-1";
+  const isFollowing = activeProfile ? getFollowing(activeProfile.id, handlerId) : false;
 
   // If viewing as another profile (not the handler themselves), show follow/message
   const isOwnProfile = isAuthenticated && activeProfile?.type === "handler";
@@ -84,7 +86,7 @@ const HandlerProfile = () => {
           {isAuthenticated && !isOwnProfile && (
             <div className="flex gap-3 mt-4">
               <button
-                onClick={() => setIsFollowing(!isFollowing)}
+                onClick={() => activeProfile && toggleFollow(activeProfile.id, handlerId)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                   isFollowing
                     ? "bg-secondary text-secondary-foreground border border-border"

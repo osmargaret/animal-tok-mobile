@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import { animalProfiles } from "@/data/animalProfiles";
 import { animalFeeds } from "@/data/animalFeedData";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
 import { useState, useRef, useEffect } from "react";
@@ -22,10 +23,10 @@ const AnimalProfile = () => {
   const { animalId } = useParams();
   const navigate = useNavigate();
   const { activeProfile, switchProfile, isAuthenticated } = useAuth();
+  const { isFollowing: getFollowing, toggleFollow } = useEngagement();
   const [activeTab, setActiveTab] = useState("feed");
   const [feedIndex, setFeedIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const animal = animalProfiles.find((a) => a.id === animalId);
@@ -71,6 +72,11 @@ const AnimalProfile = () => {
 
   const handleMessage = () => {
     navigate(`/message/${animal.id}`);
+  };
+
+  const isFollowing = activeProfile ? getFollowing(activeProfile.id, animal.id) : false;
+  const handleToggleFollow = () => {
+    if (activeProfile) toggleFollow(activeProfile.id, animal.id);
   };
 
   const totalViews = animal.posts.reduce((s, p) => s + p.views, 0);
@@ -177,7 +183,7 @@ const AnimalProfile = () => {
             {isAuthenticated && !isOwnAnimal && !isActiveAnimal && (
               <div className="flex gap-3 mt-4">
                 <button
-                  onClick={() => setIsFollowing(!isFollowing)}
+                  onClick={handleToggleFollow}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                     isFollowing
                       ? "bg-secondary text-secondary-foreground border border-border"

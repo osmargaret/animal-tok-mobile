@@ -1,0 +1,347 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+
+/* --------------------------------- Types --------------------------------- */
+
+export type AppNotification = {
+  id: string;
+  type: "like" | "comment" | "follow" | "event" | "order" | "system" | "message" | "ad" | "booking";
+  title: string;
+  message: string;
+  avatar: string;
+  time: number;
+  read: boolean;
+  /** profile this notification belongs to */
+  profileId: string;
+  /** for type="message", the other contact id so we can clear on open */
+  contactId?: string;
+};
+
+export type CartItem = {
+  id: string;
+  productId: number;
+  name: string;
+  price: number;
+  qty: number;
+  image: string;
+  addedBy: string; // active profile id
+};
+
+export type Booking = {
+  id: string;
+  serviceId: number;
+  serviceName: string;
+  date: string;
+  time: string;
+  bookedBy: string;
+  createdAt: number;
+};
+
+export type AdMedia = "image" | "video" | "text";
+export type Ad = {
+  id: string;
+  type: AdMedia;
+  title: string;
+  body: string;
+  mediaUrl?: string;
+  ctaUrl?: string;
+  createdBy: string;
+  createdAt: number;
+};
+
+export type Comment = {
+  id: string;
+  postId: number | string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  text: string;
+  createdAt: number;
+};
+
+interface EngagementContextType {
+  // Likes per (profileId, postId)
+  isLiked: (profileId: string, postId: number | string) => boolean;
+  toggleLike: (profileId: string, postId: number | string, postOwnerProfileId?: string) => void;
+  likeCountFor: (postId: number | string, base?: number) => number;
+
+  // Saves per (profileId, postId)
+  isSaved: (profileId: string, postId: number | string) => boolean;
+  toggleSave: (profileId: string, postId: number | string) => void;
+
+  // Follows: who profileId follows
+  isFollowing: (profileId: string, targetId: string) => boolean;
+  toggleFollow: (profileId: string, targetId: string) => void;
+
+  // Comments per post
+  commentsFor: (postId: number | string) => Comment[];
+  addComment: (profileId: string, profileName: string, profileAvatar: string, postId: number | string, text: string, postOwnerProfileId?: string) => void;
+
+  // Notifications
+  notifications: AppNotification[];
+  addNotification: (n: Omit<AppNotification, "id" | "time" | "read">) => void;
+  markNotificationRead: (id: string) => void;
+  markAllRead: (profileId: string) => void;
+  clearMessageNotifications: (profileId: string, contactId: string) => void;
+  unreadCountFor: (profileId: string) => number;
+
+  // Cart
+  cart: CartItem[];
+  addToCart: (profileId: string, item: Omit<CartItem, "id" | "addedBy">) => void;
+  cartCount: (profileId: string) => number;
+
+  // Bookings
+  bookings: Booking[];
+  addBooking: (profileId: string, b: Omit<Booking, "id" | "bookedBy" | "createdAt">) => void;
+
+  // Ads
+  ads: Ad[];
+  addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt">) => void;
+}
+
+const EngagementContext = createContext<EngagementContextType | null>(null);
+
+export const useEngagement = () => {
+  const ctx = useContext(EngagementContext);
+  if (!ctx) throw new Error("useEngagement must be used within EngagementProvider");
+  return ctx;
+};
+
+/* ------------------------------- Persistence ------------------------------ */
+
+const persisted = <T,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const useStored = <T,>(key: string, initial: T) => {
+  const [v, setV] = useState<T>(() => persisted(key, initial));
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(v));
+    } catch {}
+  }, [key, v]);
+  return [v, setV] as const;
+};
+
+/* -------------------------------- Provider -------------------------------- */
+
+const k = (a: string, b: string | number) => `${a}::${b}`;
+
+export const EngagementProvider = ({ children }: { children: ReactNode }) => {
+  const [likes, setLikes] = useStored<Record<string, true>>("at_likes", {});
+  const [saves, setSaves] = useStored<Record<string, true>>("at_saves", {});
+  const [follows, setFollows] = useStored<Record<string, true>>("at_follows", {});
+  const [comments, setComments] = useStored<Record<string, Comment[]>>("at_comments", {});
+  const [notifications, setNotifications] = useStored<AppNotification[]>("at_notifs", []);
+  const [cart, setCart] = useStored<CartItem[]>("at_cart", []);
+  const [bookings, setBookings] = useStored<Booking[]>("at_bookings", []);
+  const [ads, setAds] = useStored<Ad[]>("at_ads", []);
+
+  const addNotification: EngagementContextType["addNotification"] = useCallback((n) => {
+    setNotifications((prev) => [
+      { ...n, id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, time: Date.now(), read: false },
+      ...prev,
+    ]);
+  }, [setNotifications]);
+
+  // Bridge: messaging dispatches custom events when a message is sent
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        recipientId: string;
+        senderName: string;
+        senderAvatar: string;
+        contactId: string;
+        preview: string;
+      };
+      addNotification({
+        type: "message",
+        profileId: detail.recipientId,
+        contactId: detail.contactId,
+        title: `New message from ${detail.senderName}`,
+        message: detail.preview,
+        avatar: detail.senderAvatar,
+      });
+    };
+    window.addEventListener("animaltok:message", handler);
+    return () => window.removeEventListener("animaltok:message", handler);
+  }, [addNotification]);
+
+  /* ------------------------------ Likes/saves ----------------------------- */
+  const isLiked = (profileId: string, postId: number | string) => !!likes[k(profileId, postId)];
+  const toggleLike: EngagementContextType["toggleLike"] = (profileId, postId, postOwnerProfileId) => {
+    setLikes((prev) => {
+      const key = k(profileId, postId);
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else {
+        next[key] = true;
+        if (postOwnerProfileId && postOwnerProfileId !== profileId) {
+          addNotification({
+            type: "like",
+            profileId: postOwnerProfileId,
+            title: "New like",
+            message: `Someone liked your post`,
+            avatar: "❤️",
+          });
+        }
+      }
+      return next;
+    });
+  };
+  const likeCountFor = (postId: number | string, base = 0) => {
+    return base + Object.keys(likes).filter((key) => key.endsWith(`::${postId}`)).length;
+  };
+
+  const isSaved = (profileId: string, postId: number | string) => !!saves[k(profileId, postId)];
+  const toggleSave: EngagementContextType["toggleSave"] = (profileId, postId) => {
+    setSaves((prev) => {
+      const key = k(profileId, postId);
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = true;
+      return next;
+    });
+  };
+
+  /* -------------------------------- Follows ------------------------------- */
+  const isFollowing = (profileId: string, targetId: string) => !!follows[k(profileId, targetId)];
+  const toggleFollow: EngagementContextType["toggleFollow"] = (profileId, targetId) => {
+    setFollows((prev) => {
+      const key = k(profileId, targetId);
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else {
+        next[key] = true;
+        addNotification({
+          type: "follow",
+          profileId: targetId,
+          title: "New follower",
+          message: `${profileId} started following you`,
+          avatar: "👥",
+        });
+      }
+      return next;
+    });
+  };
+
+  /* -------------------------------- Comments ------------------------------ */
+  const commentsFor = (postId: number | string) => comments[String(postId)] || [];
+  const addComment: EngagementContextType["addComment"] = (profileId, profileName, profileAvatar, postId, text, postOwnerProfileId) => {
+    if (!text.trim()) return;
+    const c: Comment = {
+      id: `c-${Date.now()}`,
+      postId,
+      authorId: profileId,
+      authorName: profileName,
+      authorAvatar: profileAvatar,
+      text: text.trim(),
+      createdAt: Date.now(),
+    };
+    setComments((prev) => ({ ...prev, [String(postId)]: [...(prev[String(postId)] || []), c] }));
+    if (postOwnerProfileId && postOwnerProfileId !== profileId) {
+      addNotification({
+        type: "comment",
+        profileId: postOwnerProfileId,
+        title: "New comment",
+        message: `${profileName}: ${text.trim().slice(0, 60)}`,
+        avatar: profileAvatar,
+      });
+    }
+  };
+
+  /* ----------------------------- Notifications ---------------------------- */
+  const markNotificationRead = (id: string) =>
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const markAllRead = (profileId: string) =>
+    setNotifications((prev) => prev.map((n) => (n.profileId === profileId ? { ...n, read: true } : n)));
+  const clearMessageNotifications = (profileId: string, contactId: string) =>
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.profileId === profileId && n.type === "message" && n.contactId === contactId ? { ...n, read: true } : n
+      )
+    );
+  const unreadCountFor = useCallback(
+    (profileId: string) => notifications.filter((n) => n.profileId === profileId && !n.read).length,
+    [notifications]
+  );
+
+  /* -------------------------------- Cart --------------------------------- */
+  const addToCart: EngagementContextType["addToCart"] = (profileId, item) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.productId === item.productId && c.addedBy === profileId);
+      if (existing) {
+        return prev.map((c) =>
+          c.id === existing.id ? { ...c, qty: c.qty + item.qty } : c
+        );
+      }
+      return [
+        ...prev,
+        { ...item, id: `cart-${Date.now()}-${item.productId}`, addedBy: profileId },
+      ];
+    });
+  };
+  const cartCount = (profileId: string) =>
+    cart.filter((c) => c.addedBy === profileId).reduce((s, c) => s + c.qty, 0);
+
+  /* ------------------------------ Bookings ------------------------------- */
+  const addBooking: EngagementContextType["addBooking"] = (profileId, b) => {
+    const booking: Booking = { ...b, id: `b-${Date.now()}`, bookedBy: profileId, createdAt: Date.now() };
+    setBookings((prev) => [booking, ...prev]);
+    addNotification({
+      type: "booking",
+      profileId,
+      title: "Booking confirmed",
+      message: `${b.serviceName} on ${b.date} at ${b.time}`,
+      avatar: "📅",
+    });
+  };
+
+  /* --------------------------------- Ads --------------------------------- */
+  const addAd: EngagementContextType["addAd"] = (profileId, a) => {
+    const ad: Ad = { ...a, id: `ad-${Date.now()}`, createdBy: profileId, createdAt: Date.now() };
+    setAds((prev) => [ad, ...prev]);
+    addNotification({
+      type: "ad",
+      profileId,
+      title: "Ad published 🎉",
+      message: a.title,
+      avatar: "📢",
+    });
+  };
+
+  const value = useMemo<EngagementContextType>(
+    () => ({
+      isLiked,
+      toggleLike,
+      likeCountFor,
+      isSaved,
+      toggleSave,
+      isFollowing,
+      toggleFollow,
+      commentsFor,
+      addComment,
+      notifications,
+      addNotification,
+      markNotificationRead,
+      markAllRead,
+      clearMessageNotifications,
+      unreadCountFor,
+      cart,
+      addToCart,
+      cartCount,
+      bookings,
+      addBooking,
+      ads,
+      addAd,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [likes, saves, follows, comments, notifications, cart, bookings, ads]
+  );
+
+  return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;
+};

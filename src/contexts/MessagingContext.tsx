@@ -159,6 +159,26 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
       delete conv[myId];
       return { ...prev, [key]: conv };
     });
+    // Notify the recipient profile (engagement context listens for this)
+    const sender = contacts.find((c) => c.id === myId);
+    const previewText =
+      msg.type === "text" ? msg.text || "" :
+      msg.type === "image" ? "📷 Photo" :
+      msg.type === "video" ? "🎬 Video" :
+      msg.type === "voice" ? `🎙️ Voice note${msg.duration ? ` · ${msg.duration}` : ""}` :
+      msg.type === "document" ? "📄 Document" :
+      msg.type === "location" ? "📍 Location" : "";
+    window.dispatchEvent(
+      new CustomEvent("animaltok:message", {
+        detail: {
+          recipientId: otherId,
+          senderName: sender?.name || "Someone",
+          senderAvatar: sender?.emoji || "💬",
+          contactId: myId,
+          preview: previewText,
+        },
+      })
+    );
   };
 
   const markRead = (myId: string, otherId: string) => {
