@@ -8,6 +8,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Send, MessageCircle, Search, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessaging } from "@/contexts/MessagingContext";
+import { previewForMessage } from "@/lib/messagePreview";
 
 const formatTime = (ts: number) => {
   const d = new Date(ts);
@@ -145,20 +146,7 @@ const Inbox = () => {
           ) : (
             <div className="flex flex-col gap-1">
               {conversations.map(({ contact, lastMessage, unread }) => {
-                const preview =
-                  lastMessage?.type === "text"
-                    ? lastMessage.text
-                    : lastMessage?.type === "image"
-                    ? "📷 Photo"
-                    : lastMessage?.type === "voice"
-                    ? `🎙️ Voice note ${lastMessage.duration ?? ""}`
-                    : lastMessage?.type === "video"
-                    ? "🎬 Video"
-                    : lastMessage?.type === "document"
-                    ? "📄 Document"
-                    : lastMessage?.type === "location"
-                    ? "📍 Location"
-                    : "";
+                const preview = previewForMessage(lastMessage);
                 return (
                   <button
                     key={contact.id}
