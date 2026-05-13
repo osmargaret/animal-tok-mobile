@@ -176,12 +176,43 @@ const ServiceDetail = () => {
           <button className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
             <Share2 className="w-5 h-5" />
           </button>
-          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors">
+          <button onClick={() => setBookingOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors">
             <Calendar className="w-4 h-4" />
             Book Now
           </button>
         </div>
       </div>
+
+      {bookingOpen && (
+        <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm flex items-end lg:items-center justify-center p-0 lg:p-4" onClick={() => setBookingOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-card rounded-t-2xl lg:rounded-2xl border border-border p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold">Book {service.name}</h3>
+              <button onClick={() => setBookingOpen(false)} className="p-1.5 rounded-full hover:bg-secondary">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">Booking as {activeProfile?.name || "Guest"}</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Date</label>
+                <input type="date" min={todayStr} value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-secondary rounded-xl px-4 py-2.5 text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Time</label>
+                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-secondary rounded-xl px-4 py-2.5 text-sm outline-none" />
+              </div>
+              <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
+                <span className="text-muted-foreground">Estimated</span>
+                <span className="font-semibold text-primary">{service.price}</span>
+              </div>
+              <button onClick={handleBook} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">
+                Confirm Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
