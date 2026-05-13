@@ -498,8 +498,7 @@ const MessageView = () => {
           </div>
         </div>
       )}
-        </div>
-      )}
+
 
       {showCallModal && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center">
