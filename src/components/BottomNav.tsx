@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessaging } from "@/contexts/MessagingContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, ShoppingBag, Plus, MessageCircle, Bell } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
@@ -9,7 +10,9 @@ import CreateOverlay from "@/components/CreateOverlay";
 const BottomNav = () => {
   const { isAuthenticated, activeProfile } = useAuth();
   const { unreadTotal } = useMessaging();
+  const { unreadCountFor } = useEngagement();
   const inboxBadge = activeProfile ? unreadTotal(activeProfile.id) : 0;
+  const notifBadge = activeProfile ? unreadCountFor(activeProfile.id) : 0;
   const navigate = useNavigate();
   const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
@@ -45,7 +48,7 @@ const BottomNav = () => {
             </div>
           </button>
           <NavItem icon={<MessageCircle className="w-5 h-5" />} label="Inbox" badge={inboxBadge} active={isActive("/inbox")} onClick={() => requireAuth("/inbox")} />
-          <NavItem icon={<Bell className="w-5 h-5" />} label="Notification" badge={inboxBadge} active={isActive("/notifications")} onClick={() => requireAuth("/notifications")} />
+          <NavItem icon={<Bell className="w-5 h-5" />} label="Notification" badge={notifBadge} active={isActive("/notifications")} onClick={() => requireAuth("/notifications")} />
         </div>
       </nav>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />

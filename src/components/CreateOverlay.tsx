@@ -1,4 +1,4 @@
-import { X, Camera, Calendar, Radio } from "lucide-react";
+import { X, Camera, Calendar, Radio, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -40,7 +40,7 @@ const CreateOverlay = ({ open, onClose }: CreateOverlayProps) => {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleOption("/create")}
                 className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
@@ -62,12 +62,22 @@ const CreateOverlay = ({ open, onClose }: CreateOverlayProps) => {
               </button>
 
               <button
+                onClick={() => handleOption("/create-ad")}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Megaphone className="w-5 h-5 text-amber-500" />
+                </div>
+                <span className="text-sm font-medium">Ad</span>
+              </button>
+
+              <button
                 className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
                   <Radio className="w-5 h-5 text-destructive" />
                 </div>
-                <span className="text-sm font-medium">Live Video</span>
+                <span className="text-sm font-medium">Live</span>
               </button>
             </div>
           </motion.div>
