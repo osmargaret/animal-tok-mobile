@@ -82,6 +82,19 @@ const MessageView = () => {
   };
 
   const handleSend = () => {
+    if (pending) {
+      send({
+        type: pending.type,
+        mediaUrl: pending.mediaUrl,
+        mediaMime: pending.mediaMime,
+        fileName: pending.fileName,
+        duration: pending.duration,
+        text: inputText.trim() || undefined,
+      });
+      setPending(null);
+      setInputText("");
+      return;
+    }
     if (!inputText.trim()) return;
     send({ type: "text", text: inputText.trim() });
     setInputText("");
@@ -103,7 +116,8 @@ const MessageView = () => {
     const reader = new FileReader();
     reader.onload = () => {
       const url = reader.result as string;
-      send({
+      // Stage as preview before send
+      setPending({
         type: file.type.startsWith("video/") ? "video" : "image",
         mediaUrl: url,
         mediaMime: file.type,
@@ -130,7 +144,8 @@ const MessageView = () => {
         reader.onload = () => {
           const mins = Math.floor(recordingTime / 60);
           const secs = recordingTime % 60;
-          send({
+          // Stage as preview before sending
+          setPending({
             type: "voice",
             mediaUrl: reader.result as string,
             mediaMime: "audio/webm",
