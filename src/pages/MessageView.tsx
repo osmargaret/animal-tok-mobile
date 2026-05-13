@@ -16,14 +16,24 @@ import {
   Pause,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMessaging, type ChatMessage } from "@/contexts/MessagingContext";
+import { useMessaging, type ChatMessage, type MessageType } from "@/contexts/MessagingContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 import { toast } from "sonner";
+
+interface PendingAttachment {
+  type: Extract<MessageType, "image" | "video" | "voice">;
+  mediaUrl: string;
+  mediaMime?: string;
+  fileName?: string;
+  duration?: string;
+}
 
 const MessageView = () => {
   const navigate = useNavigate();
   const { contactId } = useParams<{ contactId: string }>();
   const { activeProfile } = useAuth();
   const { getContact, getConversation, sendMessage, markRead, setTyping, isTyping } = useMessaging();
+  const { clearMessageNotifications } = useEngagement();
 
   const myId = activeProfile?.id || "";
   const contact = getContact(contactId || "");
@@ -35,6 +45,7 @@ const MessageView = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [showCallModal, setShowCallModal] = useState(false);
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingAttachment | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,8 +58,11 @@ const MessageView = () => {
   }, [messages.length]);
 
   useEffect(() => {
-    if (myId && contactId) markRead(myId, contactId);
-  }, [myId, contactId, messages.length, markRead]);
+    if (myId && contactId) {
+      markRead(myId, contactId);
+      clearMessageNotifications(myId, contactId);
+    }
+  }, [myId, contactId, messages.length, markRead, clearMessageNotifications]);
 
   if (!contact || !contactId || !myId) {
     return (
