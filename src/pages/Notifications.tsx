@@ -1,69 +1,54 @@
-import { useState, useMemo } from "react";
-import { Settings, Heart, MessageCircle, UserPlus, Calendar, ShoppingBag, Bell, Check, CheckCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Settings, Heart, MessageCircle, UserPlus, Calendar, ShoppingBag, Bell, CheckCheck, Megaphone, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement, type AppNotification } from "@/contexts/EngagementContext";
 
-interface Notification {
-  id: number;
-  type: "like" | "comment" | "follow" | "event" | "order" | "system";
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  avatar: string;
-  profileId?: string; // which profile this notification belongs to
-}
-
-const allNotifications: Notification[] = [
-  // Bella's notifications
-  { id: 1, type: "like", title: "Bella got a like!", message: "🐈 @luna.cat liked Bella's photo", time: "2m ago", read: false, avatar: "🐈", profileId: "bella" },
-  { id: 2, type: "comment", title: "New comment", message: "🦜 @coco.parrot commented: 'So cute!'", time: "15m ago", read: false, avatar: "🦜", profileId: "bella" },
-  { id: 3, type: "follow", title: "New follower", message: "@dog.lover started following Bella", time: "1h ago", read: false, avatar: "🐕", profileId: "bella" },
-  { id: 4, type: "event", title: "Event reminder", message: "Dog Park Meetup starts in 2 hours", time: "2h ago", read: true, avatar: "📅", profileId: "bella" },
-  // Whiskers' notifications
-  { id: 5, type: "like", title: "Whiskers got likes!", message: "3 people liked Whiskers' box photo", time: "30m ago", read: false, avatar: "🐱", profileId: "whiskers" },
-  { id: 6, type: "follow", title: "New follower", message: "@catfan started following Whiskers", time: "3h ago", read: true, avatar: "🐱", profileId: "whiskers" },
-  // Spirit's notifications
-  { id: 7, type: "like", title: "Spirit got likes!", message: "5 people liked Spirit's new video", time: "4h ago", read: true, avatar: "🐴", profileId: "spirit" },
-  { id: 8, type: "comment", title: "New comment", message: "@horse.fan replied to your comment", time: "5h ago", read: true, avatar: "💬", profileId: "spirit" },
-  { id: 9, type: "event", title: "Event created", message: "Your 'Horse Show' event is live!", time: "2d ago", read: true, avatar: "🎪", profileId: "spirit" },
-  // Handler notifications
-  { id: 10, type: "order", title: "Order update", message: "Your Premium Dog Food has shipped!", time: "3h ago", read: true, avatar: "📦", profileId: "handler" },
-  { id: 11, type: "system", title: "Welcome!", message: "Complete your profile to get more followers", time: "1d ago", read: true, avatar: "🐾", profileId: "handler" },
-];
-
-const iconMap = {
+const iconMap: Record<AppNotification["type"], JSX.Element> = {
   like: <Heart className="w-4 h-4 text-red-400" />,
   comment: <MessageCircle className="w-4 h-4 text-blue-400" />,
   follow: <UserPlus className="w-4 h-4 text-green-400" />,
   event: <Calendar className="w-4 h-4 text-purple-400" />,
   order: <ShoppingBag className="w-4 h-4 text-orange-400" />,
   system: <Bell className="w-4 h-4 text-primary" />,
+  message: <Send className="w-4 h-4 text-primary" />,
+  ad: <Megaphone className="w-4 h-4 text-amber-400" />,
+  booking: <Calendar className="w-4 h-4 text-emerald-400" />,
+};
+
+const timeAgo = (ts: number) => {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 };
 
 const Notifications = () => {
+  const navigate = useNavigate();
   const { activeProfile } = useAuth();
-  const [notifications, setNotifications] = useState(allNotifications);
+  const { notifications, markAllRead, markNotificationRead, clearMessageNotifications } = useEngagement();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const profileId = activeProfile?.type === "animal" ? activeProfile.id : "handler";
-  const profileLabel = activeProfile ? activeProfile.name : "You";
+  const profileId = activeProfile?.id || "";
+  const profileLabel = activeProfile?.name || "You";
 
-  const scopedNotifications = useMemo(() => {
-    return notifications.filter((n) => n.profileId === profileId);
-  }, [notifications, profileId]);
+  const scoped = useMemo(
+    () => notifications.filter((n) => n.profileId === profileId),
+    [notifications, profileId]
+  );
+  const unreadCount = scoped.filter((n) => !n.read).length;
+  const filtered = filter === "unread" ? scoped.filter((n) => !n.read) : scoped;
 
-  const unreadCount = scopedNotifications.filter((n) => !n.read).length;
-  const filtered = filter === "unread" ? scopedNotifications.filter((n) => !n.read) : scopedNotifications;
-
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => n.profileId === profileId ? { ...n, read: true } : n));
-  };
-
-  const markRead = (id: number) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const handleClick = (n: AppNotification) => {
+    markNotificationRead(n.id);
+    if (n.type === "message" && n.contactId) {
+      clearMessageNotifications(profileId, n.contactId);
+      navigate(`/message/${n.contactId}`);
+    }
   };
 
   return (
@@ -84,7 +69,7 @@ const Notifications = () => {
             </div>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-xs text-primary font-medium flex items-center gap-1">
+                <button onClick={() => markAllRead(profileId)} className="text-xs text-primary font-medium flex items-center gap-1">
                   <CheckCheck className="w-3.5 h-3.5" /> Mark all read
                 </button>
               )}
@@ -130,7 +115,7 @@ const Notifications = () => {
               {filtered.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => markRead(n.id)}
+                  onClick={() => handleClick(n)}
                   className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-secondary/30 ${
                     !n.read ? "bg-primary/5" : ""
                   }`}
@@ -147,11 +132,8 @@ const Notifications = () => {
                       {!n.read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{n.message}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">{n.time}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{timeAgo(n.time)}</p>
                   </div>
-                  {!n.read && (
-                    <Check className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
-                  )}
                 </button>
               ))}
             </div>
