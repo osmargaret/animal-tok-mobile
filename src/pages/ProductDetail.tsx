@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Star, Heart, ShoppingCart, Share2, MapPin, MessageCircle, ChevronRight, Minus, Plus, Truck, Shield, RotateCcw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement } from "@/contexts/EngagementContext";
+import { toast } from "sonner";
 
 const allProducts = [
   { id: 1, name: "Premium Dog Food", price: 24.99, seller: "PetNutrition Co", rating: 4.8, reviews: 124, image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=600&h=600&fit=crop", category: "Food", description: "High-quality, grain-free dog food made with real chicken and vegetables. Perfect for dogs of all ages and breeds. Rich in protein and essential nutrients.", inStock: true, sellerAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop", sellerRating: 4.9, sellerProducts: 45, images: ["https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=600&h=600&fit=crop", "https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?w=600&h=600&fit=crop"] },
@@ -22,10 +24,28 @@ const reviewsData = [
 const ProductDetail = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, activeProfile } = useAuth();
+  const { addToCart, cartCount } = useEngagement();
   const [qty, setQty] = useState(1);
   const [liked, setLiked] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const profileId = activeProfile?.id || "";
+  const inCart = profileId ? cartCount(profileId) : 0;
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated || !activeProfile) {
+      toast.error("Sign in to add to cart");
+      return;
+    }
+    addToCart(activeProfile.id, {
+      productId: product!.id,
+      name: product!.name,
+      price: product!.price,
+      qty,
+      image: product!.image,
+    });
+    toast.success(`${product!.name} added to cart (${qty})`);
+  };
 
   const product = allProducts.find((p) => p.id === Number(productId));
 
@@ -166,9 +186,14 @@ const ProductDetail = () => {
             <button className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
               <Share2 className="w-5 h-5" />
             </button>
-            <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors">
+            <button onClick={handleAddToCart} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors relative">
               <ShoppingCart className="w-4 h-4" />
               Add to Cart · ${(product.price * qty).toFixed(2)}
+              {inCart > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                  {inCart}
+                </span>
+              )}
             </button>
           </div>
         </div>
