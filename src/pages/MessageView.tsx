@@ -437,37 +437,67 @@ const MessageView = () => {
       )}
 
       {!isRecording && (
-        <div className="flex items-center gap-2 px-3 py-3 border-t border-border bg-card shrink-0">
-          <button
-            onClick={() => setShowAttachMenu(!showAttachMenu)}
-            className="p-2 rounded-full hover:bg-secondary shrink-0"
-          >
-            <Paperclip className={`w-5 h-5 ${showAttachMenu ? "text-primary" : "text-muted-foreground"}`} />
-          </button>
-          <div className="flex-1 flex items-center bg-secondary rounded-full px-4 py-2">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={`Message as ${activeProfile?.name}...`}
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-            />
-          </div>
-          {inputText.trim() ? (
-            <button onClick={handleSend} className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
-              <Send className="w-5 h-5 text-primary-foreground" />
-            </button>
-          ) : (
-            <button onClick={startRecording} className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
-              <Mic className="w-5 h-5 text-primary-foreground" />
-            </button>
+        <div className="border-t border-border bg-card shrink-0">
+          {pending && (
+            <div className="px-3 pt-3">
+              <div className="flex items-center gap-3 p-2 pr-3 rounded-2xl bg-secondary border border-border">
+                {pending.type === "image" && (
+                  <img src={pending.mediaUrl} alt="preview" className="w-14 h-14 rounded-lg object-cover" />
+                )}
+                {pending.type === "video" && (
+                  <video src={pending.mediaUrl} className="w-14 h-14 rounded-lg object-cover" muted />
+                )}
+                {pending.type === "voice" && (
+                  <div className="w-14 h-14 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Mic className="w-6 h-6 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold capitalize truncate">
+                    {pending.type === "voice" ? `Voice note · ${pending.duration}` : pending.fileName || pending.type}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Tap send to deliver to {contact.name}</p>
+                </div>
+                <button onClick={() => setPending(null)} className="p-1.5 rounded-full hover:bg-background/60">
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
           )}
+          <div className="flex items-center gap-2 px-3 py-3">
+            <button
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              className="p-2 rounded-full hover:bg-secondary shrink-0"
+            >
+              <Paperclip className={`w-5 h-5 ${showAttachMenu ? "text-primary" : "text-muted-foreground"}`} />
+            </button>
+            <div className="flex-1 flex items-center bg-secondary rounded-full px-4 py-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={pending ? "Add a caption..." : `Message as ${activeProfile?.name}...`}
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+              />
+            </div>
+            {pending || inputText.trim() ? (
+              <button onClick={handleSend} className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+                <Send className="w-5 h-5 text-primary-foreground" />
+              </button>
+            ) : (
+              <button onClick={startRecording} className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+                <Mic className="w-5 h-5 text-primary-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
         </div>
       )}
 
