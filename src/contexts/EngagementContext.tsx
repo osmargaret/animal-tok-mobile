@@ -171,6 +171,7 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
   const [comments, setComments] = useStored<Record<string, Comment[]>>("at_comments", {});
   const [notifications, setNotifications] = useStored<AppNotification[]>("at_notifs", []);
   const [cart, setCart] = useStored<CartItem[]>("at_cart", []);
+  const [orders, setOrders] = useStored<Order[]>("at_orders", []);
   const [bookings, setBookings] = useStored<Booking[]>("at_bookings", []);
   const [ads, setAds] = useStored<Ad[]>("at_ads", []);
 
