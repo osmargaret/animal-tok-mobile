@@ -44,7 +44,27 @@ export type Ad = {
   body: string;
   mediaUrl?: string;
   ctaUrl?: string;
+  ctaLabel?: string;
+  bgColor?: string;
   createdBy: string;
+  createdByName?: string;
+  createdByAvatar?: string;
+  createdAt: number;
+};
+
+export type Order = {
+  id: string;
+  profileId: string;
+  items: CartItem[];
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  shippingName: string;
+  shippingAddress: string;
+  shippingCity: string;
+  paymentLast4: string;
+  status: "confirmed";
   createdAt: number;
 };
 
