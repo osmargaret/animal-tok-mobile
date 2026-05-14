@@ -44,7 +44,27 @@ export type Ad = {
   body: string;
   mediaUrl?: string;
   ctaUrl?: string;
+  ctaLabel?: string;
+  bgColor?: string;
   createdBy: string;
+  createdByName?: string;
+  createdByAvatar?: string;
+  createdAt: number;
+};
+
+export type Order = {
+  id: string;
+  profileId: string;
+  items: CartItem[];
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  shippingName: string;
+  shippingAddress: string;
+  shippingCity: string;
+  paymentLast4: string;
+  status: "confirmed";
   createdAt: number;
 };
 
@@ -86,8 +106,21 @@ interface EngagementContextType {
 
   // Cart
   cart: CartItem[];
+  cartItemsFor: (profileId: string) => CartItem[];
   addToCart: (profileId: string, item: Omit<CartItem, "id" | "addedBy">) => void;
+  updateCartQty: (cartItemId: string, qty: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  clearCart: (profileId: string) => void;
   cartCount: (profileId: string) => number;
+  cartSubtotal: (profileId: string) => number;
+
+  // Orders
+  orders: Order[];
+  ordersFor: (profileId: string) => Order[];
+  placeOrder: (
+    profileId: string,
+    info: { shippingName: string; shippingAddress: string; shippingCity: string; paymentLast4: string }
+  ) => Order | null;
 
   // Bookings
   bookings: Booking[];
@@ -95,7 +128,7 @@ interface EngagementContextType {
 
   // Ads
   ads: Ad[];
-  addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt">) => void;
+  addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt" | "createdByName" | "createdByAvatar">, meta?: { name?: string; avatar?: string }) => Ad;
 }
 
 const EngagementContext = createContext<EngagementContextType | null>(null);
@@ -138,6 +171,7 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
   const [comments, setComments] = useStored<Record<string, Comment[]>>("at_comments", {});
   const [notifications, setNotifications] = useStored<AppNotification[]>("at_notifs", []);
   const [cart, setCart] = useStored<CartItem[]>("at_cart", []);
+  const [orders, setOrders] = useStored<Order[]>("at_orders", []);
   const [bookings, setBookings] = useStored<Booking[]>("at_bookings", []);
   const [ads, setAds] = useStored<Ad[]>("at_ads", []);
 
@@ -285,8 +319,50 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
       ];
     });
   };
+  const cartItemsFor = (profileId: string) => cart.filter((c) => c.addedBy === profileId);
   const cartCount = (profileId: string) =>
     cart.filter((c) => c.addedBy === profileId).reduce((s, c) => s + c.qty, 0);
+  const cartSubtotal = (profileId: string) =>
+    cart.filter((c) => c.addedBy === profileId).reduce((s, c) => s + c.price * c.qty, 0);
+  const updateCartQty: EngagementContextType["updateCartQty"] = (cartItemId, qty) =>
+    setCart((prev) => prev.map((c) => (c.id === cartItemId ? { ...c, qty: Math.max(1, qty) } : c)));
+  const removeFromCart: EngagementContextType["removeFromCart"] = (cartItemId) =>
+    setCart((prev) => prev.filter((c) => c.id !== cartItemId));
+  const clearCart: EngagementContextType["clearCart"] = (profileId) =>
+    setCart((prev) => prev.filter((c) => c.addedBy !== profileId));
+
+  /* ------------------------------- Orders -------------------------------- */
+  const ordersFor = (profileId: string) => orders.filter((o) => o.profileId === profileId);
+  const placeOrder: EngagementContextType["placeOrder"] = (profileId, info) => {
+    const items = cart.filter((c) => c.addedBy === profileId);
+    if (items.length === 0) return null;
+    const subtotal = items.reduce((s, c) => s + c.price * c.qty, 0);
+    const shipping = subtotal > 50 ? 0 : 4.99;
+    const tax = +(subtotal * 0.08).toFixed(2);
+    const total = +(subtotal + shipping + tax).toFixed(2);
+    const order: Order = {
+      id: `ord-${Date.now()}`,
+      profileId,
+      items,
+      subtotal,
+      shipping,
+      tax,
+      total,
+      status: "confirmed",
+      createdAt: Date.now(),
+      ...info,
+    };
+    setOrders((prev) => [order, ...prev]);
+    setCart((prev) => prev.filter((c) => c.addedBy !== profileId));
+    addNotification({
+      type: "order",
+      profileId,
+      title: "Order confirmed 🎉",
+      message: `${items.length} item${items.length > 1 ? "s" : ""} · $${total.toFixed(2)}`,
+      avatar: "📦",
+    });
+    return order;
+  };
 
   /* ------------------------------ Bookings ------------------------------- */
   const addBooking: EngagementContextType["addBooking"] = (profileId, b) => {
@@ -302,8 +378,15 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
   };
 
   /* --------------------------------- Ads --------------------------------- */
-  const addAd: EngagementContextType["addAd"] = (profileId, a) => {
-    const ad: Ad = { ...a, id: `ad-${Date.now()}`, createdBy: profileId, createdAt: Date.now() };
+  const addAd: EngagementContextType["addAd"] = (profileId, a, meta) => {
+    const ad: Ad = {
+      ...a,
+      id: `ad-${Date.now()}`,
+      createdBy: profileId,
+      createdByName: meta?.name,
+      createdByAvatar: meta?.avatar,
+      createdAt: Date.now(),
+    };
     setAds((prev) => [ad, ...prev]);
     addNotification({
       type: "ad",
@@ -312,6 +395,7 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
       message: a.title,
       avatar: "📢",
     });
+    return ad;
   };
 
   const value = useMemo<EngagementContextType>(
@@ -332,15 +416,23 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
       clearMessageNotifications,
       unreadCountFor,
       cart,
+      cartItemsFor,
       addToCart,
+      updateCartQty,
+      removeFromCart,
+      clearCart,
       cartCount,
+      cartSubtotal,
+      orders,
+      ordersFor,
+      placeOrder,
       bookings,
       addBooking,
       ads,
       addAd,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [likes, saves, follows, comments, notifications, cart, bookings, ads]
+    [likes, saves, follows, comments, notifications, cart, orders, bookings, ads]
   );
 
   return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;

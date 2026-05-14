@@ -1,15 +1,28 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image as ImageIcon, Video, Type, Upload, Megaphone, X, Check } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Video, Type, Upload, Megaphone, X, Check, CheckCircle2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement, type AdMedia } from "@/contexts/EngagementContext";
 
-const types: { id: AdMedia; label: string; icon: typeof ImageIcon; color: string }[] = [
-  { id: "image", label: "Image", icon: ImageIcon, color: "text-emerald-400" },
-  { id: "video", label: "Video", icon: Video, color: "text-blue-400" },
-  { id: "text", label: "Text", icon: Type, color: "text-purple-400" },
+const types: { id: AdMedia; label: string; icon: typeof ImageIcon; color: string; hint: string }[] = [
+  { id: "image", label: "Image", icon: ImageIcon, color: "text-emerald-400", hint: "JPG, PNG, WebP — under 10MB" },
+  { id: "video", label: "Video", icon: Video, color: "text-blue-400", hint: "MP4 / MOV — keep it under 30s" },
+  { id: "text", label: "Text", icon: Type, color: "text-purple-400", hint: "Bold headline on a colored card" },
 ];
+
+const ctaPresets = ["Learn more", "Shop now", "Book", "Sign up", "Watch", "Get offer"];
+const bgPresets = [
+  "linear-gradient(135deg,#6366f1,#8b5cf6)",
+  "linear-gradient(135deg,#f97316,#ec4899)",
+  "linear-gradient(135deg,#10b981,#06b6d4)",
+  "linear-gradient(135deg,#0f172a,#334155)",
+  "linear-gradient(135deg,#facc15,#f97316)",
+];
+
+const TITLE_MAX = 60;
+const BODY_MAX = 220;
+const MAX_BYTES = 10 * 1024 * 1024;
 
 const CreateAd = () => {
   const navigate = useNavigate();
@@ -19,12 +32,30 @@ const CreateAd = () => {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [ctaLabel, setCtaLabel] = useState("Learn more");
+  const [bgColor, setBgColor] = useState(bgPresets[0]);
   const [mediaUrl, setMediaUrl] = useState<string>("");
+  const [publishedId, setPublishedId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const titleErr = title.trim().length > 0 && title.trim().length < 3 ? "Title is too short" : "";
+  const urlErr = ctaUrl && !/^https?:\/\/\S+/i.test(ctaUrl) ? "URL must start with http(s)://" : "";
+
+  const canPublish =
+    !!activeProfile &&
+    title.trim().length >= 3 &&
+    title.length <= TITLE_MAX &&
+    body.length <= BODY_MAX &&
+    !urlErr &&
+    (type === "text" || !!mediaUrl);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (f.size > MAX_BYTES) {
+      toast.error("File too large (max 10MB)");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => setMediaUrl(reader.result as string);
     reader.readAsDataURL(f);
@@ -33,12 +64,58 @@ const CreateAd = () => {
   const publish = () => {
     if (!activeProfile) return toast.error("Sign in to create an ad");
     if (!title.trim()) return toast.error("Add a title");
+    if (title.length > TITLE_MAX) return toast.error(`Title must be under ${TITLE_MAX} chars`);
+    if (body.length > BODY_MAX) return toast.error(`Description must be under ${BODY_MAX} chars`);
+    if (urlErr) return toast.error(urlErr);
     if ((type === "image" || type === "video") && !mediaUrl)
       return toast.error(`Pick ${type === "image" ? "an image" : "a video"} for your ad`);
-    addAd(activeProfile.id, { type, title: title.trim(), body: body.trim(), mediaUrl, ctaUrl: ctaUrl.trim() || undefined });
+    const ad = addAd(
+      activeProfile.id,
+      {
+        type,
+        title: title.trim(),
+        body: body.trim(),
+        mediaUrl,
+        ctaUrl: ctaUrl.trim() || undefined,
+        ctaLabel: ctaUrl.trim() ? ctaLabel : undefined,
+        bgColor: type === "text" ? bgColor : undefined,
+      },
+      { name: activeProfile.name, avatar: activeProfile.avatar }
+    );
+    setPublishedId(ad.id);
     toast.success("Ad published");
-    navigate("/feed");
   };
+
+  if (publishedId) {
+    return (
+      <div className="min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-9 h-9 text-primary" />
+        </div>
+        <h1 className="text-xl font-bold">Your ad is live</h1>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+          It now appears in the Marketplace Ads feed for everyone to discover.
+        </p>
+        <div className="flex gap-2 mt-6 w-full max-w-xs">
+          <button
+            onClick={() => {
+              setPublishedId(null);
+              setTitle("");
+              setBody("");
+              setCtaUrl("");
+              setMediaUrl("");
+            }}
+            className="flex-1 py-3 rounded-xl bg-secondary text-sm font-semibold"
+          >
+            Create another
+          </button>
+          <button onClick={() => navigate("/marketplace")} className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">
+            View in Ads
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground pb-32">
@@ -50,12 +127,17 @@ const CreateAd = () => {
           <Megaphone className="w-4 h-4 text-primary" />
           <h1 className="text-base font-semibold">Create Ad</h1>
         </div>
-        <button onClick={publish} className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold">
+        <button
+          onClick={publish}
+          disabled={!canPublish}
+          className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           Publish
         </button>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+        {/* Type selector */}
         <div>
           <p className="text-xs font-semibold text-muted-foreground mb-2">Ad type</p>
           <div className="grid grid-cols-3 gap-2">
@@ -76,11 +158,13 @@ const CreateAd = () => {
               </button>
             ))}
           </div>
+          <p className="text-[11px] text-muted-foreground mt-2">{types.find((t) => t.id === type)?.hint}</p>
         </div>
 
+        {/* Media uploader */}
         {(type === "image" || type === "video") && (
           <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Media</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Media *</p>
             {mediaUrl ? (
               <div className="relative rounded-xl overflow-hidden border border-border">
                 {type === "image" ? (
@@ -102,24 +186,57 @@ const CreateAd = () => {
               >
                 <Upload className="w-6 h-6 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Tap to upload {type}</span>
+                <span className="text-[10px] text-muted-foreground">Max 10MB</span>
               </button>
             )}
             <input ref={fileRef} type="file" accept={type === "image" ? "image/*" : "video/*"} className="hidden" onChange={handleFile} />
           </div>
         )}
 
+        {/* Background picker for text ads */}
+        {type === "text" && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Background</p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {bgPresets.map((bg) => (
+                <button
+                  key={bg}
+                  onClick={() => setBgColor(bg)}
+                  className={`shrink-0 w-12 h-12 rounded-xl border-2 transition-all ${bgColor === bg ? "border-primary scale-105" : "border-transparent"}`}
+                  style={{ background: bg }}
+                  aria-label="Background"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Title */}
         <div>
-          <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Title</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Title *</label>
+            <span className={`text-[10px] ${title.length > TITLE_MAX ? "text-destructive" : "text-muted-foreground"}`}>
+              {title.length}/{TITLE_MAX}
+            </span>
+          </div>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Catchy headline"
+            maxLength={TITLE_MAX + 20}
             className="w-full bg-secondary rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary"
           />
+          {titleErr && <p className="text-[11px] text-destructive mt-1">{titleErr}</p>}
         </div>
 
+        {/* Body */}
         <div>
-          <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Description</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Description</label>
+            <span className={`text-[10px] ${body.length > BODY_MAX ? "text-destructive" : "text-muted-foreground"}`}>
+              {body.length}/{BODY_MAX}
+            </span>
+          </div>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -129,6 +246,7 @@ const CreateAd = () => {
           />
         </div>
 
+        {/* CTA */}
         <div>
           <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Call-to-action URL (optional)</label>
           <input
@@ -137,24 +255,55 @@ const CreateAd = () => {
             placeholder="https://your-link.com"
             className="w-full bg-secondary rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary"
           />
+          {urlErr && <p className="text-[11px] text-destructive mt-1">{urlErr}</p>}
+          {ctaUrl && (
+            <div className="flex gap-1.5 flex-wrap mt-2">
+              {ctaPresets.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setCtaLabel(p)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                    ctaLabel === p ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Preview */}
         <div>
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Preview</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Live preview</p>
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            {type === "image" && mediaUrl && <img src={mediaUrl} alt="" className="w-full h-48 object-cover" />}
-            {type === "video" && mediaUrl && <video src={mediaUrl} className="w-full h-48 object-cover" muted autoPlay loop />}
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase tracking-wide text-primary font-bold">Sponsored</span>
-                <span className="text-[10px] text-muted-foreground">· by {activeProfile?.name || "You"}</span>
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-base">
+                {activeProfile?.avatar || "📢"}
               </div>
-              <p className="text-sm font-bold">{title || "Your ad title"}</p>
-              <p className="text-xs text-muted-foreground mt-1">{body || "Your description appears here."}</p>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold">{activeProfile?.name || "You"}</p>
+                  <span className="text-[9px] uppercase tracking-wide text-primary font-bold">Sponsored</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Just now</p>
+              </div>
+            </div>
+            {type === "image" && mediaUrl && <img src={mediaUrl} alt="" className="w-full max-h-64 object-cover" />}
+            {type === "video" && mediaUrl && <video src={mediaUrl} className="w-full max-h-64 object-cover" muted autoPlay loop playsInline />}
+            {type === "text" && (
+              <div className="px-5 py-10 text-center" style={{ background: bgColor }}>
+                <Megaphone className="w-6 h-6 mx-auto mb-3 text-white" />
+                <p className="text-lg font-bold leading-tight text-white">{title || "Your headline here"}</p>
+              </div>
+            )}
+            <div className="p-3">
+              {type !== "text" && <p className="text-sm font-bold">{title || "Your ad title"}</p>}
+              {body && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{body}</p>}
               {ctaUrl && (
-                <button className="mt-3 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                  Learn more
+                <button className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {ctaLabel}
                 </button>
               )}
             </div>

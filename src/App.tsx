@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { EngagementProvider } from "@/contexts/EngagementContext";
 import CreateAd from "./pages/CreateAd";
+import Checkout from "./pages/Checkout";
 import Feed from "./pages/Feed";
 import Landing from "./pages/Landing";
 import HandlerProfile from "./pages/HandlerProfile";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
             <Route path="/create-ad" element={<ProtectedRoute><CreateAd /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
             <Route path="/marketplace" element={<Marketplace />} />
