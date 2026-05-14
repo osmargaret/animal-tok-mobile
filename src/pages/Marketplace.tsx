@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, SlidersHorizontal, Star, MapPin, ChevronRight, ShoppingBag, Wrench } from "lucide-react";
+import { Search, X, SlidersHorizontal, Star, MapPin, ChevronRight, ShoppingBag, Wrench, Megaphone, ShoppingCart, Plus } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import AdCard from "@/components/AdCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 
-const tabs = ["Products", "Services"] as const;
+const tabs = ["Products", "Services", "Ads"] as const;
 
 const products = [
   { id: 1, name: "Premium Dog Food", price: "$24.99", seller: "PetNutrition Co", rating: 4.8, reviews: 124, image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=300&h=300&fit=crop", category: "Food" },
