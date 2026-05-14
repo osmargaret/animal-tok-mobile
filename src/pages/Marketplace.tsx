@@ -32,6 +32,13 @@ const Marketplace = () => {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Products");
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const { activeProfile } = useAuth();
+  const { ads, cartCount } = useEngagement();
+  const myCart = activeProfile ? cartCount(activeProfile.id) : 0;
+
+  const filteredAds = ads.filter(
+    (a) => !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.body.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 lg:pb-4">
@@ -42,16 +49,26 @@ const Marketplace = () => {
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] lg:pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold">Marketplace</h1>
-            <button className="p-2 rounded-lg bg-secondary">
-              <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => navigate("/checkout")} className="relative p-2 rounded-lg bg-secondary" aria-label="Cart">
+                <ShoppingCart className="w-4 h-4 text-muted-foreground" />
+                {myCart > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                    {myCart}
+                  </span>
+                )}
+              </button>
+              <button className="p-2 rounded-lg bg-secondary" aria-label="Filters">
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
           </div>
 
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search products, services..."
+              placeholder="Search products, services, ads..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -63,16 +80,18 @@ const Marketplace = () => {
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
                 }`}
               >
-                {tab === "Products" ? <ShoppingBag className="w-3.5 h-3.5" /> : <Wrench className="w-3.5 h-3.5" />}
+                {tab === "Products" && <ShoppingBag className="w-3.5 h-3.5" />}
+                {tab === "Services" && <Wrench className="w-3.5 h-3.5" />}
+                {tab === "Ads" && <Megaphone className="w-3.5 h-3.5" />}
                 {tab}
               </button>
             ))}
