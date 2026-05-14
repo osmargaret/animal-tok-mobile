@@ -99,7 +99,7 @@ const Marketplace = () => {
         </div>
 
         <div className="max-w-2xl mx-auto px-4 py-4">
-          {activeTab === "Products" ? (
+          {activeTab === "Products" && (
             <div className="grid grid-cols-2 gap-3">
               {products.map((p) => (
                 <div key={p.id} onClick={() => navigate(`/product/${p.id}`)} className="cursor-pointer rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors">
@@ -118,7 +118,9 @@ const Marketplace = () => {
                 </div>
               ))}
             </div>
-          ) : (
+          )}
+
+          {activeTab === "Services" && (
             <div className="space-y-3">
               {services.map((s) => (
                 <button key={s.id} onClick={() => navigate(`/service/${s.id}`)} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
@@ -144,6 +146,26 @@ const Marketplace = () => {
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+
+          {activeTab === "Ads" && (
+            <div className="space-y-4">
+              <button
+                onClick={() => navigate("/create-ad")}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Create new ad
+              </button>
+              {filteredAds.length === 0 ? (
+                <div className="text-center py-12">
+                  <Megaphone className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm font-semibold">No ads yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Be the first to publish a sponsored post.</p>
+                </div>
+              ) : (
+                filteredAds.map((ad) => <AdCard key={ad.id} ad={ad} />)
+              )}
             </div>
           )}
         </div>
