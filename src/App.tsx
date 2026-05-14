@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { EngagementProvider } from "@/contexts/EngagementContext";
 import CreateAd from "./pages/CreateAd";
+import Checkout from "./pages/Checkout";
 import Feed from "./pages/Feed";
 import Landing from "./pages/Landing";
 import HandlerProfile from "./pages/HandlerProfile";
