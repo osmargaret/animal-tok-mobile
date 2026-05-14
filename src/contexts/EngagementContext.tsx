@@ -106,8 +106,21 @@ interface EngagementContextType {
 
   // Cart
   cart: CartItem[];
+  cartItemsFor: (profileId: string) => CartItem[];
   addToCart: (profileId: string, item: Omit<CartItem, "id" | "addedBy">) => void;
+  updateCartQty: (cartItemId: string, qty: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  clearCart: (profileId: string) => void;
   cartCount: (profileId: string) => number;
+  cartSubtotal: (profileId: string) => number;
+
+  // Orders
+  orders: Order[];
+  ordersFor: (profileId: string) => Order[];
+  placeOrder: (
+    profileId: string,
+    info: { shippingName: string; shippingAddress: string; shippingCity: string; paymentLast4: string }
+  ) => Order | null;
 
   // Bookings
   bookings: Booking[];
@@ -115,7 +128,7 @@ interface EngagementContextType {
 
   // Ads
   ads: Ad[];
-  addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt">) => void;
+  addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt" | "createdByName" | "createdByAvatar">, meta?: { name?: string; avatar?: string }) => Ad;
 }
 
 const EngagementContext = createContext<EngagementContextType | null>(null);
