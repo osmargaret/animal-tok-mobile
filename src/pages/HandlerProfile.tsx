@@ -74,7 +74,10 @@ const HandlerProfile = () => {
               <div className="flex gap-4 mt-2">
                 <StatItem value="124" label="Posts" />
                 <StatItem value="3.2K" label="Followers" />
-                <StatItem value="622" label="Likes" />
+                <button onClick={() => navigate("/ads")} className="text-center hover:opacity-80">
+                  <p className="text-sm font-bold text-foreground">{ads.filter((a) => a.createdBy === (activeProfile?.id || "")).length}</p>
+                  <p className="text-[10px] text-muted-foreground">Ads</p>
+                </button>
               </div>
             </div>
 
