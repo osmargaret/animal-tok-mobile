@@ -3,8 +3,9 @@ import { useEngagement } from "@/contexts/EngagementContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus } from "lucide-react";
+import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BackButton from "@/components/BackButton";
 
 const pets = [
   {
@@ -35,7 +36,7 @@ const pets = [
 
 const HandlerProfile = () => {
   const { user, isAuthenticated, activeProfile } = useAuth();
-  const { isFollowing: getFollowing, toggleFollow } = useEngagement();
+  const { isFollowing: getFollowing, toggleFollow, ads } = useEngagement();
   const navigate = useNavigate();
   const handlerId = user?.id || "handler-1";
   const isFollowing = activeProfile ? getFollowing(activeProfile.id, handlerId) : false;
@@ -49,6 +50,10 @@ const HandlerProfile = () => {
       <MobileHeader />
 
       <main className="h-full lg:ml-60 overflow-y-auto pb-20 lg:pb-0">
+        <div className="lg:hidden flex items-center gap-3 px-5 pt-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))]">
+          <BackButton to="/feed" />
+          <span className="text-xs text-muted-foreground">Back</span>
+        </div>
         {/* Profile Header */}
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center gap-4">
