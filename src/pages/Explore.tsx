@@ -3,6 +3,7 @@ import { Search, X, TrendingUp, MapPin, Star, ChevronRight, Play, Calendar, Shop
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import BackButton from "@/components/BackButton";
 
 const exploreTabs = ["Posts", "Live Video", "Events", "Products", "Services"] as const;
 
@@ -58,6 +59,10 @@ const Explore = () => {
       <main className="lg:ml-60">
         {/* Header with search */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] lg:pt-4 pb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <BackButton />
+            <span className="text-sm font-semibold">Explore</span>
+          </div>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input

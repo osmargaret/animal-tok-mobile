@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import AdCard from "@/components/AdCard";
+import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
 
@@ -48,7 +49,10 @@ const Marketplace = () => {
       <main className="lg:ml-60">
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] lg:pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-lg font-bold">Marketplace</h1>
+            <div className="flex items-center gap-2">
+              <BackButton />
+              <h1 className="text-lg font-bold">Marketplace</h1>
+            </div>
             <div className="flex items-center gap-1.5">
               <button onClick={() => navigate("/checkout")} className="relative p-2 rounded-lg bg-secondary" aria-label="Cart">
                 <ShoppingCart className="w-4 h-4 text-muted-foreground" />
