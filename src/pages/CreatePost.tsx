@@ -2,8 +2,9 @@ import { useState } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { ArrowLeft, Upload, Image, Video, FileText, MapPin, Info, Globe } from "lucide-react";
+import { ArrowLeft, Upload, MapPin, Info, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useIpLocation } from "@/hooks/useIpLocation";
 
 type PostType = "image" | "video" | "text";
 
@@ -13,9 +14,8 @@ const CreatePost = () => {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
   const [textContent, setTextContent] = useState("");
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const { location, loading: locLoading } = useIpLocation();
 
   const tabs: { type: PostType; label: string; icon: string }[] = [
     { type: "image", label: "Image", icon: "📷" },
@@ -113,51 +113,26 @@ const CreatePost = () => {
             />
           </div>
 
-          {/* Location */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
+          {/* Auto-detected location */}
+          <div className="rounded-2xl bg-card border border-border px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <MapPin className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Location</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                  <Globe className="w-3 h-3" /> Country
-                </label>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full h-10 rounded-xl bg-card border border-border px-3 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors appearance-none"
-                >
-                  <option value="">Select country</option>
-                  <option>United States</option>
-                  <option>United Kingdom</option>
-                  <option>Canada</option>
-                  <option>Australia</option>
-                  <option>Germany</option>
-                  <option>France</option>
-                  <option>Japan</option>
-                  <option>Brazil</option>
-                  <option>India</option>
-                  <option>South Africa</option>
-                  <option>Nigeria</option>
-                  <option>Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">City / Place</label>
-                <input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Lagos"
-                  className="w-full h-10 rounded-xl bg-card border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
-                />
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground">Location</p>
+              {locLoading ? (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Detecting from your network…
+                </p>
+              ) : location ? (
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {[location.city, location.region, location.country].filter(Boolean).join(", ") || "Detected"}
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground mt-0.5">Couldn't detect — post will be unlisted by location</p>
+              )}
             </div>
-            <div className="flex items-start gap-2 mt-2 px-1">
-              <Info className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <p className="text-[11px] text-muted-foreground">Location helps animals find friends nearby.</p>
-            </div>
+            <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           </div>
 
           {/* Footer: Visibility + Actions */}
