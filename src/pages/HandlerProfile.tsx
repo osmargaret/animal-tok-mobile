@@ -144,6 +144,7 @@ const HandlerProfile = () => {
           <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" onClick={() => navigate("/store")} />
           <QuickLink icon={<Calendar className="w-5 h-5" />} label="Events" onClick={() => navigate("/events")} />
           <QuickLink icon={<Store className="w-5 h-5" />} label="Marketplace" onClick={() => navigate("/marketplace")} />
+          <QuickLink icon={<Megaphone className="w-5 h-5" />} label="My Ads" onClick={() => navigate("/ads")} />
         </div>
       </main>
 
