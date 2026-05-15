@@ -3,8 +3,9 @@ import { useEngagement } from "@/contexts/EngagementContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus } from "lucide-react";
+import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BackButton from "@/components/BackButton";
 
 const pets = [
   {
@@ -35,7 +36,7 @@ const pets = [
 
 const HandlerProfile = () => {
   const { user, isAuthenticated, activeProfile } = useAuth();
-  const { isFollowing: getFollowing, toggleFollow } = useEngagement();
+  const { isFollowing: getFollowing, toggleFollow, ads } = useEngagement();
   const navigate = useNavigate();
   const handlerId = user?.id || "handler-1";
   const isFollowing = activeProfile ? getFollowing(activeProfile.id, handlerId) : false;
@@ -49,6 +50,10 @@ const HandlerProfile = () => {
       <MobileHeader />
 
       <main className="h-full lg:ml-60 overflow-y-auto pb-20 lg:pb-0">
+        <div className="lg:hidden flex items-center gap-3 px-5 pt-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))]">
+          <BackButton to="/feed" />
+          <span className="text-xs text-muted-foreground">Back</span>
+        </div>
         {/* Profile Header */}
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center gap-4">
@@ -69,7 +74,10 @@ const HandlerProfile = () => {
               <div className="flex gap-4 mt-2">
                 <StatItem value="124" label="Posts" />
                 <StatItem value="3.2K" label="Followers" />
-                <StatItem value="622" label="Likes" />
+                <button onClick={() => navigate("/ads")} className="text-center hover:opacity-80">
+                  <p className="text-sm font-bold text-foreground">{ads.filter((a) => a.createdBy === (activeProfile?.id || "")).length}</p>
+                  <p className="text-[10px] text-muted-foreground">Ads</p>
+                </button>
               </div>
             </div>
 
@@ -136,6 +144,7 @@ const HandlerProfile = () => {
           <QuickLink icon={<ShoppingBag className="w-5 h-5" />} label="My Store" onClick={() => navigate("/store")} />
           <QuickLink icon={<Calendar className="w-5 h-5" />} label="Events" onClick={() => navigate("/events")} />
           <QuickLink icon={<Store className="w-5 h-5" />} label="Marketplace" onClick={() => navigate("/marketplace")} />
+          <QuickLink icon={<Megaphone className="w-5 h-5" />} label="My Ads" onClick={() => navigate("/ads")} />
         </div>
       </main>
 

@@ -6,6 +6,7 @@ import MobileHeader from "@/components/MobileHeader";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Send, MessageCircle, Search, X } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { previewForMessage } from "@/lib/messagePreview";
@@ -79,6 +80,7 @@ const Inbox = () => {
         <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
 
         <div className="px-5 pt-4 pb-2 flex items-center gap-3">
+          <BackButton />
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-xl border border-primary/40">
             {activeProfile?.avatar || "🐾"}
           </div>

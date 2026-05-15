@@ -6,9 +6,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Home, ShoppingBag, Plus, MessageCircle, Bell } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import CreateOverlay from "@/components/CreateOverlay";
+import BusinessBottomNav from "@/components/BusinessBottomNav";
 
 const BottomNav = () => {
-  const { isAuthenticated, activeProfile } = useAuth();
+  const { isAuthenticated, activeProfile, accountType } = useAuth();
   const { unreadTotal } = useMessaging();
   const { unreadCountFor } = useEngagement();
   const inboxBadge = activeProfile ? unreadTotal(activeProfile.id) : 0;
@@ -35,6 +36,8 @@ const BottomNav = () => {
     }
     setCreateOpen(true);
   };
+
+  if (accountType === "business") return <BusinessBottomNav />;
 
   return (
     <>

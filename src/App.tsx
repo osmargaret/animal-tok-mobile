@@ -22,6 +22,10 @@ import Marketplace from "./pages/Marketplace";
 import ProductDetail from "./pages/ProductDetail";
 import ServiceDetail from "./pages/ServiceDetail";
 import Notifications from "./pages/Notifications";
+import Ads from "./pages/Ads";
+import Business from "./pages/Business";
+import BusinessDashboard from "./pages/BusinessDashboard";
+import BusinessSubscriptions from "./pages/BusinessSubscriptions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +60,10 @@ const App = () => (
             <Route path="/product/:productId" element={<ProductDetail />} />
             <Route path="/service/:serviceId" element={<ServiceDetail />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
+            <Route path="/business" element={<Business />} />
+            <Route path="/business/dashboard" element={<ProtectedRoute><BusinessDashboard /></ProtectedRoute>} />
+            <Route path="/business/subscriptions" element={<ProtectedRoute><BusinessSubscriptions /></ProtectedRoute>} />
             <Route path="/animal/:animalId" element={<ProtectedRoute><AnimalProfile /></ProtectedRoute>} />
             <Route path="/message/:contactId" element={<ProtectedRoute><MessageView /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />

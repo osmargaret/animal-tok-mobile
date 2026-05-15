@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Star, Edit2, Trash2, Info } from "lucide-react";
+import BackButton from "@/components/BackButton";
 
 interface Product {
   id: number;
@@ -38,6 +39,9 @@ const MyStore = () => {
       <MobileHeader />
 
       <main className="h-full lg:ml-60 overflow-y-auto pb-20 lg:pb-0">
+        <div className="lg:hidden flex items-center gap-3 px-5 pt-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))]">
+          <BackButton />
+        </div>
         {/* Store Header */}
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center gap-4">

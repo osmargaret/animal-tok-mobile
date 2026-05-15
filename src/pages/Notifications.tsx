@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, Heart, MessageCircle, UserPlus, Calendar, ShoppingBag, Bell, CheckCheck, Megaphone, Send } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import DesktopSidebar from "@/components/DesktopSidebar";
@@ -60,6 +61,7 @@ const Notifications = () => {
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] lg:pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
+              <BackButton />
               <h1 className="text-lg font-bold">Notifications</h1>
               {unreadCount > 0 && (
                 <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">

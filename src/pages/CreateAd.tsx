@@ -4,6 +4,7 @@ import { ArrowLeft, Image as ImageIcon, Video, Type, Upload, Megaphone, X, Check
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement, type AdMedia } from "@/contexts/EngagementContext";
+import { validateCtaUrl } from "@/lib/ctaUrl";
 
 const types: { id: AdMedia; label: string; icon: typeof ImageIcon; color: string; hint: string }[] = [
   { id: "image", label: "Image", icon: ImageIcon, color: "text-emerald-400", hint: "JPG, PNG, WebP — under 10MB" },
@@ -39,7 +40,8 @@ const CreateAd = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const titleErr = title.trim().length > 0 && title.trim().length < 3 ? "Title is too short" : "";
-  const urlErr = ctaUrl && !/^https?:\/\/\S+/i.test(ctaUrl) ? "URL must start with http(s)://" : "";
+  const ctaInfo = validateCtaUrl(ctaUrl);
+  const urlErr = ctaUrl && !ctaInfo.valid ? "Enter a valid URL, phone number or email" : "";
 
   const canPublish =
     !!activeProfile &&
@@ -248,14 +250,19 @@ const CreateAd = () => {
 
         {/* CTA */}
         <div>
-          <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Call-to-action URL (optional)</label>
+          <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Call-to-action (optional)</label>
           <input
             value={ctaUrl}
             onChange={(e) => setCtaUrl(e.target.value)}
-            placeholder="https://your-link.com"
+            placeholder="https://your-link.com, +1 555 0100, or you@email.com"
             className="w-full bg-secondary rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary"
           />
           {urlErr && <p className="text-[11px] text-destructive mt-1">{urlErr}</p>}
+          {!urlErr && ctaInfo.valid && (
+            <p className="text-[11px] text-primary mt-1">
+              Detected: {ctaInfo.kind === "tel" ? "Phone — opens dialer" : ctaInfo.kind === "mail" ? "Email — opens mail app" : "Web link"}
+            </p>
+          )}
           {ctaUrl && (
             <div className="flex gap-1.5 flex-wrap mt-2">
               {ctaPresets.map((p) => (

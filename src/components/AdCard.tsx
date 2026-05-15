@@ -1,6 +1,7 @@
-import { ExternalLink, Bookmark, UserPlus, UserCheck, Megaphone } from "lucide-react";
+import { ExternalLink, Bookmark, UserPlus, UserCheck, Megaphone, Phone, Mail } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement, type Ad } from "@/contexts/EngagementContext";
+import { validateCtaUrl, openCta, ctaActionLabel } from "@/lib/ctaUrl";
 import { toast } from "sonner";
 
 const AdCard = ({ ad }: { ad: Ad }) => {
@@ -68,19 +69,24 @@ const AdCard = ({ ad }: { ad: Ad }) => {
         {ad.body && <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{ad.body}</p>}
 
         <div className="flex items-center gap-2 pt-1">
-          {ad.ctaUrl ? (
-            <a
-              href={ad.ctaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              {ad.ctaLabel || "Learn more"}
-            </a>
-          ) : (
-            <div className="flex-1 text-[11px] text-muted-foreground text-center py-2">No link attached</div>
-          )}
+          {(() => {
+            const cta = validateCtaUrl(ad.ctaUrl || "");
+            if (cta.valid) {
+              const Icon = cta.kind === "tel" ? Phone : cta.kind === "mail" ? Mail : ExternalLink;
+              return (
+                <button
+                  onClick={() => openCta(cta)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {ad.ctaLabel || ctaActionLabel(cta)}
+                </button>
+              );
+            }
+            return (
+              <div className="flex-1 text-[11px] text-muted-foreground text-center py-2">No link attached</div>
+            );
+          })()}
           <button
             onClick={() => requireAuth() && toggleSave(profileId, ad.id)}
             className={`p-2 rounded-full border transition-colors ${

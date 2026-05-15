@@ -148,6 +148,13 @@ const Landing = () => {
             By continuing, you agree to our Terms and Privacy Policy.
           </p>
         </div>
+
+        <div className="mt-5 text-center">
+          <p className="text-xs text-muted-foreground">No pets? Selling products or services?</p>
+          <a href="/business" className="inline-block mt-1 text-sm font-semibold text-primary hover:underline">
+            Open an Animandler Business account →
+          </a>
+        </div>
       </motion.div>
     </div>
   );
