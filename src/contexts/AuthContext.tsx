@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+export type AccountType = "personal" | "business";
+
 export interface MockUser {
   id: string;
   name: string;
   username: string;
   email: string;
   avatar: string;
+  accountType: AccountType;
+  businessName?: string;
 }
 
 export interface ActiveProfile {
@@ -13,15 +17,18 @@ export interface ActiveProfile {
   name: string;
   username: string;
   avatar: string;
-  type: "handler" | "animal";
+  type: "handler" | "animal" | "business";
 }
 
 interface AuthContextType {
   user: MockUser | null;
   isAuthenticated: boolean;
   activeProfile: ActiveProfile | null;
+  accountType: AccountType;
+  businessName?: string;
   login: (email: string, password: string) => void;
   signup: (name: string, email: string, username: string) => void;
+  signupAs: (name: string, email: string, username: string, type: AccountType, opts?: { businessName?: string }) => void;
   logout: () => void;
   switchProfile: (profile: ActiveProfile) => void;
   switchToHandler: () => void;
@@ -41,6 +48,7 @@ const MOCK_USER: MockUser = {
   username: "@alex.morgan",
   email: "alex@example.com",
   avatar: "🐾",
+  accountType: "personal",
 };
 
 const USER_KEY = "animaltok_user";
@@ -76,10 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handlerProfile = (u: MockUser): ActiveProfile => ({
     id: u.id,
-    name: u.name,
+    name: u.businessName || u.name,
     username: u.username,
     avatar: u.avatar,
-    type: "handler",
+    type: u.accountType === "business" ? "business" : "handler",
   });
 
   const login = (_email: string, _password: string) => {
@@ -88,7 +96,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signup = (name: string, email: string, username: string) => {
-    const newUser = { ...MOCK_USER, name, email, username: `@${username}` };
+    const newUser: MockUser = { ...MOCK_USER, name, email, username: `@${username}`, accountType: "personal" };
+    setUser(newUser);
+    setActiveProfile(handlerProfile(newUser));
+  };
+
+  const signupAs: AuthContextType["signupAs"] = (name, email, username, type, opts) => {
+    const newUser: MockUser = {
+      ...MOCK_USER,
+      id: type === "business" ? `biz-${Date.now()}` : MOCK_USER.id,
+      name,
+      email,
+      username: `@${username}`,
+      accountType: type,
+      avatar: type === "business" ? "🏪" : "🐾",
+      businessName: opts?.businessName,
+    };
     setUser(newUser);
     setActiveProfile(handlerProfile(newUser));
   };
@@ -110,8 +133,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated: !!user,
         activeProfile,
+        accountType: user?.accountType || "personal",
+        businessName: user?.businessName,
         login,
         signup,
+        signupAs,
         logout,
         switchProfile,
         switchToHandler,
