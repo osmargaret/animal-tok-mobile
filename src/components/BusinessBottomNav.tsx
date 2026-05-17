@@ -24,7 +24,7 @@ const BusinessBottomNav = () => {
       <div className="grid grid-cols-6 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {items.map((it) => {
           const Icon = it.icon;
-          const active = location.pathname === it.path;
+          const active = location.pathname === it.path || location.pathname.startsWith(it.path + "/");
           const badge = it.path === "/inbox" ? inboxBadge : 0;
           return (
             <button
