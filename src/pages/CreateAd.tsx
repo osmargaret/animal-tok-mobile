@@ -4,6 +4,7 @@ import { ArrowLeft, Image as ImageIcon, Video, Type, Upload, Megaphone, X, Check
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement, type AdMedia } from "@/contexts/EngagementContext";
+import { useIpLocation } from "@/hooks/useIpLocation";
 import { validateCtaUrl } from "@/lib/ctaUrl";
 
 const types: { id: AdMedia; label: string; icon: typeof ImageIcon; color: string; hint: string }[] = [
