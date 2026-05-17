@@ -50,6 +50,7 @@ export type Ad = {
   createdByName?: string;
   createdByAvatar?: string;
   createdAt: number;
+  location?: { city?: string; region?: string; country?: string; countryCode?: string } | null;
 };
 
 export type Order = {

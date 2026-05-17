@@ -2,7 +2,8 @@ import { useState } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { ArrowLeft, Upload, MapPin, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, MapPin, Info, Loader2, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useIpLocation } from "@/hooks/useIpLocation";
 
@@ -15,7 +16,33 @@ const CreatePost = () => {
   const [hashtags, setHashtags] = useState("");
   const [textContent, setTextContent] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const { location, loading: locLoading } = useIpLocation();
+  const { location, loading: locLoading, refresh } = useIpLocation();
+
+  const handlePost = () => {
+    if (postType === "text" && !textContent.trim()) {
+      toast.error("Write something before posting");
+      return;
+    }
+    const payload = {
+      type: postType,
+      caption: caption.trim(),
+      textContent: postType === "text" ? textContent.trim() : undefined,
+      hashtags: hashtags.split(/\s+/).filter(Boolean),
+      isPublic,
+      location: location
+        ? {
+            city: location.city,
+            region: location.region,
+            country: location.country,
+            countryCode: location.countryCode,
+          }
+        : null,
+      createdAt: Date.now(),
+    };
+    console.log("[CreatePost] publishing", payload);
+    toast.success(location ? `Posted from ${location.city || location.country || "your location"}` : "Posted");
+    navigate("/feed");
+  };
 
   const tabs: { type: PostType; label: string; icon: string }[] = [
     { type: "image", label: "Image", icon: "📷" },
@@ -119,7 +146,7 @@ const CreatePost = () => {
               <MapPin className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-foreground">Location</p>
+              <p className="text-xs font-semibold text-foreground">Location · auto-detected</p>
               {locLoading ? (
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                   <Loader2 className="w-3 h-3 animate-spin" /> Detecting from your network…
@@ -132,7 +159,14 @@ const CreatePost = () => {
                 <p className="text-[11px] text-muted-foreground mt-0.5">Couldn't detect — post will be unlisted by location</p>
               )}
             </div>
-            <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <button
+              onClick={refresh}
+              disabled={locLoading}
+              className="p-1.5 rounded-full hover:bg-secondary transition-colors disabled:opacity-50"
+              aria-label="Refresh location"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${locLoading ? "animate-spin" : ""}`} />
+            </button>
           </div>
 
           {/* Footer: Visibility + Actions */}
@@ -150,7 +184,7 @@ const CreatePost = () => {
               <button className="px-4 py-2.5 rounded-xl bg-secondary text-sm font-medium text-muted-foreground hover:bg-secondary/80 transition-colors">
                 Save draft
               </button>
-              <button className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+              <button onClick={handlePost} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
                 Post
               </button>
             </div>

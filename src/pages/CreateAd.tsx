@@ -4,6 +4,7 @@ import { ArrowLeft, Image as ImageIcon, Video, Type, Upload, Megaphone, X, Check
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement, type AdMedia } from "@/contexts/EngagementContext";
+import { useIpLocation } from "@/hooks/useIpLocation";
 import { validateCtaUrl } from "@/lib/ctaUrl";
 
 const types: { id: AdMedia; label: string; icon: typeof ImageIcon; color: string; hint: string }[] = [
@@ -29,6 +30,7 @@ const CreateAd = () => {
   const navigate = useNavigate();
   const { activeProfile } = useAuth();
   const { addAd } = useEngagement();
+  const { location } = useIpLocation();
   const [type, setType] = useState<AdMedia>("image");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -81,6 +83,9 @@ const CreateAd = () => {
         ctaUrl: ctaUrl.trim() || undefined,
         ctaLabel: ctaUrl.trim() ? ctaLabel : undefined,
         bgColor: type === "text" ? bgColor : undefined,
+        location: location
+          ? { city: location.city, region: location.region, country: location.country, countryCode: location.countryCode }
+          : null,
       },
       { name: activeProfile.name, avatar: activeProfile.avatar }
     );
