@@ -16,7 +16,33 @@ const CreatePost = () => {
   const [hashtags, setHashtags] = useState("");
   const [textContent, setTextContent] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const { location, loading: locLoading } = useIpLocation();
+  const { location, loading: locLoading, refresh } = useIpLocation();
+
+  const handlePost = () => {
+    if (postType === "text" && !textContent.trim()) {
+      toast.error("Write something before posting");
+      return;
+    }
+    const payload = {
+      type: postType,
+      caption: caption.trim(),
+      textContent: postType === "text" ? textContent.trim() : undefined,
+      hashtags: hashtags.split(/\s+/).filter(Boolean),
+      isPublic,
+      location: location
+        ? {
+            city: location.city,
+            region: location.region,
+            country: location.country,
+            countryCode: location.countryCode,
+          }
+        : null,
+      createdAt: Date.now(),
+    };
+    console.log("[CreatePost] publishing", payload);
+    toast.success(location ? `Posted from ${location.city || location.country || "your location"}` : "Posted");
+    navigate("/feed");
+  };
 
   const tabs: { type: PostType; label: string; icon: string }[] = [
     { type: "image", label: "Image", icon: "📷" },
