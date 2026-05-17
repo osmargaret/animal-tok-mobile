@@ -168,7 +168,7 @@ const Marketplace = () => {
                   <p className="text-xs text-muted-foreground mt-1">Be the first to publish a sponsored post.</p>
                 </div>
               ) : (
-                filteredAds.map((ad) => <AdCard key={ad.id} ad={ad} />)
+                filteredAds.map((ad) => <AdCard key={`${activeProfile?.id || "anon"}:${ad.id}`} ad={ad} />)
               )}
             </div>
           )}
