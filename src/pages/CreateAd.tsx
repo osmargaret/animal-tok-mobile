@@ -30,6 +30,7 @@ const CreateAd = () => {
   const navigate = useNavigate();
   const { activeProfile } = useAuth();
   const { addAd } = useEngagement();
+  const { location } = useIpLocation();
   const [type, setType] = useState<AdMedia>("image");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
