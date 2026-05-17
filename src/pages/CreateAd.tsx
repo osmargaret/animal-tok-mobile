@@ -83,6 +83,9 @@ const CreateAd = () => {
         ctaUrl: ctaUrl.trim() || undefined,
         ctaLabel: ctaUrl.trim() ? ctaLabel : undefined,
         bgColor: type === "text" ? bgColor : undefined,
+        location: location
+          ? { city: location.city, region: location.region, country: location.country, countryCode: location.countryCode }
+          : null,
       },
       { name: activeProfile.name, avatar: activeProfile.avatar }
     );
