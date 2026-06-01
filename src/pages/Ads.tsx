@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, Briefcase } from "lucide-react";
+import { Megaphone, Plus, Briefcase, Eye, MousePointerClick, BarChart3 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import MobileHeader from "@/components/MobileHeader";
 import BottomNav from "@/components/BottomNav";
@@ -12,13 +12,25 @@ import { useEngagement } from "@/contexts/EngagementContext";
 const Ads = () => {
   const navigate = useNavigate();
   const { activeProfile, accountType, businessName, user } = useAuth();
-  const { ads } = useEngagement();
+  const { ads, statsFor } = useEngagement();
   const profileId = activeProfile?.id || user?.id || "";
   const isBusiness = accountType === "business";
   const [tab, setTab] = useState<"mine" | "all">("mine");
 
   const mine = ads.filter((a) => a.createdBy === profileId);
   const list = tab === "mine" ? mine : ads;
+
+  // Aggregate analytics across owner's ads
+  const totals = mine.reduce(
+    (acc, a) => {
+      const s = statsFor(a.id);
+      acc.views += s.views;
+      acc.clicks += s.clicks;
+      return acc;
+    },
+    { views: 0, clicks: 0 }
+  );
+  const ctr = totals.views > 0 ? ((totals.clicks / totals.views) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground pb-24">
