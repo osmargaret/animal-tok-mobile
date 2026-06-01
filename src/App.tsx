@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { EngagementProvider } from "@/contexts/EngagementContext";
+import BusinessGate from "@/components/BusinessGate";
 import CreateAd from "./pages/CreateAd";
 import Checkout from "./pages/Checkout";
 import Feed from "./pages/Feed";
@@ -26,6 +27,7 @@ import Ads from "./pages/Ads";
 import Business from "./pages/Business";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import BusinessSubscriptions from "./pages/BusinessSubscriptions";
+import BusinessCheckout from "./pages/BusinessCheckout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
