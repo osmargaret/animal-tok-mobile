@@ -1,16 +1,39 @@
-import { ExternalLink, Bookmark, UserPlus, UserCheck, Megaphone, Phone, Mail } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ExternalLink, Bookmark, UserPlus, UserCheck, Megaphone, Phone, Mail, Eye, MousePointerClick, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement, type Ad } from "@/contexts/EngagementContext";
 import { validateCtaUrl, openCta, ctaActionLabel } from "@/lib/ctaUrl";
 import { toast } from "sonner";
 
-const AdCard = ({ ad }: { ad: Ad }) => {
+const AdCard = ({ ad, showStats = false }: { ad: Ad; showStats?: boolean }) => {
   const { activeProfile } = useAuth();
-  const { isSaved, toggleSave, isFollowing, toggleFollow } = useEngagement();
+  const { isSaved, toggleSave, isFollowing, toggleFollow, trackAdView, trackAdClick, statsFor } = useEngagement();
   const profileId = activeProfile?.id || "";
   const saved = profileId ? isSaved(profileId, ad.id) : false;
   const following = profileId ? isFollowing(profileId, ad.createdBy) : false;
   const isOwner = profileId === ad.createdBy;
+  const stats = statsFor(ad.id);
+  const ctr = stats.views > 0 ? ((stats.clicks / stats.views) * 100).toFixed(1) : "0.0";
+
+  // Track view once per session via IntersectionObserver
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ref.current || isOwner) return;
+    const el = ref.current;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            trackAdView(ad.id, profileId || "anon");
+            io.disconnect();
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ad.id, profileId, isOwner, trackAdView]);
 
   const requireAuth = () => {
     if (!profileId) {
@@ -21,7 +44,7 @@ const AdCard = ({ ad }: { ad: Ad }) => {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+    <div ref={ref} className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-base shrink-0">
@@ -75,7 +98,10 @@ const AdCard = ({ ad }: { ad: Ad }) => {
               const Icon = cta.kind === "tel" ? Phone : cta.kind === "mail" ? Mail : ExternalLink;
               return (
                 <button
-                  onClick={() => openCta(cta)}
+                  onClick={() => {
+                    trackAdClick(ad.id, profileId || "anon");
+                    openCta(cta);
+                  }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -97,9 +123,27 @@ const AdCard = ({ ad }: { ad: Ad }) => {
             <Bookmark className={`w-4 h-4 ${saved ? "fill-primary" : ""}`} />
           </button>
         </div>
+
+        {(showStats || isOwner) && (
+          <div className="grid grid-cols-3 gap-2 pt-2 mt-1 border-t border-border">
+            <Stat icon={<Eye className="w-3 h-3" />} label="Views" value={stats.views} />
+            <Stat icon={<MousePointerClick className="w-3 h-3" />} label="Clicks" value={stats.clicks} />
+            <Stat icon={<BarChart3 className="w-3 h-3" />} label="CTR" value={`${ctr}%`} />
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+const Stat = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) => (
+  <div className="rounded-lg bg-secondary/50 px-2 py-1.5">
+    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-wide">
+      {icon}
+      {label}
+    </div>
+    <p className="text-sm font-bold mt-0.5">{value}</p>
+  </div>
+);
 
 export default AdCard;
