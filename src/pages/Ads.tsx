@@ -113,4 +113,14 @@ const Ads = () => {
   );
 };
 
+const Metric = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) => (
+  <div className="rounded-xl bg-background/60 border border-border px-3 py-2">
+    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+      {icon}
+      {label}
+    </div>
+    <p className="text-base font-bold mt-0.5">{value}</p>
+  </div>
+);
+
 export default Ads;
