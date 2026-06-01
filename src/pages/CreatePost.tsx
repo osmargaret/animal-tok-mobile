@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { ArrowLeft, Upload, MapPin, Info, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Upload, MapPin, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useIpLocation } from "@/hooks/useIpLocation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 
 type PostType = "image" | "video" | "text";
 
