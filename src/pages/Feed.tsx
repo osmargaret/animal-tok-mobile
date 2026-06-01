@@ -8,26 +8,48 @@ import CommentsPanel from "@/components/CommentsPanel";
 import EventsModal from "@/components/EventsModal";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { feedPosts } from "@/data/feedData";
+import { feedPosts, type FeedPost } from "@/data/feedData";
 import { animalFeeds } from "@/data/animalFeedData";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement, type UserPost } from "@/contexts/EngagementContext";
+
+const TEXT_POSTER = "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400&h=700&fit=crop";
+
+const userPostToFeed = (p: UserPost): FeedPost => ({
+  id: p.id,
+  username: p.authorUsername,
+  displayName: p.authorName,
+  avatar: p.authorAvatar,
+  time: "just now",
+  caption: p.type === "text" ? (p.textContent || "") : p.caption,
+  hashtags: p.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+  videoUrl: p.type === "video" ? p.mediaUrl || "" : "",
+  posterUrl: p.type === "image" ? p.mediaUrl || TEXT_POSTER : TEXT_POSTER,
+  likes: 0,
+  comments: 0,
+  saves: 0,
+  commentsList: [],
+});
 
 const Feed = () => {
   const { activeProfile } = useAuth();
+  const { userPosts } = useEngagement();
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
-  // Scope feed to active profile
+  // Scope feed to active profile; prepend the user's own posts.
   const posts = useMemo(() => {
+    const mine = userPosts
+      .filter((p) => p.isPublic || p.authorId === activeProfile?.id)
+      .map(userPostToFeed);
     if (activeProfile?.type === "animal") {
       const profileFeed = animalFeeds[activeProfile.id] || [];
-      // Mix profile's own feed with general feed
-      return [...profileFeed, ...feedPosts];
+      return [...mine, ...profileFeed, ...feedPosts];
     }
-    return feedPosts;
-  }, [activeProfile]);
+    return [...mine, ...feedPosts];
+  }, [activeProfile, userPosts]);
 
   const handleRefresh = useCallback(async () => {
     await new Promise((r) => setTimeout(r, 1200));

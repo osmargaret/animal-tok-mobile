@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { EngagementProvider } from "@/contexts/EngagementContext";
+import BusinessGate from "@/components/BusinessGate";
 import CreateAd from "./pages/CreateAd";
 import Checkout from "./pages/Checkout";
 import Feed from "./pages/Feed";
@@ -26,6 +27,7 @@ import Ads from "./pages/Ads";
 import Business from "./pages/Business";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import BusinessSubscriptions from "./pages/BusinessSubscriptions";
+import BusinessCheckout from "./pages/BusinessCheckout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,15 +48,15 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
-            <Route path="/feed" element={<Feed />} />
+            <Route path="/feed" element={<BusinessGate><Feed /></BusinessGate>} />
             <Route path="/login" element={<Landing />} />
-            <Route path="/profile" element={<ProtectedRoute><HandlerProfile /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><BusinessGate><HandlerProfile /></BusinessGate></ProtectedRoute>} />
             <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><MyStore /></ProtectedRoute>} />
-            <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><BusinessGate><CreatePost /></BusinessGate></ProtectedRoute>} />
             <Route path="/create-ad" element={<ProtectedRoute><CreateAd /></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-            <Route path="/explore" element={<Explore />} />
+            <Route path="/explore" element={<BusinessGate><Explore /></BusinessGate>} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/product/:productId" element={<ProductDetail />} />
@@ -64,9 +66,11 @@ const App = () => (
             <Route path="/business" element={<Business />} />
             <Route path="/business/dashboard" element={<ProtectedRoute><BusinessDashboard /></ProtectedRoute>} />
             <Route path="/business/subscriptions" element={<ProtectedRoute><BusinessSubscriptions /></ProtectedRoute>} />
-            <Route path="/animal/:animalId" element={<ProtectedRoute><AnimalProfile /></ProtectedRoute>} />
+            <Route path="/business/checkout" element={<ProtectedRoute><BusinessCheckout /></ProtectedRoute>} />
+            <Route path="/animal/:animalId" element={<ProtectedRoute><BusinessGate><AnimalProfile /></BusinessGate></ProtectedRoute>} />
             <Route path="/message/:contactId" element={<ProtectedRoute><MessageView /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
+
           </Routes>
         </BrowserRouter>
         </MessagingProvider>

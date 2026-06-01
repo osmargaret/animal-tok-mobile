@@ -1,46 +1,62 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { ArrowLeft, Upload, MapPin, Info, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Upload, MapPin, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useIpLocation } from "@/hooks/useIpLocation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEngagement } from "@/contexts/EngagementContext";
 
 type PostType = "image" | "video" | "text";
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const { activeProfile } = useAuth();
+  const { addPost } = useEngagement();
   const [postType, setPostType] = useState<PostType>("image");
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
   const [textContent, setTextContent] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [mediaUrl, setMediaUrl] = useState<string>("");
+  const fileRef = useRef<HTMLInputElement>(null);
   const { location, loading: locLoading, refresh } = useIpLocation();
 
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 25 * 1024 * 1024) return toast.error("File too large (max 25MB)");
+    const reader = new FileReader();
+    reader.onload = () => setMediaUrl(reader.result as string);
+    reader.readAsDataURL(f);
+  };
+
   const handlePost = () => {
+    if (!activeProfile) return toast.error("Sign in to post");
     if (postType === "text" && !textContent.trim()) {
       toast.error("Write something before posting");
       return;
     }
-    const payload = {
+    if (postType !== "text" && !mediaUrl) {
+      toast.error(`Add ${postType === "image" ? "an image" : "a video"} first`);
+      return;
+    }
+    addPost({
       type: postType,
       caption: caption.trim(),
       textContent: postType === "text" ? textContent.trim() : undefined,
       hashtags: hashtags.split(/\s+/).filter(Boolean),
+      mediaUrl: mediaUrl || undefined,
       isPublic,
-      location: location
-        ? {
-            city: location.city,
-            region: location.region,
-            country: location.country,
-            countryCode: location.countryCode,
-          }
-        : null,
-      createdAt: Date.now(),
-    };
-    console.log("[CreatePost] publishing", payload);
-    toast.success(location ? `Posted from ${location.city || location.country || "your location"}` : "Posted");
+      authorId: activeProfile.id,
+      authorName: activeProfile.name,
+      authorAvatar: activeProfile.avatar,
+      authorUsername: activeProfile.username,
+      location: location ? { city: location.city, country: location.country } : null,
+    });
+    toast.success(location ? `Posted from ${location.city || location.country || "your location"}` : "Posted to your feed");
     navigate("/feed");
   };
 
@@ -89,19 +105,48 @@ const CreatePost = () => {
 
           {/* Upload Area (image/video) */}
           {postType !== "text" && (
-            <div className="border-2 border-dashed border-border rounded-2xl p-8 flex flex-col items-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer">
-              <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
-                <Upload className="w-6 h-6 text-muted-foreground" />
+            mediaUrl ? (
+              <div className="relative rounded-2xl overflow-hidden border border-border">
+                {postType === "image" ? (
+                  <img src={mediaUrl} alt="upload preview" className="w-full max-h-80 object-cover" />
+                ) : (
+                  <video src={mediaUrl} controls className="w-full max-h-80 bg-black" />
+                )}
+                <button
+                  onClick={() => setMediaUrl("")}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center"
+                  aria-label="Remove"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-sm font-medium text-foreground">Drag or tap to upload</p>
-              <p className="text-xs text-muted-foreground">
-                {postType === "image" ? "JPG, PNG, GIF · Max 20MB" : "MP4, MOV · Max 100MB"}
-              </p>
-              <button className="mt-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                Browse files
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full border-2 border-dashed border-border rounded-2xl p-8 flex flex-col items-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-all"
+              >
+                <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Tap to upload</p>
+                <p className="text-xs text-muted-foreground">
+                  {postType === "image" ? "JPG, PNG, GIF · Max 25MB" : "MP4, MOV · Max 25MB"}
+                </p>
+                <span className="mt-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium shadow-lg shadow-primary/20">
+                  Browse files
+                </span>
               </button>
-            </div>
+            )
           )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={postType === "image" ? "image/*" : "video/*"}
+            className="hidden"
+            onChange={onFile}
+          />
+
 
           {/* Text Post Area */}
           {postType === "text" && (

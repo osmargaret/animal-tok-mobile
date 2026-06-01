@@ -53,6 +53,35 @@ export type Ad = {
   location?: { city?: string; region?: string; country?: string; countryCode?: string } | null;
 };
 
+export type AdStats = { views: number; clicks: number };
+
+export type UserPost = {
+  id: number;
+  type: "image" | "video" | "text";
+  caption: string;
+  textContent?: string;
+  hashtags: string[];
+  mediaUrl?: string;
+  isPublic: boolean;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  authorUsername: string;
+  location?: { city?: string; country?: string } | null;
+  createdAt: number;
+};
+
+export type SubscriptionPlan = "starter" | "growth" | "pro";
+export type Subscription = {
+  profileId: string;
+  plan: SubscriptionPlan;
+  price: number;
+  status: "active" | "cancelled";
+  startedAt: number;
+  renewsAt: number;
+  paymentLast4: string;
+};
+
 export type Order = {
   id: string;
   profileId: string;
@@ -130,6 +159,20 @@ interface EngagementContextType {
   // Ads
   ads: Ad[];
   addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt" | "createdByName" | "createdByAvatar">, meta?: { name?: string; avatar?: string }) => Ad;
+  adStats: Record<string, AdStats>;
+  statsFor: (adId: string) => AdStats;
+  trackAdView: (adId: string, viewerId?: string) => void;
+  trackAdClick: (adId: string, viewerId?: string) => void;
+
+  // User-generated posts (persisted)
+  userPosts: UserPost[];
+  addPost: (post: Omit<UserPost, "id" | "createdAt">) => UserPost;
+
+  // Business subscriptions
+  subscriptions: Record<string, Subscription>;
+  subscriptionFor: (profileId: string) => Subscription | null;
+  setSubscription: (profileId: string, plan: SubscriptionPlan, price: number, paymentLast4: string) => Subscription;
+  cancelSubscription: (profileId: string) => void;
 }
 
 const EngagementContext = createContext<EngagementContextType | null>(null);
@@ -175,6 +218,9 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useStored<Order[]>("at_orders", []);
   const [bookings, setBookings] = useStored<Booking[]>("at_bookings", []);
   const [ads, setAds] = useStored<Ad[]>("at_ads", []);
+  const [adStats, setAdStats] = useStored<Record<string, AdStats>>("at_ad_stats", {});
+  const [userPosts, setUserPosts] = useStored<UserPost[]>("at_user_posts", []);
+  const [subscriptions, setSubscriptions] = useStored<Record<string, Subscription>>("at_subs", {});
 
   const addNotification: EngagementContextType["addNotification"] = useCallback((n) => {
     setNotifications((prev) => [
@@ -399,6 +445,62 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
     return ad;
   };
 
+  const statsFor = (adId: string) => adStats[adId] || { views: 0, clicks: 0 };
+  const trackAdView: EngagementContextType["trackAdView"] = (adId, viewerId) => {
+    if (typeof window !== "undefined") {
+      const k = `at_seen_${viewerId || "anon"}_${adId}`;
+      if (sessionStorage.getItem(k)) return;
+      sessionStorage.setItem(k, "1");
+    }
+    setAdStats((prev) => {
+      const cur = prev[adId] || { views: 0, clicks: 0 };
+      return { ...prev, [adId]: { ...cur, views: cur.views + 1 } };
+    });
+  };
+  const trackAdClick: EngagementContextType["trackAdClick"] = (adId) => {
+    setAdStats((prev) => {
+      const cur = prev[adId] || { views: 0, clicks: 0 };
+      return { ...prev, [adId]: { ...cur, clicks: cur.clicks + 1 } };
+    });
+  };
+
+  /* ------------------------------ User posts ----------------------------- */
+  const addPost: EngagementContextType["addPost"] = (post) => {
+    const p: UserPost = { ...post, id: Date.now(), createdAt: Date.now() };
+    setUserPosts((prev) => [p, ...prev]);
+    return p;
+  };
+
+  /* ---------------------------- Subscriptions ---------------------------- */
+  const subscriptionFor = (profileId: string) => subscriptions[profileId] || null;
+  const setSubscription: EngagementContextType["setSubscription"] = (profileId, plan, price, paymentLast4) => {
+    const sub: Subscription = {
+      profileId,
+      plan,
+      price,
+      status: "active",
+      startedAt: Date.now(),
+      renewsAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      paymentLast4,
+    };
+    setSubscriptions((prev) => ({ ...prev, [profileId]: sub }));
+    addNotification({
+      type: "system",
+      profileId,
+      title: "Subscription active",
+      message: `${plan[0].toUpperCase() + plan.slice(1)} plan · $${price}/mo`,
+      avatar: "✨",
+    });
+    return sub;
+  };
+  const cancelSubscription: EngagementContextType["cancelSubscription"] = (profileId) => {
+    setSubscriptions((prev) => {
+      const next = { ...prev };
+      if (next[profileId]) next[profileId] = { ...next[profileId], status: "cancelled" };
+      return next;
+    });
+  };
+
   const value = useMemo<EngagementContextType>(
     () => ({
       isLiked,
@@ -431,9 +533,19 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
       addBooking,
       ads,
       addAd,
+      adStats,
+      statsFor,
+      trackAdView,
+      trackAdClick,
+      userPosts,
+      addPost,
+      subscriptions,
+      subscriptionFor,
+      setSubscription,
+      cancelSubscription,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [likes, saves, follows, comments, notifications, cart, orders, bookings, ads]
+    [likes, saves, follows, comments, notifications, cart, orders, bookings, ads, adStats, userPosts, subscriptions]
   );
 
   return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;
