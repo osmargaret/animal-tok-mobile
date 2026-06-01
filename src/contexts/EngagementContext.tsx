@@ -53,6 +53,35 @@ export type Ad = {
   location?: { city?: string; region?: string; country?: string; countryCode?: string } | null;
 };
 
+export type AdStats = { views: number; clicks: number };
+
+export type UserPost = {
+  id: number;
+  type: "image" | "video" | "text";
+  caption: string;
+  textContent?: string;
+  hashtags: string[];
+  mediaUrl?: string;
+  isPublic: boolean;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  authorUsername: string;
+  location?: { city?: string; country?: string } | null;
+  createdAt: number;
+};
+
+export type SubscriptionPlan = "starter" | "growth" | "pro";
+export type Subscription = {
+  profileId: string;
+  plan: SubscriptionPlan;
+  price: number;
+  status: "active" | "cancelled";
+  startedAt: number;
+  renewsAt: number;
+  paymentLast4: string;
+};
+
 export type Order = {
   id: string;
   profileId: string;
