@@ -105,19 +105,48 @@ const CreatePost = () => {
 
           {/* Upload Area (image/video) */}
           {postType !== "text" && (
-            <div className="border-2 border-dashed border-border rounded-2xl p-8 flex flex-col items-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer">
-              <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
-                <Upload className="w-6 h-6 text-muted-foreground" />
+            mediaUrl ? (
+              <div className="relative rounded-2xl overflow-hidden border border-border">
+                {postType === "image" ? (
+                  <img src={mediaUrl} alt="upload preview" className="w-full max-h-80 object-cover" />
+                ) : (
+                  <video src={mediaUrl} controls className="w-full max-h-80 bg-black" />
+                )}
+                <button
+                  onClick={() => setMediaUrl("")}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center"
+                  aria-label="Remove"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-sm font-medium text-foreground">Drag or tap to upload</p>
-              <p className="text-xs text-muted-foreground">
-                {postType === "image" ? "JPG, PNG, GIF · Max 20MB" : "MP4, MOV · Max 100MB"}
-              </p>
-              <button className="mt-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                Browse files
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full border-2 border-dashed border-border rounded-2xl p-8 flex flex-col items-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-all"
+              >
+                <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Tap to upload</p>
+                <p className="text-xs text-muted-foreground">
+                  {postType === "image" ? "JPG, PNG, GIF · Max 25MB" : "MP4, MOV · Max 25MB"}
+                </p>
+                <span className="mt-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium shadow-lg shadow-primary/20">
+                  Browse files
+                </span>
               </button>
-            </div>
+            )
           )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={postType === "image" ? "image/*" : "video/*"}
+            className="hidden"
+            onChange={onFile}
+          />
+
 
           {/* Text Post Area */}
           {postType === "text" && (
