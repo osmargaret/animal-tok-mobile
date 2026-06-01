@@ -13,36 +13,50 @@ type PostType = "image" | "video" | "text";
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const { activeProfile } = useAuth();
+  const { addPost } = useEngagement();
   const [postType, setPostType] = useState<PostType>("image");
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
   const [textContent, setTextContent] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [mediaUrl, setMediaUrl] = useState<string>("");
+  const fileRef = useRef<HTMLInputElement>(null);
   const { location, loading: locLoading, refresh } = useIpLocation();
 
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 25 * 1024 * 1024) return toast.error("File too large (max 25MB)");
+    const reader = new FileReader();
+    reader.onload = () => setMediaUrl(reader.result as string);
+    reader.readAsDataURL(f);
+  };
+
   const handlePost = () => {
+    if (!activeProfile) return toast.error("Sign in to post");
     if (postType === "text" && !textContent.trim()) {
       toast.error("Write something before posting");
       return;
     }
-    const payload = {
+    if (postType !== "text" && !mediaUrl) {
+      toast.error(`Add ${postType === "image" ? "an image" : "a video"} first`);
+      return;
+    }
+    addPost({
       type: postType,
       caption: caption.trim(),
       textContent: postType === "text" ? textContent.trim() : undefined,
       hashtags: hashtags.split(/\s+/).filter(Boolean),
+      mediaUrl: mediaUrl || undefined,
       isPublic,
-      location: location
-        ? {
-            city: location.city,
-            region: location.region,
-            country: location.country,
-            countryCode: location.countryCode,
-          }
-        : null,
-      createdAt: Date.now(),
-    };
-    console.log("[CreatePost] publishing", payload);
-    toast.success(location ? `Posted from ${location.city || location.country || "your location"}` : "Posted");
+      authorId: activeProfile.id,
+      authorName: activeProfile.name,
+      authorAvatar: activeProfile.avatar,
+      authorUsername: activeProfile.username,
+      location: location ? { city: location.city, country: location.country } : null,
+    });
+    toast.success(location ? `Posted from ${location.city || location.country || "your location"}` : "Posted to your feed");
     navigate("/feed");
   };
 
