@@ -218,6 +218,9 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useStored<Order[]>("at_orders", []);
   const [bookings, setBookings] = useStored<Booking[]>("at_bookings", []);
   const [ads, setAds] = useStored<Ad[]>("at_ads", []);
+  const [adStats, setAdStats] = useStored<Record<string, AdStats>>("at_ad_stats", {});
+  const [userPosts, setUserPosts] = useStored<UserPost[]>("at_user_posts", []);
+  const [subscriptions, setSubscriptions] = useStored<Record<string, Subscription>>("at_subs", {});
 
   const addNotification: EngagementContextType["addNotification"] = useCallback((n) => {
     setNotifications((prev) => [
