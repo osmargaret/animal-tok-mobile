@@ -53,12 +53,21 @@ const Ads = () => {
 
       <main className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         {isBusiness && (
-          <section className="rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 border border-primary/30 p-4">
-            <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Business Ads Feed</p>
-            <p className="text-sm font-bold mt-0.5">{mine.length} live {mine.length === 1 ? "ad" : "ads"}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Manage what your business is promoting. Publish photo, video, or text ads to reach more pet owners.
-            </p>
+          <section className="rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 border border-primary/30 p-4 space-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Business Ads</p>
+              <p className="text-sm font-bold mt-0.5">
+                {mine.length} live {mine.length === 1 ? "ad" : "ads"}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Performance is updated in real time as people see and tap your ads.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Metric icon={<Eye className="w-3.5 h-3.5" />} label="Views" value={totals.views} />
+              <Metric icon={<MousePointerClick className="w-3.5 h-3.5" />} label="Clicks" value={totals.clicks} />
+              <Metric icon={<BarChart3 className="w-3.5 h-3.5" />} label="CTR" value={`${ctr}%`} />
+            </div>
           </section>
         )}
 
