@@ -159,6 +159,20 @@ interface EngagementContextType {
   // Ads
   ads: Ad[];
   addAd: (profileId: string, a: Omit<Ad, "id" | "createdBy" | "createdAt" | "createdByName" | "createdByAvatar">, meta?: { name?: string; avatar?: string }) => Ad;
+  adStats: Record<string, AdStats>;
+  statsFor: (adId: string) => AdStats;
+  trackAdView: (adId: string, viewerId?: string) => void;
+  trackAdClick: (adId: string, viewerId?: string) => void;
+
+  // User-generated posts (persisted)
+  userPosts: UserPost[];
+  addPost: (post: Omit<UserPost, "id" | "createdAt">) => UserPost;
+
+  // Business subscriptions
+  subscriptions: Record<string, Subscription>;
+  subscriptionFor: (profileId: string) => Subscription | null;
+  setSubscription: (profileId: string, plan: SubscriptionPlan, price: number, paymentLast4: string) => Subscription;
+  cancelSubscription: (profileId: string) => void;
 }
 
 const EngagementContext = createContext<EngagementContextType | null>(null);
