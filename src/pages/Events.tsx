@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays, MapPin, Clock, Users, Plus, X, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, Clock, Users, Plus, X, ChevronRight, Heart } from "lucide-react";
 import { format, addDays, isSameDay } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
+import BusinessBottomNav from "@/components/BusinessBottomNav";
+import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PetEvent {
@@ -23,17 +25,19 @@ interface PetEvent {
   description: string;
   going: boolean;
   createdByMe: boolean;
+  creatorType: "handler" | "business";
+  creatorName: string;
 }
 
 const today = new Date();
 
 const initialEvents: PetEvent[] = [
-  { id: 1, title: "Dog Park Meetup", type: "meetup", date: today, time: "10:00 AM", location: "Central Dog Park", distance: "0.8 mi", attendees: 24, maxAttendees: 50, emoji: "🐕", description: "Bring your pups for a fun morning at the park!", going: true, createdByMe: false },
-  { id: 2, title: "Cat Adoption Fair", type: "adoption", date: today, time: "2:00 PM", location: "City Animal Shelter", distance: "2.3 mi", attendees: 45, maxAttendees: 100, emoji: "🐈", description: "Find your new furry companion.", going: false, createdByMe: false },
-  { id: 3, title: "Exotic Bird Show", type: "show", date: addDays(today, 1), time: "11:00 AM", location: "Convention Center", distance: "5.1 mi", attendees: 120, maxAttendees: 300, emoji: "🦜", description: "Annual exotic bird exhibition with prizes.", going: false, createdByMe: false },
-  { id: 4, title: "Puppy Training Workshop", type: "training", date: addDays(today, 2), time: "9:00 AM", location: "PetSmart Training Room", distance: "1.5 mi", attendees: 8, maxAttendees: 15, emoji: "🎓", description: "Basic obedience for puppies under 1 year.", going: true, createdByMe: false },
-  { id: 5, title: "Horse & Pony Day", type: "show", date: addDays(today, 3), time: "8:00 AM", location: "Greenfield Stables", distance: "12 mi", attendees: 67, maxAttendees: 200, emoji: "🐴", description: "Meet local horses and enjoy pony rides.", going: false, createdByMe: false },
-  { id: 6, title: "Reptile Lovers Meetup", type: "meetup", date: addDays(today, 5), time: "3:00 PM", location: "Herp Society Hall", distance: "4.2 mi", attendees: 15, maxAttendees: 30, emoji: "🦎", description: "Share tips and show off your scaly friends.", going: false, createdByMe: false },
+  { id: 1, title: "Dog Park Meetup", type: "meetup", date: today, time: "10:00 AM", location: "Central Dog Park", distance: "0.8 mi", attendees: 24, maxAttendees: 50, emoji: "🐕", description: "Bring your pups for a fun morning at the park!", going: true, createdByMe: false, creatorType: "handler", creatorName: "Sam · Handler" },
+  { id: 2, title: "Cat Adoption Fair", type: "adoption", date: today, time: "2:00 PM", location: "City Animal Shelter", distance: "2.3 mi", attendees: 45, maxAttendees: 100, emoji: "🐈", description: "Find your new furry companion.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Mia · Handler" },
+  { id: 3, title: "Exotic Bird Show", type: "show", date: addDays(today, 1), time: "11:00 AM", location: "Convention Center", distance: "5.1 mi", attendees: 120, maxAttendees: 300, emoji: "🦜", description: "Annual exotic bird exhibition with prizes.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Jordan · Handler" },
+  { id: 4, title: "Puppy Training Workshop", type: "training", date: addDays(today, 2), time: "9:00 AM", location: "PetSmart Training Room", distance: "1.5 mi", attendees: 8, maxAttendees: 15, emoji: "🎓", description: "Basic obedience for puppies under 1 year.", going: true, createdByMe: false, creatorType: "handler", creatorName: "Alex · Handler" },
+  { id: 5, title: "Horse & Pony Day", type: "show", date: addDays(today, 3), time: "8:00 AM", location: "Greenfield Stables", distance: "12 mi", attendees: 67, maxAttendees: 200, emoji: "🐴", description: "Meet local horses and enjoy pony rides.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Riley · Handler" },
+  { id: 6, title: "Reptile Lovers Meetup", type: "meetup", date: addDays(today, 5), time: "3:00 PM", location: "Herp Society Hall", distance: "4.2 mi", attendees: 15, maxAttendees: 30, emoji: "🦎", description: "Share tips and show off your scaly friends.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Casey · Handler" },
 ];
 
 const typeColors: Record<string, string> = {
