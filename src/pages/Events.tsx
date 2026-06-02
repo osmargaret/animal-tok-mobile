@@ -60,7 +60,10 @@ const typeEmojis: Record<string, string> = {
 
 const Events = () => {
   const navigate = useNavigate();
+  const { accountType, activeProfile } = useAuth();
+  const isBusiness = accountType === "business";
   const [events, setEvents] = useState(initialEvents);
+  const [followedIds, setFollowedIds] = useState<Set<number>>(new Set());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"browse" | "my">("browse");
@@ -81,10 +84,26 @@ const Events = () => {
     const matchesFilter = activeFilter === "all" || e.type === activeFilter;
     const matchesDate = !selectedDate || isSameDay(e.date, selectedDate);
     const matchesTab = activeTab === "browse" ? !e.createdByMe : e.createdByMe;
-    return matchesFilter && matchesDate && matchesTab;
+    // Business accounts only see handler-created events
+    const matchesAudience = !isBusiness || e.creatorType === "handler";
+    return matchesFilter && matchesDate && matchesTab && matchesAudience;
   });
 
   const myEvents = events.filter((e) => e.createdByMe);
+
+  const toggleFollow = (id: number) => {
+    setFollowedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        toast("Unfollowed event");
+      } else {
+        next.add(id);
+        toast.success("Following — you'll get updates");
+      }
+      return next;
+    });
+  };
 
   const toggleGoing = (id: number) => {
     setEvents((prev) =>
