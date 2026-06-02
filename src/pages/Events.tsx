@@ -142,6 +142,8 @@ const Events = () => {
       description: newDescription || "No description provided.",
       going: true,
       createdByMe: true,
+      creatorType: isBusiness ? "business" : "handler",
+      creatorName: activeProfile?.name || "You",
     };
     setEvents((prev) => [newEvent, ...prev]);
     setShowCreateModal(false);
