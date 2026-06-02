@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { EngagementProvider } from "@/contexts/EngagementContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import BusinessGate from "@/components/BusinessGate";
 import CreateAd from "./pages/CreateAd";
 import Checkout from "./pages/Checkout";
@@ -39,6 +40,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -77,6 +79,7 @@ const App = () => (
         </EngagementProvider>
       </AuthProvider>
     </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays, MapPin, Clock, Users, Plus, X, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, Clock, Users, Plus, X, ChevronRight, Heart } from "lucide-react";
 import { format, addDays, isSameDay } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
+import BusinessBottomNav from "@/components/BusinessBottomNav";
+import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PetEvent {
@@ -23,17 +25,19 @@ interface PetEvent {
   description: string;
   going: boolean;
   createdByMe: boolean;
+  creatorType: "handler" | "business";
+  creatorName: string;
 }
 
 const today = new Date();
 
 const initialEvents: PetEvent[] = [
-  { id: 1, title: "Dog Park Meetup", type: "meetup", date: today, time: "10:00 AM", location: "Central Dog Park", distance: "0.8 mi", attendees: 24, maxAttendees: 50, emoji: "🐕", description: "Bring your pups for a fun morning at the park!", going: true, createdByMe: false },
-  { id: 2, title: "Cat Adoption Fair", type: "adoption", date: today, time: "2:00 PM", location: "City Animal Shelter", distance: "2.3 mi", attendees: 45, maxAttendees: 100, emoji: "🐈", description: "Find your new furry companion.", going: false, createdByMe: false },
-  { id: 3, title: "Exotic Bird Show", type: "show", date: addDays(today, 1), time: "11:00 AM", location: "Convention Center", distance: "5.1 mi", attendees: 120, maxAttendees: 300, emoji: "🦜", description: "Annual exotic bird exhibition with prizes.", going: false, createdByMe: false },
-  { id: 4, title: "Puppy Training Workshop", type: "training", date: addDays(today, 2), time: "9:00 AM", location: "PetSmart Training Room", distance: "1.5 mi", attendees: 8, maxAttendees: 15, emoji: "🎓", description: "Basic obedience for puppies under 1 year.", going: true, createdByMe: false },
-  { id: 5, title: "Horse & Pony Day", type: "show", date: addDays(today, 3), time: "8:00 AM", location: "Greenfield Stables", distance: "12 mi", attendees: 67, maxAttendees: 200, emoji: "🐴", description: "Meet local horses and enjoy pony rides.", going: false, createdByMe: false },
-  { id: 6, title: "Reptile Lovers Meetup", type: "meetup", date: addDays(today, 5), time: "3:00 PM", location: "Herp Society Hall", distance: "4.2 mi", attendees: 15, maxAttendees: 30, emoji: "🦎", description: "Share tips and show off your scaly friends.", going: false, createdByMe: false },
+  { id: 1, title: "Dog Park Meetup", type: "meetup", date: today, time: "10:00 AM", location: "Central Dog Park", distance: "0.8 mi", attendees: 24, maxAttendees: 50, emoji: "🐕", description: "Bring your pups for a fun morning at the park!", going: true, createdByMe: false, creatorType: "handler", creatorName: "Sam · Handler" },
+  { id: 2, title: "Cat Adoption Fair", type: "adoption", date: today, time: "2:00 PM", location: "City Animal Shelter", distance: "2.3 mi", attendees: 45, maxAttendees: 100, emoji: "🐈", description: "Find your new furry companion.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Mia · Handler" },
+  { id: 3, title: "Exotic Bird Show", type: "show", date: addDays(today, 1), time: "11:00 AM", location: "Convention Center", distance: "5.1 mi", attendees: 120, maxAttendees: 300, emoji: "🦜", description: "Annual exotic bird exhibition with prizes.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Jordan · Handler" },
+  { id: 4, title: "Puppy Training Workshop", type: "training", date: addDays(today, 2), time: "9:00 AM", location: "PetSmart Training Room", distance: "1.5 mi", attendees: 8, maxAttendees: 15, emoji: "🎓", description: "Basic obedience for puppies under 1 year.", going: true, createdByMe: false, creatorType: "handler", creatorName: "Alex · Handler" },
+  { id: 5, title: "Horse & Pony Day", type: "show", date: addDays(today, 3), time: "8:00 AM", location: "Greenfield Stables", distance: "12 mi", attendees: 67, maxAttendees: 200, emoji: "🐴", description: "Meet local horses and enjoy pony rides.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Riley · Handler" },
+  { id: 6, title: "Reptile Lovers Meetup", type: "meetup", date: addDays(today, 5), time: "3:00 PM", location: "Herp Society Hall", distance: "4.2 mi", attendees: 15, maxAttendees: 30, emoji: "🦎", description: "Share tips and show off your scaly friends.", going: false, createdByMe: false, creatorType: "handler", creatorName: "Casey · Handler" },
 ];
 
 const typeColors: Record<string, string> = {
@@ -56,7 +60,10 @@ const typeEmojis: Record<string, string> = {
 
 const Events = () => {
   const navigate = useNavigate();
+  const { accountType, activeProfile } = useAuth();
+  const isBusiness = accountType === "business";
   const [events, setEvents] = useState(initialEvents);
+  const [followedIds, setFollowedIds] = useState<Set<number>>(new Set());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"browse" | "my">("browse");
@@ -77,10 +84,26 @@ const Events = () => {
     const matchesFilter = activeFilter === "all" || e.type === activeFilter;
     const matchesDate = !selectedDate || isSameDay(e.date, selectedDate);
     const matchesTab = activeTab === "browse" ? !e.createdByMe : e.createdByMe;
-    return matchesFilter && matchesDate && matchesTab;
+    // Business accounts only see handler-created events
+    const matchesAudience = !isBusiness || e.creatorType === "handler";
+    return matchesFilter && matchesDate && matchesTab && matchesAudience;
   });
 
   const myEvents = events.filter((e) => e.createdByMe);
+
+  const toggleFollow = (id: number) => {
+    setFollowedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        toast("Unfollowed event");
+      } else {
+        next.add(id);
+        toast.success("Following — you'll get updates");
+      }
+      return next;
+    });
+  };
 
   const toggleGoing = (id: number) => {
     setEvents((prev) =>
@@ -119,6 +142,8 @@ const Events = () => {
       description: newDescription || "No description provided.",
       going: true,
       createdByMe: true,
+      creatorType: isBusiness ? "business" : "handler",
+      creatorName: activeProfile?.name || "You",
     };
     setEvents((prev) => [newEvent, ...prev]);
     setShowCreateModal(false);
@@ -220,18 +245,22 @@ const Events = () => {
         {activeTab === "my" && myEvents.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <p className="text-4xl">📅</p>
-            <p className="text-sm text-muted-foreground">You haven't created any events yet</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
-            >
-              Would you like to create an event now?
-            </button>
+            <p className="text-sm text-muted-foreground">
+              {isBusiness ? "Businesses don't host events here — follow handler events instead." : "You haven't created any events yet"}
+            </p>
+            {!isBusiness && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+              >
+                Would you like to create an event now?
+              </button>
+            )}
           </div>
         )}
 
         {/* My Events with existing events — show Add Event button */}
-        {activeTab === "my" && myEvents.length > 0 && (
+        {activeTab === "my" && myEvents.length > 0 && !isBusiness && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="w-full flex items-center justify-center gap-2 py-3 bg-primary/10 border border-dashed border-primary/30 rounded-xl text-sm font-semibold text-primary"
@@ -258,23 +287,40 @@ const Events = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">{event.title}</h3>
-                  <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium capitalize", typeColors[event.type])}>
-                    {event.type}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium capitalize", typeColors[event.type])}>
+                      {event.type}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">· by {event.creatorName}</span>
+                  </div>
                 </div>
               </div>
               {event.createdByMe ? (
                 <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">Your Event</span>
               ) : (
-                <button
-                  onClick={() => toggleGoing(event.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
-                    event.going ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground border border-border"
-                  )}
-                >
-                  {event.going ? "Going ✓" : "Join"}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => toggleFollow(event.id)}
+                    aria-label={followedIds.has(event.id) ? "Unfollow" : "Follow"}
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors",
+                      followedIds.has(event.id)
+                        ? "bg-like/10 border-like/40 text-like"
+                        : "bg-secondary border-border text-muted-foreground"
+                    )}
+                  >
+                    <Heart className={cn("w-3.5 h-3.5", followedIds.has(event.id) && "fill-current")} />
+                  </button>
+                  <button
+                    onClick={() => toggleGoing(event.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      event.going ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground border border-border"
+                    )}
+                  >
+                    {event.going ? "Going ✓" : "RSVP"}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -298,8 +344,8 @@ const Events = () => {
         ))}
       </div>
 
-      {/* FAB for browse tab */}
-      {activeTab === "browse" && (
+      {/* FAB for browse tab — handlers only */}
+      {activeTab === "browse" && !isBusiness && (
         <button
           onClick={() => setShowCreateModal(true)}
           className="fixed bottom-24 right-4 lg:bottom-8 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-20"

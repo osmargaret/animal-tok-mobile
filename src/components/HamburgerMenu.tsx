@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronRight, RefreshCw, Store, Megaphone, LogOut, User } from "lucide-react";
+import { X, ChevronRight, RefreshCw, Store, Megaphone, LogOut, User, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { animalProfiles } from "@/data/animalProfiles";
 
@@ -12,6 +13,7 @@ interface HamburgerMenuProps {
 
 const HamburgerMenu = ({ open, onClose }: HamburgerMenuProps) => {
   const { user, activeProfile, switchProfile, switchToHandler, logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const [petSwitchOpen, setPetSwitchOpen] = useState(false);
 
@@ -156,7 +158,12 @@ const HamburgerMenu = ({ open, onClose }: HamburgerMenuProps) => {
             {/* Menu items */}
             <div className="py-2">
               <MenuItem icon={<Store className="w-4 h-4" />} label="Business" onClick={() => handleNavigate("/store")} />
-              <MenuItem icon={<Megaphone className="w-4 h-4" />} label="Ads" />
+              <MenuItem icon={<Megaphone className="w-4 h-4" />} label="Ads" onClick={() => handleNavigate("/ads")} />
+              <MenuItem
+                icon={theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                label={theme === "dark" ? "Light mode" : "Dark mode"}
+                onClick={toggle}
+              />
             </div>
 
             <div className="border-t border-border py-2">
