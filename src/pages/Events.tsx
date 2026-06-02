@@ -344,8 +344,8 @@ const Events = () => {
         ))}
       </div>
 
-      {/* FAB for browse tab */}
-      {activeTab === "browse" && (
+      {/* FAB for browse tab — handlers only */}
+      {activeTab === "browse" && !isBusiness && (
         <button
           onClick={() => setShowCreateModal(true)}
           className="fixed bottom-24 right-4 lg:bottom-8 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-20"
