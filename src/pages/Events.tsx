@@ -245,18 +245,22 @@ const Events = () => {
         {activeTab === "my" && myEvents.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <p className="text-4xl">📅</p>
-            <p className="text-sm text-muted-foreground">You haven't created any events yet</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
-            >
-              Would you like to create an event now?
-            </button>
+            <p className="text-sm text-muted-foreground">
+              {isBusiness ? "Businesses don't host events here — follow handler events instead." : "You haven't created any events yet"}
+            </p>
+            {!isBusiness && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+              >
+                Would you like to create an event now?
+              </button>
+            )}
           </div>
         )}
 
         {/* My Events with existing events — show Add Event button */}
-        {activeTab === "my" && myEvents.length > 0 && (
+        {activeTab === "my" && myEvents.length > 0 && !isBusiness && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="w-full flex items-center justify-center gap-2 py-3 bg-primary/10 border border-dashed border-primary/30 rounded-xl text-sm font-semibold text-primary"
@@ -283,23 +287,40 @@ const Events = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">{event.title}</h3>
-                  <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium capitalize", typeColors[event.type])}>
-                    {event.type}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium capitalize", typeColors[event.type])}>
+                      {event.type}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">· by {event.creatorName}</span>
+                  </div>
                 </div>
               </div>
               {event.createdByMe ? (
                 <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">Your Event</span>
               ) : (
-                <button
-                  onClick={() => toggleGoing(event.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
-                    event.going ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground border border-border"
-                  )}
-                >
-                  {event.going ? "Going ✓" : "Join"}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => toggleFollow(event.id)}
+                    aria-label={followedIds.has(event.id) ? "Unfollow" : "Follow"}
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors",
+                      followedIds.has(event.id)
+                        ? "bg-like/10 border-like/40 text-like"
+                        : "bg-secondary border-border text-muted-foreground"
+                    )}
+                  >
+                    <Heart className={cn("w-3.5 h-3.5", followedIds.has(event.id) && "fill-current")} />
+                  </button>
+                  <button
+                    onClick={() => toggleGoing(event.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      event.going ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground border border-border"
+                    )}
+                  >
+                    {event.going ? "Going ✓" : "RSVP"}
+                  </button>
+                </div>
               )}
             </div>
 
