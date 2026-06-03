@@ -8,6 +8,8 @@ import AdCard from "@/components/AdCard";
 import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const tabs = ["Products", "Services", "Ads"] as const;
 
@@ -32,14 +34,34 @@ const services = [
 const Marketplace = () => {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Products");
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sort, setSort] = useState<"relevance" | "priceAsc" | "priceDesc" | "rating">("relevance");
+  const [minRating, setMinRating] = useState(0);
   const navigate = useNavigate();
   const { activeProfile } = useAuth();
   const { ads, cartCount } = useEngagement();
   const myCart = activeProfile ? cartCount(activeProfile.id) : 0;
+  const q = search.trim().toLowerCase();
+
+  const numericPrice = (s: string) => parseFloat(s.replace(/[^0-9.]/g, "")) || 0;
+
+  const filteredProducts = products
+    .filter((p) => (!q || p.name.toLowerCase().includes(q) || p.seller.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)) && p.rating >= minRating)
+    .sort((a, b) => {
+      if (sort === "priceAsc") return numericPrice(a.price) - numericPrice(b.price);
+      if (sort === "priceDesc") return numericPrice(b.price) - numericPrice(a.price);
+      if (sort === "rating") return b.rating - a.rating;
+      return 0;
+    });
+
+  const filteredServices = services
+    .filter((s) => (!q || s.name.toLowerCase().includes(q) || s.provider.toLowerCase().includes(q)) && s.rating >= minRating)
+    .sort((a, b) => (sort === "rating" ? b.rating - a.rating : 0));
 
   const filteredAds = ads.filter(
-    (a) => !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.body.toLowerCase().includes(search.toLowerCase())
+    (a) => !search || a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q)
   );
+  const activeFilterCount = (sort !== "relevance" ? 1 : 0) + (minRating > 0 ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 lg:pb-4">
@@ -62,8 +84,17 @@ const Marketplace = () => {
                   </span>
                 )}
               </button>
-              <button className="p-2 rounded-lg bg-secondary" aria-label="Filters">
-                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+              <button
+                onClick={() => setFiltersOpen(true)}
+                className="relative p-2 rounded-lg bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Filters and sort"
+              >
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" aria-hidden />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -78,8 +109,8 @@ const Marketplace = () => {
               className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="w-4 h-4 text-muted-foreground" />
+              <button onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+                <X className="w-4 h-4 text-muted-foreground" aria-hidden />
               </button>
             )}
           </div>
@@ -104,29 +135,36 @@ const Marketplace = () => {
 
         <div className="max-w-2xl mx-auto px-4 py-4">
           {activeTab === "Products" && (
-            <div className="grid grid-cols-2 gap-3">
-              {products.map((p) => (
-                <div key={p.id} onClick={() => navigate(`/product/${p.id}`)} className="cursor-pointer rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors">
-                  <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
-                  <div className="p-3">
-                    <p className="text-sm font-semibold line-clamp-1">{p.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{p.seller}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm font-bold text-primary">{p.price}</span>
-                      <div className="flex items-center gap-0.5">
-                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-xs text-muted-foreground">{p.rating}</span>
+            filteredProducts.length === 0 ? (
+              <EmptyState label="No products match your search" />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredProducts.map((p) => (
+                  <button key={p.id} onClick={() => navigate(`/product/${p.id}`)} aria-label={`Open ${p.name}`} className="text-left cursor-pointer rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
+                    <div className="p-3">
+                      <p className="text-sm font-semibold line-clamp-1">{p.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{p.seller}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm font-bold text-primary">{p.price}</span>
+                        <div className="flex items-center gap-0.5">
+                          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" aria-hidden />
+                          <span className="text-xs text-muted-foreground">{p.rating}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )
           )}
 
           {activeTab === "Services" && (
-            <div className="space-y-3">
-              {services.map((s) => (
+            filteredServices.length === 0 ? (
+              <EmptyState label="No services match your search" />
+            ) : (
+              <div className="space-y-3">
+                {filteredServices.map((s) => (
                 <button key={s.id} onClick={() => navigate(`/service/${s.id}`)} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
                   <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">
                     {s.icon}
@@ -149,8 +187,9 @@ const Marketplace = () => {
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
 
           {activeTab === "Ads" && (
@@ -175,9 +214,74 @@ const Marketplace = () => {
         </div>
       </main>
 
+      <AnimatePresence>
+        {filtersOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setFiltersOpen(false)}
+              className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm"
+              aria-hidden
+            />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 280 }}
+              role="dialog" aria-label="Filters and sort" aria-modal="true"
+              className="fixed inset-x-0 bottom-0 z-[51] bg-card border-t border-border rounded-t-2xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-5"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold">Filters & sort</h2>
+                <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="p-1.5 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <X className="w-5 h-5 text-muted-foreground" aria-hidden />
+                </button>
+              </div>
+
+              <fieldset>
+                <legend className="text-xs font-medium text-muted-foreground mb-2">Sort by</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ["relevance", "Relevance"], ["priceAsc", "Price ↑"], ["priceDesc", "Price ↓"], ["rating", "Top rated"],
+                  ] as const).map(([k, label]) => (
+                    <button key={k} onClick={() => setSort(k)} className={`py-2 rounded-xl text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${sort === k ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-foreground border-border"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="text-xs font-medium text-muted-foreground mb-2">Minimum rating</legend>
+                <div className="flex gap-2">
+                  {[0, 3, 4, 4.5].map((r) => (
+                    <button key={r} onClick={() => setMinRating(r)} className={`flex-1 py-2 rounded-xl text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${minRating === r ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-foreground border-border"}`}>
+                      {r === 0 ? "Any" : `${r}+ ★`}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => { setSort("relevance"); setMinRating(0); toast("Filters reset"); }}
+                  className="flex-1 py-3 rounded-xl bg-secondary text-foreground text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >Reset</button>
+                <button
+                  onClick={() => setFiltersOpen(false)}
+                  className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >Apply</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <BottomNav />
     </div>
   );
 };
+
+const EmptyState = ({ label }: { label: string }) => (
+  <div className="text-center py-12 text-sm text-muted-foreground">{label}</div>
+);
 
 export default Marketplace;

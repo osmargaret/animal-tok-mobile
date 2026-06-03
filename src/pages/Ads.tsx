@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, Briefcase, Eye, MousePointerClick, BarChart3 } from "lucide-react";
+import { Megaphone, Plus, Briefcase, Eye, MousePointerClick, BarChart3, Search, X } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import MobileHeader from "@/components/MobileHeader";
 import BottomNav from "@/components/BottomNav";
@@ -16,9 +16,13 @@ const Ads = () => {
   const profileId = activeProfile?.id || user?.id || "";
   const isBusiness = accountType === "business";
   const [tab, setTab] = useState<"mine" | "all">("mine");
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
 
-  const mine = ads.filter((a) => a.createdBy === profileId);
-  const list = tab === "mine" ? mine : ads;
+  const matches = (a: typeof ads[number]) =>
+    !q || a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q) || (a.createdByName || "").toLowerCase().includes(q);
+  const mine = ads.filter((a) => a.createdBy === profileId && matches(a));
+  const list = tab === "mine" ? mine : ads.filter(matches);
 
   // Aggregate analytics across owner's ads
   const totals = mine.reduce(
@@ -52,6 +56,23 @@ const Ads = () => {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search ads…"
+            aria-label="Search ads"
+            className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+              <X className="w-4 h-4 text-muted-foreground" aria-hidden />
+            </button>
+          )}
+        </div>
+
         {isBusiness && (
           <section className="rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 border border-primary/30 p-4 space-y-3">
             <div>

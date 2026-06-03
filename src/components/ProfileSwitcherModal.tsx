@@ -80,8 +80,8 @@ const ProfileSwitcherModal = ({ open, onClose }: ProfileSwitcherModalProps) => {
 
             <div className="flex items-center justify-between px-5 pt-3 pb-2">
               <h2 className="text-base font-bold text-foreground">Switch profile</h2>
-              <button onClick={onClose} className="p-1.5 rounded-full hover:bg-secondary">
-                <X className="w-4 h-4 text-muted-foreground" />
+              <button onClick={onClose} aria-label="Close profile switcher" className="p-1.5 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X className="w-4 h-4 text-muted-foreground" aria-hidden />
               </button>
             </div>
             <p className="px-5 text-xs text-muted-foreground -mt-1 mb-3">
@@ -138,8 +138,23 @@ const ProfileSwitcherModal = ({ open, onClose }: ProfileSwitcherModalProps) => {
             </div>
 
             <div className="mx-3 mt-3 grid grid-cols-1 gap-1 border-t border-border pt-2">
-              <ActionRow icon={<Plus className="w-4 h-4" />} label="Create new pet profile" />
-              <ActionRow icon={<Settings className="w-4 h-4" />} label="Profile settings" />
+              <ActionRow
+                icon={<Plus className="w-4 h-4" />}
+                label="Create new pet profile"
+                onClick={() => {
+                  onClose();
+                  toast("Tell us about your new pet");
+                  setTimeout(() => (window.location.href = "/create"), 100);
+                }}
+              />
+              <ActionRow
+                icon={<Settings className="w-4 h-4" />}
+                label="Profile settings"
+                onClick={() => {
+                  onClose();
+                  setTimeout(() => (window.location.href = "/profile"), 100);
+                }}
+              />
               <ActionRow
                 icon={<LogOut className="w-4 h-4" />}
                 label="Log out"

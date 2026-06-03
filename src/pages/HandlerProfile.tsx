@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
@@ -6,6 +7,11 @@ import MobileHeader from "@/components/MobileHeader";
 import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import ProfileCompletion from "@/components/ProfileCompletion";
+import EditProfileSheet from "@/components/EditProfileSheet";
+import ReportBlockMenu from "@/components/ReportBlockMenu";
+import { toast } from "sonner";
 
 const pets = [
   {
@@ -35,13 +41,13 @@ const pets = [
 ];
 
 const HandlerProfile = () => {
-  const { user, isAuthenticated, activeProfile } = useAuth();
+  const { user, isAuthenticated, activeProfile, verified, verificationStatus } = useAuth();
   const { isFollowing: getFollowing, toggleFollow, ads } = useEngagement();
   const navigate = useNavigate();
   const handlerId = user?.id || "handler-1";
   const isFollowing = activeProfile ? getFollowing(activeProfile.id, handlerId) : false;
+  const [editOpen, setEditOpen] = useState(false);
 
-  // If viewing as another profile (not the handler themselves), show follow/message
   const isOwnProfile = isAuthenticated && activeProfile?.type === "handler";
 
   return (
@@ -57,58 +63,73 @@ const HandlerProfile = () => {
         {/* Profile Header */}
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center gap-4">
-            {/* Avatar */}
             <div className="relative">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center text-4xl border-[3px] border-primary shadow-lg shadow-primary/20">
                 {user?.avatar || "🐾"}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-background" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-background" aria-hidden />
             </div>
 
-            {/* Info */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-foreground">{user?.name || "Alex Chen"}</h1>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="text-xl font-bold text-foreground">{user?.name || "Alex Chen"}</h1>
+                <VerifiedBadge verified={verified} status={verificationStatus} />
+              </div>
               <p className="text-sm text-muted-foreground">{user?.username || "@alex.handler"}</p>
 
-              {/* Stats */}
               <div className="flex gap-4 mt-2">
                 <StatItem value="124" label="Posts" />
                 <StatItem value="3.2K" label="Followers" />
-                <button onClick={() => navigate("/ads")} className="text-center hover:opacity-80">
+                <button onClick={() => navigate("/ads")} className="text-center hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded" aria-label="View my ads">
                   <p className="text-sm font-bold text-foreground">{ads.filter((a) => a.createdBy === (activeProfile?.id || "")).length}</p>
                   <p className="text-[10px] text-muted-foreground">Ads</p>
                 </button>
               </div>
             </div>
 
-            {/* Edit Button (own profile) */}
-            {isOwnProfile && (
-              <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
-                <Edit2 className="w-3.5 h-3.5" />
+            {isOwnProfile ? (
+              <button
+                onClick={() => setEditOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Edit2 className="w-3.5 h-3.5" aria-hidden />
                 Edit
               </button>
+            ) : (
+              <ReportBlockMenu targetId={handlerId} targetName={user?.name || "this user"} />
             )}
           </div>
 
-          {/* Follow + Message (other users viewing this handler) */}
+          {/* Bio */}
+          {user?.profile?.bio && (
+            <p className="text-sm text-foreground/90 mt-3 leading-relaxed">{user.profile.bio}</p>
+          )}
+
+          {/* Profile completion for own profile */}
+          {isOwnProfile && (
+            <div className="mt-4">
+              <ProfileCompletion onEdit={() => setEditOpen(true)} />
+            </div>
+          )}
+
           {isAuthenticated && !isOwnProfile && (
             <div className="flex gap-3 mt-4">
               <button
                 onClick={() => activeProfile && toggleFollow(activeProfile.id, handlerId)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isFollowing
                     ? "bg-secondary text-secondary-foreground border border-border"
                     : "bg-primary text-primary-foreground"
                 }`}
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-4 h-4" aria-hidden />
                 {isFollowing ? "Following" : "Follow"}
               </button>
               <button
                 onClick={() => navigate("/message/handler")}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4" aria-hidden />
                 Message
               </button>
             </div>
@@ -129,10 +150,16 @@ const HandlerProfile = () => {
               <PetCard key={pet.name} {...pet} />
             ))}
 
-            {/* Add New Card */}
-            <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all min-h-[180px]">
+            <button
+              onClick={() => {
+                toast("Add a new pet profile", { description: "Tell us about your new companion." });
+                navigate("/create");
+              }}
+              aria-label="Add a new pet profile"
+              className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all min-h-[180px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                <Plus className="w-5 h-5 text-muted-foreground" />
+                <Plus className="w-5 h-5 text-muted-foreground" aria-hidden />
               </div>
               <span className="text-xs text-muted-foreground font-medium">Add new</span>
             </button>
@@ -148,6 +175,7 @@ const HandlerProfile = () => {
         </div>
       </main>
 
+      <EditProfileSheet open={editOpen} onClose={() => setEditOpen(false)} />
       <BottomNav />
     </div>
   );
@@ -177,8 +205,12 @@ const PetCard = ({
 }) => {
   const navigate = useNavigate();
   return (
-    <div onClick={() => navigate(`/animal/${id}`)} className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors cursor-pointer">
-      <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl border-2 border-border`}>
+    <button
+      onClick={() => navigate(`/animal/${id}`)}
+      aria-label={`Open ${name}'s profile`}
+      className="relative rounded-2xl bg-card border border-border p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left"
+    >
+      <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-3xl border-2 border-border`} aria-hidden>
         {emoji}
       </div>
       <h3 className="text-sm font-semibold text-foreground">{name}</h3>
@@ -186,20 +218,23 @@ const PetCard = ({
       <p className="text-[11px] text-primary font-medium">{followers}</p>
 
       <div className="flex gap-2 mt-1">
-        <button className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors">
+        <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center" aria-hidden>
           <Heart className="w-3.5 h-3.5 text-muted-foreground" />
-        </button>
-        <button className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors">
+        </span>
+        <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center" aria-hidden>
           <MessageCircle className="w-3.5 h-3.5 text-muted-foreground" />
-        </button>
+        </span>
       </div>
-    </div>
+    </button>
   );
 };
 
 const QuickLink = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
-  <button onClick={onClick} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground">
-    <span className="text-primary">{icon}</span>
+  <button
+    onClick={onClick}
+    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+  >
+    <span className="text-primary" aria-hidden>{icon}</span>
     {label}
   </button>
 );
