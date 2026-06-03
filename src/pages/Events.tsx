@@ -197,6 +197,24 @@ const Events = () => {
           </div>
         </div>
 
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search events…"
+            aria-label="Search events"
+            className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+              <X className="w-4 h-4 text-muted-foreground" aria-hidden />
+            </button>
+          )}
+        </div>
+
         {/* Tabs: Browse / My Events */}
         <div className="flex gap-1 bg-secondary rounded-xl p-1 mb-3">
           <button
