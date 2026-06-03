@@ -8,6 +8,8 @@ import AdCard from "@/components/AdCard";
 import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const tabs = ["Products", "Services", "Ads"] as const;
 
