@@ -1,6 +1,14 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type AccountType = "personal" | "business";
+
+export interface ProfileDetails {
+  bio?: string;
+  phone?: string;
+  location?: string;
+  website?: string;
+  avatarUploaded?: boolean;
+}
 
 export interface MockUser {
   id: string;
@@ -10,6 +18,9 @@ export interface MockUser {
   avatar: string;
   accountType: AccountType;
   businessName?: string;
+  verified?: boolean;
+  verificationStatus?: "none" | "pending" | "verified";
+  profile?: ProfileDetails;
 }
 
 export interface ActiveProfile {
@@ -26,12 +37,18 @@ interface AuthContextType {
   activeProfile: ActiveProfile | null;
   accountType: AccountType;
   businessName?: string;
+  verified: boolean;
+  verificationStatus: "none" | "pending" | "verified";
+  completionPercent: number;
+  completionChecklist: { key: string; label: string; done: boolean }[];
   login: (email: string, password: string) => void;
   signup: (name: string, email: string, username: string) => void;
   signupAs: (name: string, email: string, username: string, type: AccountType, opts?: { businessName?: string }) => void;
   logout: () => void;
   switchProfile: (profile: ActiveProfile) => void;
   switchToHandler: () => void;
+  updateProfile: (patch: Partial<MockUser> & { profile?: ProfileDetails }) => void;
+  requestVerification: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -49,6 +66,9 @@ const MOCK_USER: MockUser = {
   email: "alex@example.com",
   avatar: "🐾",
   accountType: "personal",
+  verified: false,
+  verificationStatus: "none",
+  profile: {},
 };
 
 const USER_KEY = "animaltok_user";
@@ -111,6 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       accountType: type,
       avatar: type === "business" ? "🏪" : "🐾",
       businessName: opts?.businessName,
+      verified: false,
+      verificationStatus: "none",
+      profile: {},
     };
     setUser(newUser);
     setActiveProfile(handlerProfile(newUser));
@@ -127,6 +150,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user) setActiveProfile(handlerProfile(user));
   };
 
+  const updateProfile: AuthContextType["updateProfile"] = (patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next: MockUser = {
+        ...prev,
+        ...patch,
+        profile: { ...(prev.profile || {}), ...(patch.profile || {}) },
+      };
+      // Sync active profile if name/avatar changed
+      setActiveProfile((cur) =>
+        cur && cur.id === prev.id
+          ? { ...cur, name: next.businessName || next.name, avatar: next.avatar }
+          : cur
+      );
+      return next;
+    });
+  };
+
+  const requestVerification = () => {
+    setUser((prev) => (prev ? { ...prev, verificationStatus: "pending" } : prev));
+  };
+
+  const { completionPercent, completionChecklist } = useMemo(() => {
+    if (!user) return { completionPercent: 0, completionChecklist: [] as { key: string; label: string; done: boolean }[] };
+    const p = user.profile || {};
+    const items = [
+      { key: "name", label: "Display name", done: !!user.name },
+      { key: "username", label: "Username", done: !!user.username },
+      { key: "bio", label: "Short bio", done: !!p.bio && p.bio.trim().length > 4 },
+      { key: "location", label: "Location", done: !!p.location },
+      { key: "phone", label: "Phone number", done: !!p.phone },
+      ...(user.accountType === "business"
+        ? [{ key: "website", label: "Business website", done: !!p.website }]
+        : []),
+    ];
+    const done = items.filter((i) => i.done).length;
+    return {
+      completionPercent: Math.round((done / items.length) * 100),
+      completionChecklist: items,
+    };
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -135,12 +200,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         activeProfile,
         accountType: user?.accountType || "personal",
         businessName: user?.businessName,
+        verified: !!user?.verified,
+        verificationStatus: user?.verificationStatus || "none",
+        completionPercent,
+        completionChecklist,
         login,
         signup,
         signupAs,
         logout,
         switchProfile,
         switchToHandler,
+        updateProfile,
+        requestVerification,
       }}
     >
       {children}
