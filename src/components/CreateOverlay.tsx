@@ -82,10 +82,11 @@ const CreateOverlay = ({ open, onClose }: CreateOverlayProps) => {
               </button>
 
               <button
-                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+                onClick={() => { onClose(); toast("Going live is coming soon", { description: "We're polishing the camera experience." }); }}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
-                  <Radio className="w-5 h-5 text-destructive" />
+                  <Radio className="w-5 h-5 text-destructive" aria-hidden />
                 </div>
                 <span className="text-sm font-medium">Live</span>
               </button>
