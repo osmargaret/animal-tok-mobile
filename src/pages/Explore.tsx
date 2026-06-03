@@ -50,6 +50,11 @@ const serviceItems = [
 const Explore = () => {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<typeof exploreTabs[number]>("Posts");
+  const q = search.trim().toLowerCase();
+  const filteredLive = liveVideos.filter((v) => !q || v.title.toLowerCase().includes(q) || v.name.toLowerCase().includes(q));
+  const filteredEvents = eventItems.filter((e) => !q || e.title.toLowerCase().includes(q) || e.location.toLowerCase().includes(q));
+  const filteredProducts = productItems.filter((p) => !q || p.name.toLowerCase().includes(q) || p.seller.toLowerCase().includes(q));
+  const filteredServices = serviceItems.filter((s) => !q || s.name.toLowerCase().includes(q) || s.provider.toLowerCase().includes(q));
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 lg:pb-4">
@@ -72,10 +77,11 @@ const Explore = () => {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               autoFocus
+              aria-label="Search explore"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="w-4 h-4 text-muted-foreground" />
+              <button onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+                <X className="w-4 h-4 text-muted-foreground" aria-hidden />
               </button>
             )}
           </div>
