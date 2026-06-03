@@ -34,14 +34,34 @@ const services = [
 const Marketplace = () => {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Products");
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sort, setSort] = useState<"relevance" | "priceAsc" | "priceDesc" | "rating">("relevance");
+  const [minRating, setMinRating] = useState(0);
   const navigate = useNavigate();
   const { activeProfile } = useAuth();
   const { ads, cartCount } = useEngagement();
   const myCart = activeProfile ? cartCount(activeProfile.id) : 0;
+  const q = search.trim().toLowerCase();
+
+  const numericPrice = (s: string) => parseFloat(s.replace(/[^0-9.]/g, "")) || 0;
+
+  const filteredProducts = products
+    .filter((p) => (!q || p.name.toLowerCase().includes(q) || p.seller.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)) && p.rating >= minRating)
+    .sort((a, b) => {
+      if (sort === "priceAsc") return numericPrice(a.price) - numericPrice(b.price);
+      if (sort === "priceDesc") return numericPrice(b.price) - numericPrice(a.price);
+      if (sort === "rating") return b.rating - a.rating;
+      return 0;
+    });
+
+  const filteredServices = services
+    .filter((s) => (!q || s.name.toLowerCase().includes(q) || s.provider.toLowerCase().includes(q)) && s.rating >= minRating)
+    .sort((a, b) => (sort === "rating" ? b.rating - a.rating : 0));
 
   const filteredAds = ads.filter(
-    (a) => !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.body.toLowerCase().includes(search.toLowerCase())
+    (a) => !search || a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q)
   );
+  const activeFilterCount = (sort !== "relevance" ? 1 : 0) + (minRating > 0 ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 lg:pb-4">
