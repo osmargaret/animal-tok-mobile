@@ -187,8 +187,9 @@ const Marketplace = () => {
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
 
           {activeTab === "Ads" && (
@@ -213,9 +214,74 @@ const Marketplace = () => {
         </div>
       </main>
 
+      <AnimatePresence>
+        {filtersOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setFiltersOpen(false)}
+              className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm"
+              aria-hidden
+            />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 280 }}
+              role="dialog" aria-label="Filters and sort" aria-modal="true"
+              className="fixed inset-x-0 bottom-0 z-[51] bg-card border-t border-border rounded-t-2xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-5"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold">Filters & sort</h2>
+                <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="p-1.5 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <X className="w-5 h-5 text-muted-foreground" aria-hidden />
+                </button>
+              </div>
+
+              <fieldset>
+                <legend className="text-xs font-medium text-muted-foreground mb-2">Sort by</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ["relevance", "Relevance"], ["priceAsc", "Price ↑"], ["priceDesc", "Price ↓"], ["rating", "Top rated"],
+                  ] as const).map(([k, label]) => (
+                    <button key={k} onClick={() => setSort(k)} className={`py-2 rounded-xl text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${sort === k ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-foreground border-border"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="text-xs font-medium text-muted-foreground mb-2">Minimum rating</legend>
+                <div className="flex gap-2">
+                  {[0, 3, 4, 4.5].map((r) => (
+                    <button key={r} onClick={() => setMinRating(r)} className={`flex-1 py-2 rounded-xl text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${minRating === r ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-foreground border-border"}`}>
+                      {r === 0 ? "Any" : `${r}+ ★`}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => { setSort("relevance"); setMinRating(0); toast("Filters reset"); }}
+                  className="flex-1 py-3 rounded-xl bg-secondary text-foreground text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >Reset</button>
+                <button
+                  onClick={() => setFiltersOpen(false)}
+                  className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >Apply</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <BottomNav />
     </div>
   );
 };
+
+const EmptyState = ({ label }: { label: string }) => (
+  <div className="text-center py-12 text-sm text-muted-foreground">{label}</div>
+);
 
 export default Marketplace;
