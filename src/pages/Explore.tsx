@@ -122,7 +122,7 @@ const Explore = () => {
           {/* Live Video tab */}
           {activeTab === "Live Video" && (
             <div className="space-y-3">
-              {liveVideos.map((v) => (
+              {filteredLive.map((v) => (
                 <div key={v.id} className="rounded-xl overflow-hidden bg-card border border-border">
                   <div className="relative h-44">
                     <img src={v.image} alt={v.title} className="w-full h-full object-cover" />
@@ -148,7 +148,7 @@ const Explore = () => {
           {/* Events tab */}
           {activeTab === "Events" && (
             <div className="space-y-3">
-              {eventItems.map((e) => (
+              {filteredEvents.map((e) => (
                 <div key={e.id} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">
                   <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">{e.image}</div>
                   <div className="flex-1">
@@ -167,7 +167,7 @@ const Explore = () => {
           {/* Products tab */}
           {activeTab === "Products" && (
             <div className="grid grid-cols-2 gap-3">
-              {productItems.map((p) => (
+              {filteredProducts.map((p) => (
                 <div key={p.id} className="rounded-xl bg-card border border-border overflow-hidden">
                   <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
                   <div className="p-3">
@@ -183,7 +183,7 @@ const Explore = () => {
           {/* Services tab */}
           {activeTab === "Services" && (
             <div className="space-y-3">
-              {serviceItems.map((s) => (
+              {filteredServices.map((s) => (
                 <div key={s.id} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">
                   <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">{s.icon}</div>
                   <div className="flex-1">
