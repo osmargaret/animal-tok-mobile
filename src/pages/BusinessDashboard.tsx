@@ -59,6 +59,8 @@ const BusinessDashboard = () => {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+        <ProfileCompletion onEdit={() => setEditOpen(true)} compact />
+
         <section className="rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 border border-primary/30 p-5">
           <p className="text-xs uppercase tracking-wider text-primary font-semibold">Welcome back</p>
           <h2 className="text-xl font-bold mt-1">Your business at a glance</h2>
@@ -88,10 +90,12 @@ const BusinessDashboard = () => {
         </section>
       </main>
 
+      <EditProfileSheet open={editOpen} onClose={() => setEditOpen(false)} />
       <BusinessBottomNav />
     </div>
   );
 };
+
 
 const Mini = ({ label, value, icon }: { label: string; value: number | string; icon: React.ReactNode }) => (
   <div className="rounded-xl bg-background/60 border border-border px-3 py-2">
