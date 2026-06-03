@@ -62,8 +62,8 @@ const HamburgerMenu = ({ open, onClose }: HamburgerMenuProps) => {
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
               <span className="text-sm font-bold">Menu</span>
-              <button onClick={onClose}>
-                <X className="w-5 h-5 text-muted-foreground" />
+              <button onClick={onClose} aria-label="Close menu" className="p-1.5 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X className="w-5 h-5 text-muted-foreground" aria-hidden />
               </button>
             </div>
 
