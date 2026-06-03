@@ -84,8 +84,17 @@ const Marketplace = () => {
                   </span>
                 )}
               </button>
-              <button className="p-2 rounded-lg bg-secondary" aria-label="Filters">
-                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+              <button
+                onClick={() => setFiltersOpen(true)}
+                className="relative p-2 rounded-lg bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Filters and sort"
+              >
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" aria-hidden />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -100,8 +109,8 @@ const Marketplace = () => {
               className="w-full bg-secondary rounded-xl pl-10 pr-10 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="w-4 h-4 text-muted-foreground" />
+              <button onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+                <X className="w-4 h-4 text-muted-foreground" aria-hidden />
               </button>
             )}
           </div>
@@ -126,29 +135,36 @@ const Marketplace = () => {
 
         <div className="max-w-2xl mx-auto px-4 py-4">
           {activeTab === "Products" && (
-            <div className="grid grid-cols-2 gap-3">
-              {products.map((p) => (
-                <div key={p.id} onClick={() => navigate(`/product/${p.id}`)} className="cursor-pointer rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors">
-                  <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
-                  <div className="p-3">
-                    <p className="text-sm font-semibold line-clamp-1">{p.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{p.seller}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm font-bold text-primary">{p.price}</span>
-                      <div className="flex items-center gap-0.5">
-                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-xs text-muted-foreground">{p.rating}</span>
+            filteredProducts.length === 0 ? (
+              <EmptyState label="No products match your search" />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredProducts.map((p) => (
+                  <button key={p.id} onClick={() => navigate(`/product/${p.id}`)} aria-label={`Open ${p.name}`} className="text-left cursor-pointer rounded-xl bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
+                    <div className="p-3">
+                      <p className="text-sm font-semibold line-clamp-1">{p.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{p.seller}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm font-bold text-primary">{p.price}</span>
+                        <div className="flex items-center gap-0.5">
+                          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" aria-hidden />
+                          <span className="text-xs text-muted-foreground">{p.rating}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )
           )}
 
           {activeTab === "Services" && (
-            <div className="space-y-3">
-              {services.map((s) => (
+            filteredServices.length === 0 ? (
+              <EmptyState label="No services match your search" />
+            ) : (
+              <div className="space-y-3">
+                {filteredServices.map((s) => (
                 <button key={s.id} onClick={() => navigate(`/service/${s.id}`)} className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
                   <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl">
                     {s.icon}
