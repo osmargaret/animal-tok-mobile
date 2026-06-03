@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays, MapPin, Clock, Users, Plus, X, ChevronRight, Heart } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, Clock, Users, Plus, X, ChevronRight, Heart, Search } from "lucide-react";
 import { format, addDays, isSameDay } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -68,6 +68,7 @@ const Events = () => {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"browse" | "my">("browse");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [search, setSearch] = useState("");
 
   // Create form state
   const [newTitle, setNewTitle] = useState("");
@@ -84,9 +85,10 @@ const Events = () => {
     const matchesFilter = activeFilter === "all" || e.type === activeFilter;
     const matchesDate = !selectedDate || isSameDay(e.date, selectedDate);
     const matchesTab = activeTab === "browse" ? !e.createdByMe : e.createdByMe;
-    // Business accounts only see handler-created events
     const matchesAudience = !isBusiness || e.creatorType === "handler";
-    return matchesFilter && matchesDate && matchesTab && matchesAudience;
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q || e.title.toLowerCase().includes(q) || e.location.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
+    return matchesFilter && matchesDate && matchesTab && matchesAudience && matchesSearch;
   });
 
   const myEvents = events.filter((e) => e.createdByMe);
@@ -162,16 +164,16 @@ const Events = () => {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-5 h-5" />
+            <button onClick={() => navigate(-1)} aria-label="Go back">
+              <ArrowLeft className="w-5 h-5" aria-hidden />
             </button>
             <h1 className="text-lg font-bold">Events</h1>
           </div>
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-                  <CalendarDays className="w-4 h-4" />
+                <button className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Filter by date">
+                  <CalendarDays className="w-4 h-4" aria-hidden />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
