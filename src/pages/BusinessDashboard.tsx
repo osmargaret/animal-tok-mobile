@@ -1,13 +1,18 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, ShoppingBag, Wrench, Megaphone, MessageCircle, CreditCard, TrendingUp, Package, BadgeCheck, CalendarDays, DollarSign } from "lucide-react";
+import { Briefcase, ShoppingBag, Wrench, Megaphone, MessageCircle, CreditCard, TrendingUp, Package, BadgeCheck, CalendarDays, DollarSign, Edit2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
 import { useMessaging } from "@/contexts/MessagingContext";
 import BusinessBottomNav from "@/components/BusinessBottomNav";
 import BackButton from "@/components/BackButton";
 import MobileHeader from "@/components/MobileHeader";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import ProfileCompletion from "@/components/ProfileCompletion";
+import EditProfileSheet from "@/components/EditProfileSheet";
 
 const BusinessDashboard = () => {
+  const [editOpen, setEditOpen] = useState(false);
   const navigate = useNavigate();
   const { user, activeProfile, businessName } = useAuth();
   const { ads, ordersFor, statsFor, subscriptionFor } = useEngagement();
@@ -35,14 +40,22 @@ const BusinessDashboard = () => {
       <header className="sticky top-[3.5rem] lg:top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
         <BackButton to="/business" />
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Briefcase className="w-4 h-4 text-primary shrink-0" />
+          <Briefcase className="w-4 h-4 text-primary shrink-0" aria-hidden />
           <h1 className="text-base font-semibold truncate">{businessName || user?.name || "Business"}</h1>
+          <VerifiedBadge verified={user?.verified} status={user?.verificationStatus} />
         </div>
         {sub?.status === "active" && (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            <BadgeCheck className="w-3 h-3" /> {sub.plan}
+            <BadgeCheck className="w-3 h-3" aria-hidden /> {sub.plan}
           </span>
         )}
+        <button
+          onClick={() => setEditOpen(true)}
+          aria-label="Edit business profile"
+          className="p-2 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Edit2 className="w-4 h-4 text-muted-foreground" aria-hidden />
+        </button>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
