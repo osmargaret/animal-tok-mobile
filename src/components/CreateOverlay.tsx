@@ -17,6 +17,13 @@ const CreateOverlay = ({ open, onClose }: CreateOverlayProps) => {
     navigate(path);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -33,12 +40,13 @@ const CreateOverlay = ({ open, onClose }: CreateOverlayProps) => {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            role="dialog" aria-label="Create" aria-modal="true"
             className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl border-t border-border p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold">Create</h2>
-              <button onClick={onClose}>
-                <X className="w-5 h-5 text-muted-foreground" />
+              <button onClick={onClose} aria-label="Close create menu" className="p-1.5 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X className="w-5 h-5 text-muted-foreground" aria-hidden />
               </button>
             </div>
 
