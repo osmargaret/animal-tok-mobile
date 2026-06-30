@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import AnimalProfileCompletion from "@/components/AnimalProfileCompletion";
+import { useAnimalMeta } from "@/hooks/useAnimalMeta";
 import { useState, useRef, useEffect } from "react";
 
 const tabs = [
