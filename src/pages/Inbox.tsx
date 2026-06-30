@@ -5,11 +5,13 @@ import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { Send, MessageCircle, Search, X } from "lucide-react";
+import { Send, MessageCircle, Search, X, MoreVertical } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { previewForMessage } from "@/lib/messagePreview";
+import SwipeableRow, { Bell, BellOff, Trash2, Mail } from "@/components/SwipeableRow";
+import { toast } from "sonner";
 
 const formatTime = (ts: number) => {
   const d = new Date(ts);
