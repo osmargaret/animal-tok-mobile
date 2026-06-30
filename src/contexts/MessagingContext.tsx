@@ -28,8 +28,12 @@ interface MessagingContextType {
   getContact: (id: string) => ChatContact | undefined;
   getConversation: (myId: string, otherId: string) => ChatMessage[];
   sendMessage: (myId: string, otherId: string, msg: Omit<ChatMessage, "id" | "createdAt" | "senderId">) => void;
-  conversationsFor: (myId: string) => Array<{ contact: ChatContact; lastMessage?: ChatMessage; unread: number }>;
+  conversationsFor: (myId: string) => Array<{ contact: ChatContact; lastMessage?: ChatMessage; unread: number; muted: boolean }>;
   markRead: (myId: string, otherId: string) => void;
+  markUnread: (myId: string, otherId: string) => void;
+  deleteConversation: (myId: string, otherId: string) => void;
+  toggleMute: (myId: string, otherId: string) => void;
+  isMuted: (myId: string, otherId: string) => boolean;
   unreadTotal: (myId: string) => number;
   /** mark current user as typing (auto-expires after ~3s) */
   setTyping: (myId: string, otherId: string) => void;
