@@ -179,6 +179,13 @@ const AnimalProfile = () => {
             <span className="text-xs text-primary font-medium">{animal.profileViews} profile views</span>
           </div>
 
+          {/* Profile completion (owners only) */}
+          {isOwnAnimal && (
+            <div className="mx-4 mt-3">
+              <AnimalProfileCompletion animalId={animal.id} animalName={animal.name} />
+            </div>
+          )}
+
           {/* Profile Header */}
           <div className="px-5 pt-5 pb-3 flex flex-col items-center text-center">
             <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${animal.gradient} flex items-center justify-center text-5xl border-[3px] ${isActiveAnimal ? "border-green-500 ring-2 ring-green-500/30" : "border-primary"} shadow-lg shadow-primary/20`}>
