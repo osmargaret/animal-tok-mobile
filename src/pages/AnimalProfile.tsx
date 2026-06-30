@@ -154,7 +154,10 @@ const AnimalProfile = () => {
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-base font-semibold text-foreground truncate">{animal.name}</h1>
+              <h1 className="text-base font-semibold text-foreground truncate flex items-center gap-1">
+                {animal.name}
+                <VerifiedBadge status={verificationStatus} verified={verified} />
+              </h1>
               <p className="text-xs text-muted-foreground">{animal.breed} · {animal.age}</p>
             </div>
             {isAuthenticated && isOwnAnimal && !isActiveAnimal && (
