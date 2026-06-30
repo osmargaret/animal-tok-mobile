@@ -51,6 +51,8 @@ export const useMessaging = () => {
 
 const STORAGE_KEY = "animaltok_conversations";
 const READ_KEY = "animaltok_read_state";
+const MUTE_KEY = "animaltok_mute_state";
+const DELETE_KEY = "animaltok_deleted_conversations";
 
 const conversationKey = (a: string, b: string) => [a, b].sort().join("__");
 
