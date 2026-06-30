@@ -27,9 +27,11 @@ type Filter = "all" | "unread" | "recent";
 const Inbox = () => {
   const navigate = useNavigate();
   const { activeProfile } = useAuth();
-  const { conversationsFor } = useMessaging();
+  const { conversationsFor, toggleMute, deleteConversation, markUnread } = useMessaging();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+
 
   const handleRefresh = useCallback(async () => {
     await new Promise((r) => setTimeout(r, 800));
