@@ -220,6 +220,29 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  const markUnread: MessagingContextType["markUnread"] = (myId, otherId) => {
+    // Set lastRead to before the most recent inbound message so it counts as unread
+    const msgs = getConversation(myId, otherId);
+    const lastInbound = [...msgs].reverse().find((m) => m.senderId !== myId);
+    if (!lastInbound) return;
+    setReadState((prev) => ({
+      ...prev,
+      [`${myId}__${otherId}`]: lastInbound.createdAt - 1,
+    }));
+  };
+
+  const deleteConversation: MessagingContextType["deleteConversation"] = (myId, otherId) => {
+    setDeletedAt((prev) => ({ ...prev, [`${myId}__${otherId}`]: Date.now() }));
+  };
+
+  const toggleMute: MessagingContextType["toggleMute"] = (myId, otherId) => {
+    const k = `${myId}__${otherId}`;
+    setMutedKeys((prev) => ({ ...prev, [k]: !prev[k] }));
+  };
+
+  const isMuted: MessagingContextType["isMuted"] = (myId, otherId) =>
+    !!mutedKeys[`${myId}__${otherId}`];
+
   const conversationsFor: MessagingContextType["conversationsFor"] = (myId) => {
     return contacts
       .filter((c) => c.id !== myId)
@@ -227,17 +250,19 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
         const msgs = getConversation(myId, contact.id);
         const lastMessage = msgs[msgs.length - 1];
         const lastReadAt = readState[`${myId}__${contact.id}`] || 0;
+        const hiddenBefore = deletedAt[`${myId}__${contact.id}`] || 0;
+        const visible = lastMessage && lastMessage.createdAt > hiddenBefore ? lastMessage : undefined;
         const unread = msgs.filter(
-          (m) => m.senderId !== myId && m.createdAt > lastReadAt
+          (m) => m.senderId !== myId && m.createdAt > lastReadAt && m.createdAt > hiddenBefore
         ).length;
-        return { contact, lastMessage, unread };
+        return { contact, lastMessage: visible, unread, muted: !!mutedKeys[`${myId}__${contact.id}`] };
       })
       .filter((c) => c.lastMessage)
       .sort((a, b) => (b.lastMessage?.createdAt ?? 0) - (a.lastMessage?.createdAt ?? 0));
   };
 
   const unreadTotal = (myId: string) =>
-    conversationsFor(myId).reduce((sum, c) => sum + c.unread, 0);
+    conversationsFor(myId).reduce((sum, c) => sum + (c.muted ? 0 : c.unread), 0);
 
   const setTyping: MessagingContextType["setTyping"] = (myId, otherId) => {
     const key = conversationKey(myId, otherId);
