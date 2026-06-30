@@ -34,6 +34,7 @@ const AnimalProfile = () => {
 
   const animal = animalProfiles.find((a) => a.id === animalId);
   const animalFeed = animalFeeds[animalId || ""] || [];
+  const { verificationStatus, verified, meta: animalMeta } = useAnimalMeta(animalId);
 
   const isOwnAnimal = isAuthenticated && activeProfile?.type === "handler";
   const isActiveAnimal = activeProfile?.type === "animal" && activeProfile?.id === animalId;
