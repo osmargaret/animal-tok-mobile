@@ -106,7 +106,10 @@ const AnimalProfile = () => {
                 {animal.emoji}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white drop-shadow">{animal.name}</p>
+                <p className="text-sm font-semibold text-white drop-shadow flex items-center gap-1">
+                  {animal.name}
+                  <VerifiedBadge status={verificationStatus} verified={verified} />
+                </p>
                 <p className="text-[10px] text-white/70">{animal.username}</p>
               </div>
             </div>
