@@ -151,41 +151,119 @@ const Inbox = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              {conversations.map(({ contact, lastMessage, unread }) => {
+              {conversations.map(({ contact, lastMessage, unread, muted }) => {
                 const preview = previewForMessage(lastMessage);
+                const actions = [
+                  {
+                    key: "mute",
+                    label: muted ? "Unmute" : "Mute",
+                    icon: muted ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />,
+                    onClick: () => {
+                      toggleMute(myId, contact.id);
+                      toast.success(muted ? `Unmuted ${contact.name}` : `Muted ${contact.name}`);
+                    },
+                    bg: "bg-amber-500",
+                  },
+                  {
+                    key: "unread",
+                    label: "Unread",
+                    icon: <Mail className="w-4 h-4" />,
+                    onClick: () => {
+                      markUnread(myId, contact.id);
+                      toast.success("Marked as unread");
+                    },
+                    bg: "bg-blue-500",
+                  },
+                  {
+                    key: "delete",
+                    label: "Delete",
+                    icon: <Trash2 className="w-4 h-4" />,
+                    onClick: () => {
+                      deleteConversation(myId, contact.id);
+                      toast.success(`Removed chat with ${contact.name}`);
+                    },
+                    bg: "bg-destructive",
+                  },
+                ];
+                const menuOpen = menuFor === contact.id;
                 return (
-                  <button
-                    key={contact.id}
-                    onClick={() => navigate(`/message/${contact.id}`)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-secondary/60 transition-colors w-full text-left"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-2xl border border-border shrink-0">
-                      {contact.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground truncate">{contact.name}</p>
-                        {lastMessage && (
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {formatTime(lastMessage.createdAt)}
+                  <div key={contact.id} className="relative">
+                    <SwipeableRow
+                      ariaLabel={`Open chat with ${contact.name}`}
+                      onTap={() => navigate(`/message/${contact.id}`)}
+                      actions={actions}
+                    >
+                      <div className="flex items-center gap-3 px-3 py-3 w-full text-left">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-2xl border border-border shrink-0 relative">
+                          {contact.emoji}
+                          {muted && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center">
+                              <BellOff className="w-2.5 h-2.5 text-muted-foreground" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-foreground truncate">{contact.name}</p>
+                            {lastMessage && (
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {formatTime(lastMessage.createdAt)}
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            className={`text-xs truncate ${
+                              unread > 0 && !muted ? "text-foreground font-medium" : "text-muted-foreground"
+                            }`}
+                          >
+                            {lastMessage?.senderId === myId ? "You: " : ""}
+                            {preview}
+                          </p>
+                        </div>
+                        {unread > 0 && (
+                          <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${muted ? "bg-secondary text-muted-foreground" : "bg-primary text-primary-foreground"}`}>
+                            {unread}
                           </span>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuFor(menuOpen ? null : contact.id);
+                          }}
+                          className="p-1.5 rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          aria-label={`More actions for ${contact.name}`}
+                          aria-expanded={menuOpen}
+                          aria-haspopup="menu"
+                        >
+                          <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                        </button>
                       </div>
-                      <p
-                        className={`text-xs truncate ${
-                          unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"
-                        }`}
-                      >
-                        {lastMessage?.senderId === myId ? "You: " : ""}
-                        {preview}
-                      </p>
-                    </div>
-                    {unread > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
-                        {unread}
-                      </span>
+                    </SwipeableRow>
+                    {menuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setMenuFor(null)} aria-hidden />
+                        <div
+                          role="menu"
+                          className="absolute right-2 top-12 z-40 w-44 rounded-xl border border-border bg-popover shadow-lg overflow-hidden"
+                        >
+                          {actions.map((a) => (
+                            <button
+                              key={a.key}
+                              role="menuitem"
+                              onClick={() => {
+                                a.onClick();
+                                setMenuFor(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary text-left"
+                            >
+                              <span className="w-4 h-4 text-muted-foreground">{a.icon}</span>
+                              {a.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
