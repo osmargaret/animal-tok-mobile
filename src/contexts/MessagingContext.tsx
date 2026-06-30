@@ -104,6 +104,24 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
+  const [mutedKeys, setMutedKeys] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(MUTE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [deletedAt, setDeletedAt] = useState<Record<string, number>>(() => {
+    try {
+      const raw = localStorage.getItem(DELETE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
   // typing state: { [convKey]: { [userId]: lastTypedTimestamp } } — kept in memory + tiny tick
   const [typing, setTypingState] = useState<Record<string, Record<string, number>>>({});
   const [, force] = useState(0);
