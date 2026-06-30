@@ -28,8 +28,12 @@ interface MessagingContextType {
   getContact: (id: string) => ChatContact | undefined;
   getConversation: (myId: string, otherId: string) => ChatMessage[];
   sendMessage: (myId: string, otherId: string, msg: Omit<ChatMessage, "id" | "createdAt" | "senderId">) => void;
-  conversationsFor: (myId: string) => Array<{ contact: ChatContact; lastMessage?: ChatMessage; unread: number }>;
+  conversationsFor: (myId: string) => Array<{ contact: ChatContact; lastMessage?: ChatMessage; unread: number; muted: boolean }>;
   markRead: (myId: string, otherId: string) => void;
+  markUnread: (myId: string, otherId: string) => void;
+  deleteConversation: (myId: string, otherId: string) => void;
+  toggleMute: (myId: string, otherId: string) => void;
+  isMuted: (myId: string, otherId: string) => boolean;
   unreadTotal: (myId: string) => number;
   /** mark current user as typing (auto-expires after ~3s) */
   setTyping: (myId: string, otherId: string) => void;
@@ -47,6 +51,8 @@ export const useMessaging = () => {
 
 const STORAGE_KEY = "animaltok_conversations";
 const READ_KEY = "animaltok_read_state";
+const MUTE_KEY = "animaltok_mute_state";
+const DELETE_KEY = "animaltok_deleted_conversations";
 
 const conversationKey = (a: string, b: string) => [a, b].sort().join("__");
 
@@ -98,6 +104,24 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
+  const [mutedKeys, setMutedKeys] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(MUTE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [deletedAt, setDeletedAt] = useState<Record<string, number>>(() => {
+    try {
+      const raw = localStorage.getItem(DELETE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
   // typing state: { [convKey]: { [userId]: lastTypedTimestamp } } — kept in memory + tiny tick
   const [typing, setTypingState] = useState<Record<string, Record<string, number>>>({});
   const [, force] = useState(0);
@@ -122,6 +146,14 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem(READ_KEY, JSON.stringify(readState));
   }, [readState]);
+
+  useEffect(() => {
+    localStorage.setItem(MUTE_KEY, JSON.stringify(mutedKeys));
+  }, [mutedKeys]);
+
+  useEffect(() => {
+    localStorage.setItem(DELETE_KEY, JSON.stringify(deletedAt));
+  }, [deletedAt]);
 
   const contacts: ChatContact[] = useMemo(
     () => [
@@ -188,6 +220,29 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  const markUnread: MessagingContextType["markUnread"] = (myId, otherId) => {
+    // Set lastRead to before the most recent inbound message so it counts as unread
+    const msgs = getConversation(myId, otherId);
+    const lastInbound = [...msgs].reverse().find((m) => m.senderId !== myId);
+    if (!lastInbound) return;
+    setReadState((prev) => ({
+      ...prev,
+      [`${myId}__${otherId}`]: lastInbound.createdAt - 1,
+    }));
+  };
+
+  const deleteConversation: MessagingContextType["deleteConversation"] = (myId, otherId) => {
+    setDeletedAt((prev) => ({ ...prev, [`${myId}__${otherId}`]: Date.now() }));
+  };
+
+  const toggleMute: MessagingContextType["toggleMute"] = (myId, otherId) => {
+    const k = `${myId}__${otherId}`;
+    setMutedKeys((prev) => ({ ...prev, [k]: !prev[k] }));
+  };
+
+  const isMuted: MessagingContextType["isMuted"] = (myId, otherId) =>
+    !!mutedKeys[`${myId}__${otherId}`];
+
   const conversationsFor: MessagingContextType["conversationsFor"] = (myId) => {
     return contacts
       .filter((c) => c.id !== myId)
@@ -195,17 +250,19 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
         const msgs = getConversation(myId, contact.id);
         const lastMessage = msgs[msgs.length - 1];
         const lastReadAt = readState[`${myId}__${contact.id}`] || 0;
+        const hiddenBefore = deletedAt[`${myId}__${contact.id}`] || 0;
+        const visible = lastMessage && lastMessage.createdAt > hiddenBefore ? lastMessage : undefined;
         const unread = msgs.filter(
-          (m) => m.senderId !== myId && m.createdAt > lastReadAt
+          (m) => m.senderId !== myId && m.createdAt > lastReadAt && m.createdAt > hiddenBefore
         ).length;
-        return { contact, lastMessage, unread };
+        return { contact, lastMessage: visible, unread, muted: !!mutedKeys[`${myId}__${contact.id}`] };
       })
       .filter((c) => c.lastMessage)
       .sort((a, b) => (b.lastMessage?.createdAt ?? 0) - (a.lastMessage?.createdAt ?? 0));
   };
 
   const unreadTotal = (myId: string) =>
-    conversationsFor(myId).reduce((sum, c) => sum + c.unread, 0);
+    conversationsFor(myId).reduce((sum, c) => sum + (c.muted ? 0 : c.unread), 0);
 
   const setTyping: MessagingContextType["setTyping"] = (myId, otherId) => {
     const key = conversationKey(myId, otherId);
@@ -231,6 +288,10 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
         sendMessage,
         conversationsFor,
         markRead,
+        markUnread,
+        deleteConversation,
+        toggleMute,
+        isMuted,
         unreadTotal,
         setTyping,
         isTyping,

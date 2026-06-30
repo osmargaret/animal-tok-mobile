@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEngagement } from "@/contexts/EngagementContext";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import AnimalProfileCompletion from "@/components/AnimalProfileCompletion";
+import { useAnimalMeta } from "@/hooks/useAnimalMeta";
 import { useState, useRef, useEffect } from "react";
 
 const tabs = [
@@ -31,6 +34,7 @@ const AnimalProfile = () => {
 
   const animal = animalProfiles.find((a) => a.id === animalId);
   const animalFeed = animalFeeds[animalId || ""] || [];
+  const { verificationStatus, verified, meta: animalMeta } = useAnimalMeta(animalId);
 
   const isOwnAnimal = isAuthenticated && activeProfile?.type === "handler";
   const isActiveAnimal = activeProfile?.type === "animal" && activeProfile?.id === animalId;
@@ -102,7 +106,10 @@ const AnimalProfile = () => {
                 {animal.emoji}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white drop-shadow">{animal.name}</p>
+                <p className="text-sm font-semibold text-white drop-shadow flex items-center gap-1">
+                  {animal.name}
+                  <VerifiedBadge status={verificationStatus} verified={verified} />
+                </p>
                 <p className="text-[10px] text-white/70">{animal.username}</p>
               </div>
             </div>
@@ -147,7 +154,10 @@ const AnimalProfile = () => {
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-base font-semibold text-foreground truncate">{animal.name}</h1>
+              <h1 className="text-base font-semibold text-foreground truncate flex items-center gap-1">
+                {animal.name}
+                <VerifiedBadge status={verificationStatus} verified={verified} />
+              </h1>
               <p className="text-xs text-muted-foreground">{animal.breed} · {animal.age}</p>
             </div>
             {isAuthenticated && isOwnAnimal && !isActiveAnimal && (
@@ -169,15 +179,25 @@ const AnimalProfile = () => {
             <span className="text-xs text-primary font-medium">{animal.profileViews} profile views</span>
           </div>
 
+          {/* Profile completion (owners only) */}
+          {isOwnAnimal && (
+            <div className="mx-4 mt-3">
+              <AnimalProfileCompletion animalId={animal.id} animalName={animal.name} />
+            </div>
+          )}
+
           {/* Profile Header */}
           <div className="px-5 pt-5 pb-3 flex flex-col items-center text-center">
             <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${animal.gradient} flex items-center justify-center text-5xl border-[3px] ${isActiveAnimal ? "border-green-500 ring-2 ring-green-500/30" : "border-primary"} shadow-lg shadow-primary/20`}>
               {animal.emoji}
             </div>
-            <h2 className="mt-3 text-xl font-bold text-foreground">{animal.name}</h2>
+            <h2 className="mt-3 text-xl font-bold text-foreground flex items-center gap-1.5">
+              {animal.name}
+              <VerifiedBadge status={verificationStatus} verified={verified} size="md" />
+            </h2>
             <p className="text-sm text-muted-foreground">{animal.username}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{animal.breed} · {animal.age}</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">{animal.bio}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">{animalMeta.bio || animal.bio}</p>
 
             {/* Follow + Message Buttons (visible to non-owners) */}
             {isAuthenticated && !isOwnAnimal && !isActiveAnimal && (
