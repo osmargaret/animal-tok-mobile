@@ -147,6 +147,14 @@ export const MessagingProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(READ_KEY, JSON.stringify(readState));
   }, [readState]);
 
+  useEffect(() => {
+    localStorage.setItem(MUTE_KEY, JSON.stringify(mutedKeys));
+  }, [mutedKeys]);
+
+  useEffect(() => {
+    localStorage.setItem(DELETE_KEY, JSON.stringify(deletedAt));
+  }, [deletedAt]);
+
   const contacts: ChatContact[] = useMemo(
     () => [
       { id: "handler-1", name: "Alex Morgan", emoji: "🧑", subtitle: "Handler" },
