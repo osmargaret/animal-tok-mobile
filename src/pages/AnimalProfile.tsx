@@ -184,10 +184,13 @@ const AnimalProfile = () => {
             <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${animal.gradient} flex items-center justify-center text-5xl border-[3px] ${isActiveAnimal ? "border-green-500 ring-2 ring-green-500/30" : "border-primary"} shadow-lg shadow-primary/20`}>
               {animal.emoji}
             </div>
-            <h2 className="mt-3 text-xl font-bold text-foreground">{animal.name}</h2>
+            <h2 className="mt-3 text-xl font-bold text-foreground flex items-center gap-1.5">
+              {animal.name}
+              <VerifiedBadge status={verificationStatus} verified={verified} size="md" />
+            </h2>
             <p className="text-sm text-muted-foreground">{animal.username}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{animal.breed} · {animal.age}</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">{animal.bio}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">{animalMeta.bio || animal.bio}</p>
 
             {/* Follow + Message Buttons (visible to non-owners) */}
             {isAuthenticated && !isOwnAnimal && !isActiveAnimal && (
