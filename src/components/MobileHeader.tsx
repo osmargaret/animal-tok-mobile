@@ -59,7 +59,9 @@ const MobileHeader = () => {
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <ProfileSwitcherModal open={switcherOpen} onClose={() => setSwitcherOpen(false)} />
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
+
   );
 };
 
