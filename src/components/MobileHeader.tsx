@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Menu } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import AuthModal from "@/components/AuthModal";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import ProfileSwitcherModal from "@/components/ProfileSwitcherModal";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const MobileHeader = () => {
   const { user, isAuthenticated, activeProfile } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
+
 
   return (
     <>
@@ -22,9 +23,10 @@ const MobileHeader = () => {
             <span className="text-base font-bold text-foreground">AnimalTok</span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-muted-foreground" onClick={() => navigate("/explore")} aria-label="Search">
+            <button className="text-muted-foreground" onClick={() => setSearchOpen(true)} aria-label="Search">
               <Search className="w-5 h-5" />
             </button>
+
             {isAuthenticated && user ? (
               <>
                 <button
@@ -57,7 +59,9 @@ const MobileHeader = () => {
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <ProfileSwitcherModal open={switcherOpen} onClose={() => setSwitcherOpen(false)} />
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
+
   );
 };
 
