@@ -106,7 +106,11 @@ export type Comment = {
   authorAvatar: string;
   text: string;
   createdAt: number;
+  parentId?: string | null;
+  reactions?: Record<string, string[]>; // emoji -> profileIds
+  attachmentUrl?: string;
 };
+
 
 interface EngagementContextType {
   // Likes per (profileId, postId)
