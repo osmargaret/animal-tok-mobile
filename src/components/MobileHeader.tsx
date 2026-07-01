@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Menu } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import AuthModal from "@/components/AuthModal";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import ProfileSwitcherModal from "@/components/ProfileSwitcherModal";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const MobileHeader = () => {
   const { user, isAuthenticated, activeProfile } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
+
 
   return (
     <>
