@@ -128,15 +128,20 @@ interface EngagementContextType {
 
   // Comments per post
   commentsFor: (postId: number | string) => Comment[];
-  addComment: (profileId: string, profileName: string, profileAvatar: string, postId: number | string, text: string, postOwnerProfileId?: string) => void;
+  addComment: (profileId: string, profileName: string, profileAvatar: string, postId: number | string, text: string, postOwnerProfileId?: string, opts?: { parentId?: string | null; attachmentUrl?: string }) => void;
+  deleteComment: (commentId: string) => void;
+  toggleCommentReaction: (commentId: string, emoji: string, profileId: string) => void;
 
   // Notifications
   notifications: AppNotification[];
   addNotification: (n: Omit<AppNotification, "id" | "time" | "read">) => void;
   markNotificationRead: (id: string) => void;
   markAllRead: (profileId: string) => void;
+  removeNotification: (id: string) => void;
+  clearAllNotifications: (profileId: string) => void;
   clearMessageNotifications: (profileId: string, contactId: string) => void;
   unreadCountFor: (profileId: string) => number;
+
 
   // Cart
   cart: CartItem[];
