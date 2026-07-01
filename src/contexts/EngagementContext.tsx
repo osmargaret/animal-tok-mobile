@@ -321,28 +321,59 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
 
   /* -------------------------------- Comments ------------------------------ */
   const commentsFor = (postId: number | string) => comments[String(postId)] || [];
-  const addComment: EngagementContextType["addComment"] = (profileId, profileName, profileAvatar, postId, text, postOwnerProfileId) => {
-    if (!text.trim()) return;
+  const addComment: EngagementContextType["addComment"] = (profileId, profileName, profileAvatar, postId, text, postOwnerProfileId, opts) => {
+    if (!text.trim() && !opts?.attachmentUrl) return;
     const c: Comment = {
-      id: `c-${Date.now()}`,
+      id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       postId,
       authorId: profileId,
       authorName: profileName,
       authorAvatar: profileAvatar,
       text: text.trim(),
       createdAt: Date.now(),
+      parentId: opts?.parentId ?? null,
+      attachmentUrl: opts?.attachmentUrl,
+      reactions: {},
     };
     setComments((prev) => ({ ...prev, [String(postId)]: [...(prev[String(postId)] || []), c] }));
     if (postOwnerProfileId && postOwnerProfileId !== profileId) {
       addNotification({
         type: "comment",
         profileId: postOwnerProfileId,
-        title: "New comment",
-        message: `${profileName}: ${text.trim().slice(0, 60)}`,
+        title: opts?.parentId ? "New reply" : "New comment",
+        message: `${profileName}: ${(text.trim() || "📎 attachment").slice(0, 60)}`,
         avatar: profileAvatar,
       });
     }
   };
+
+  const deleteComment: EngagementContextType["deleteComment"] = (commentId) => {
+    setComments((prev) => {
+      const next: Record<string, Comment[]> = {};
+      for (const [k, arr] of Object.entries(prev)) {
+        next[k] = arr.filter((c) => c.id !== commentId && c.parentId !== commentId);
+      }
+      return next;
+    });
+  };
+
+  const toggleCommentReaction: EngagementContextType["toggleCommentReaction"] = (commentId, emoji, profileId) => {
+    setComments((prev) => {
+      const next: Record<string, Comment[]> = {};
+      for (const [k, arr] of Object.entries(prev)) {
+        next[k] = arr.map((c) => {
+          if (c.id !== commentId) return c;
+          const reactions = { ...(c.reactions || {}) };
+          const list = reactions[emoji] || [];
+          reactions[emoji] = list.includes(profileId) ? list.filter((p) => p !== profileId) : [...list, profileId];
+          if (reactions[emoji].length === 0) delete reactions[emoji];
+          return { ...c, reactions };
+        });
+      }
+      return next;
+    });
+  };
+
 
   /* ----------------------------- Notifications ---------------------------- */
   const markNotificationRead = (id: string) =>
