@@ -380,6 +380,11 @@ export const EngagementProvider = ({ children }: { children: ReactNode }) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   const markAllRead = (profileId: string) =>
     setNotifications((prev) => prev.map((n) => (n.profileId === profileId ? { ...n, read: true } : n)));
+  const removeNotification: EngagementContextType["removeNotification"] = (id) =>
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  const clearAllNotifications: EngagementContextType["clearAllNotifications"] = (profileId) =>
+    setNotifications((prev) => prev.filter((n) => n.profileId !== profileId));
+
   const clearMessageNotifications = (profileId: string, contactId: string) =>
     setNotifications((prev) =>
       prev.map((n) =>
