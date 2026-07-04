@@ -70,25 +70,29 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "heart-burst": {
+          "0%": { opacity: "0", transform: "scale(0.4)" },
+          "30%": { opacity: "1", transform: "scale(1.2)" },
+          "60%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "0", transform: "scale(1.4)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(6px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "heart-burst": "heart-burst 0.8s ease-out forwards",
+        "fade-in": "fade-in 0.3s ease-out",
       },
     },
   },
