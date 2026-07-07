@@ -247,6 +247,9 @@ const AnimalProfile = () => {
             </div>
           </div>
 
+          {/* Stories / Highlights */}
+          <StoriesRow canAdd={isOwnAnimal} />
+
           {/* Tabs */}
           <div className="flex gap-1 px-4 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
@@ -266,7 +269,7 @@ const AnimalProfile = () => {
           </div>
 
           {/* Drafts Banner */}
-          {animal.drafts > 0 && (
+          {animal.drafts > 0 && activeTab === "posts" && (
             <div className="mx-4 mt-3 px-4 py-2.5 rounded-xl bg-card border border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
@@ -276,34 +279,160 @@ const AnimalProfile = () => {
             </div>
           )}
 
-          {/* Engagement Stats */}
-          <div className="mx-4 mt-3 grid grid-cols-5 gap-2">
-            <EngagementStat icon={<Eye className="w-4 h-4" />} value={formatNum(totalViews)} label="views" />
-            <EngagementStat icon={<Heart className="w-4 h-4" />} value={formatNum(totalLikes)} label="likes" />
-            <EngagementStat icon={<MessageCircle className="w-4 h-4" />} value={formatNum(totalComments)} label="comments" />
-            <EngagementStat icon={<Share2 className="w-4 h-4" />} value={formatNum(totalShares)} label="shares" />
-            <EngagementStat icon={<Bookmark className="w-4 h-4" />} value={formatNum(totalSaves)} label="saves" />
-          </div>
+          {/* Engagement Stats — show on Posts */}
+          {activeTab === "posts" && (
+            <div className="mx-4 mt-3 grid grid-cols-5 gap-2">
+              <EngagementStat icon={<Eye className="w-4 h-4" />} value={formatNum(totalViews)} label="views" />
+              <EngagementStat icon={<Heart className="w-4 h-4" />} value={formatNum(totalLikes)} label="likes" />
+              <EngagementStat icon={<MessageCircle className="w-4 h-4" />} value={formatNum(totalComments)} label="comments" />
+              <EngagementStat icon={<Share2 className="w-4 h-4" />} value={formatNum(totalShares)} label="shares" />
+              <EngagementStat icon={<Bookmark className="w-4 h-4" />} value={formatNum(totalSaves)} label="saves" />
+            </div>
+          )}
 
-          {/* Posts Grid */}
-          <div className="px-4 mt-4 grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
-            {animal.posts.map((post) => (
-              <div key={post.id} className="relative aspect-[3/4] group cursor-pointer" onClick={() => setActiveTab("feed")}>
-                <img src={post.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <div className="flex gap-3 text-white text-xs font-medium">
-                    <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{formatNum(post.likes)}</span>
-                    <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" />{formatNum(post.comments)}</span>
-                  </div>
-                </div>
+          {/* Tab content */}
+          {(activeTab === "posts" || activeTab === "media") && (() => {
+            const source = activeTab === "media"
+              ? animal.posts // all posts are images in mock data
+              : [
+                  ...animal.posts.filter((p) => isPinned(p.id)),
+                  ...animal.posts.filter((p) => !isPinned(p.id)),
+                ];
+            if (source.length === 0) {
+              return (
+                <EmptyState
+                  emoji="📸"
+                  title="No posts yet"
+                  description={isOwnAnimal ? `Share ${animal.name}'s first moment.` : "Check back soon."}
+                  actionLabel={isOwnAnimal ? "Create post" : undefined}
+                  onAction={isOwnAnimal ? () => navigate("/create") : undefined}
+                />
+              );
+            }
+            return (
+              <div className="px-4 mt-4 grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
+                {source.map((post) => {
+                  const pinned = isPinned(post.id);
+                  return (
+                    <div key={post.id} className="relative aspect-[3/4] group cursor-pointer" onClick={() => setActiveTab("feed")}>
+                      <img src={post.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      {pinned && activeTab === "posts" && (
+                        <span className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-semibold">
+                          <Pin className="w-2.5 h-2.5" />
+                          Pinned
+                        </span>
+                      )}
+                      {isOwnAnimal && activeTab === "posts" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const wasPinned = isPinned(post.id);
+                            togglePin(post.id);
+                            if (!wasPinned) {
+                              toast.success("Pinned to top", { description: `Up to ${maxPinned} pinned posts.` });
+                            } else {
+                              toast("Unpinned");
+                            }
+                          }}
+                          aria-label={pinned ? "Unpin post" : "Pin post"}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          {pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+                        </button>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="flex gap-3 text-white text-xs font-medium">
+                          <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{formatNum(post.likes)}</span>
+                          <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" />{formatNum(post.comments)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            );
+          })()}
+
+          {activeTab === "tagged" && (
+            <EmptyState
+              emoji="🏷️"
+              title="No tagged posts"
+              description={`When someone tags ${animal.name}, those posts show up here.`}
+            />
+          )}
+
+          {activeTab === "liked" && (() => {
+            const liked = animal.posts.filter((p) => activeProfile && isLiked(activeProfile.id, p.id));
+            if (liked.length === 0) {
+              return (
+                <EmptyState
+                  emoji="👍"
+                  title="No liked posts yet"
+                  description="Posts you like will appear here for quick access."
+                />
+              );
+            }
+            return (
+              <div className="px-4 mt-4 grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
+                {liked.map((post) => (
+                  <div key={post.id} className="relative aspect-[3/4] cursor-pointer" onClick={() => setActiveTab("feed")}>
+                    <img src={post.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {activeTab === "saves" && (() => {
+            const saved = animal.posts.filter((p) => activeProfile && isSaved(activeProfile.id, p.id));
+            if (saved.length === 0) {
+              return (
+                <EmptyState
+                  emoji="🔖"
+                  title="Nothing saved yet"
+                  description="Tap the bookmark on any post to save it here."
+                />
+              );
+            }
+            return (
+              <div className="px-4 mt-4 grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
+                {saved.map((post) => (
+                  <div key={post.id} className="relative aspect-[3/4] cursor-pointer" onClick={() => setActiveTab("feed")}>
+                    <img src={post.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {activeTab === "events" && (
+            <EmptyState
+              emoji="📅"
+              title="No upcoming events"
+              description={`${animal.name} hasn't published any events yet.`}
+              actionLabel={isOwnAnimal ? "Create event" : undefined}
+              onAction={isOwnAnimal ? () => navigate("/events") : undefined}
+            />
+          )}
+
+          {activeTab === "lock" && (
+            <EmptyState
+              emoji="🔒"
+              title="Private posts"
+              description={isOwnAnimal ? "Only you can see posts here. Mark any post as private to store it." : `Only ${animal.name}'s handler can see this tab.`}
+            />
+          )}
 
           <div className="h-6" />
         </main>
       )}
 
+      <QRSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title={`Share ${animal.name}`}
+        subtitle={animal.username}
+      />
       <BottomNav />
     </div>
   );
