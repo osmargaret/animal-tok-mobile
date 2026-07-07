@@ -146,6 +146,10 @@ const HandlerProfile = () => {
           )}
         </div>
 
+        {/* Story highlights */}
+        <StoriesRow canAdd={isOwnProfile} />
+
+
         {/* My Pets Section */}
         <div className="px-5 mt-4">
           <div className="flex items-center justify-between mb-3">
