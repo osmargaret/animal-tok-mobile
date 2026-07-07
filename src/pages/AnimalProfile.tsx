@@ -33,15 +33,17 @@ const AnimalProfile = () => {
   const { animalId } = useParams();
   const navigate = useNavigate();
   const { activeProfile, switchProfile, isAuthenticated } = useAuth();
-  const { isFollowing: getFollowing, toggleFollow } = useEngagement();
-  const [activeTab, setActiveTab] = useState("feed");
+  const { isFollowing: getFollowing, toggleFollow, isSaved, isLiked } = useEngagement();
+  const [activeTab, setActiveTab] = useState("posts");
   const [feedIndex, setFeedIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const animal = animalProfiles.find((a) => a.id === animalId);
   const animalFeed = animalFeeds[animalId || ""] || [];
   const { verificationStatus, verified, meta: animalMeta } = useAnimalMeta(animalId);
+  const { isPinned, togglePin, maxPinned } = usePinnedPosts(animalId);
 
   const isOwnAnimal = isAuthenticated && activeProfile?.type === "handler";
   const isActiveAnimal = activeProfile?.type === "animal" && activeProfile?.id === animalId;
