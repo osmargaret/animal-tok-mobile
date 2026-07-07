@@ -101,6 +101,13 @@ const HandlerProfile = () => {
             ) : (
               <ReportBlockMenu targetId={handlerId} targetName={user?.name || "this user"} />
             )}
+            <button
+              onClick={() => setShareOpen(true)}
+              aria-label="Share profile"
+              className="w-9 h-9 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Share2 className="w-4 h-4 text-foreground" />
+            </button>
           </div>
 
           {/* Bio */}
