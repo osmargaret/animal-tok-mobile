@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, Heart, MessageCircle, Share2, Bookmark, Grid3X3, Lock, BookmarkCheck, ThumbsUp, CalendarDays, FileText, Play, RefreshCw, UserPlus } from "lucide-react";
+import { ArrowLeft, Eye, Heart, MessageCircle, Share2, Bookmark, Grid3X3, Lock, BookmarkCheck, ThumbsUp, CalendarDays, FileText, Play, RefreshCw, UserPlus, Image as ImageIcon, AtSign, Pin, PinOff } from "lucide-react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import { animalProfiles } from "@/data/animalProfiles";
@@ -10,16 +10,23 @@ import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import AnimalProfileCompletion from "@/components/AnimalProfileCompletion";
+import StoriesRow from "@/components/StoriesRow";
+import EmptyState from "@/components/EmptyState";
+import QRSheet from "@/components/QRSheet";
 import { useAnimalMeta } from "@/hooks/useAnimalMeta";
+import { usePinnedPosts } from "@/hooks/usePinnedPosts";
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 
 const tabs = [
   { id: "feed", label: "Feed", icon: Play },
-  { id: "posts", label: "All posts", icon: Grid3X3 },
-  { id: "lock", label: "Lock", icon: Lock },
+  { id: "posts", label: "Posts", icon: Grid3X3 },
+  { id: "media", label: "Media", icon: ImageIcon },
+  { id: "tagged", label: "Tagged", icon: AtSign },
+  { id: "liked", label: "Liked", icon: ThumbsUp },
   { id: "saves", label: "Saves", icon: BookmarkCheck },
-  { id: "likes", label: "Likes", icon: ThumbsUp },
   { id: "events", label: "Events", icon: CalendarDays },
+  { id: "lock", label: "Private", icon: Lock },
 ];
 
 const AnimalProfile = () => {
