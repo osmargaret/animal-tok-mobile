@@ -190,6 +190,12 @@ const HandlerProfile = () => {
       </main>
 
       <EditProfileSheet open={editOpen} onClose={() => setEditOpen(false)} />
+      <QRSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title={`Share ${user?.name || "profile"}`}
+        subtitle={user?.username}
+      />
       <BottomNav />
     </div>
   );
