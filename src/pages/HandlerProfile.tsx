@@ -4,7 +4,9 @@ import { useEngagement } from "@/contexts/EngagementContext";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
-import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus, Megaphone } from "lucide-react";
+import StoriesRow from "@/components/StoriesRow";
+import QRSheet from "@/components/QRSheet";
+import { Edit2, Plus, ShoppingBag, Calendar, Store, Heart, MessageCircle, UserPlus, Megaphone, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -47,6 +49,7 @@ const HandlerProfile = () => {
   const handlerId = user?.id || "handler-1";
   const isFollowing = activeProfile ? getFollowing(activeProfile.id, handlerId) : false;
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const isOwnProfile = isAuthenticated && activeProfile?.type === "handler";
 
@@ -98,6 +101,13 @@ const HandlerProfile = () => {
             ) : (
               <ReportBlockMenu targetId={handlerId} targetName={user?.name || "this user"} />
             )}
+            <button
+              onClick={() => setShareOpen(true)}
+              aria-label="Share profile"
+              className="w-9 h-9 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Share2 className="w-4 h-4 text-foreground" />
+            </button>
           </div>
 
           {/* Bio */}
@@ -135,6 +145,10 @@ const HandlerProfile = () => {
             </div>
           )}
         </div>
+
+        {/* Story highlights */}
+        <StoriesRow canAdd={isOwnProfile} />
+
 
         {/* My Pets Section */}
         <div className="px-5 mt-4">
@@ -176,6 +190,12 @@ const HandlerProfile = () => {
       </main>
 
       <EditProfileSheet open={editOpen} onClose={() => setEditOpen(false)} />
+      <QRSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title={`Share ${user?.name || "profile"}`}
+        subtitle={user?.username}
+      />
       <BottomNav />
     </div>
   );

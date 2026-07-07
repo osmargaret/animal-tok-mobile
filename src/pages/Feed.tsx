@@ -7,6 +7,7 @@ import VideoPost from "@/components/VideoPost";
 import ActionIcons from "@/components/ActionIcons";
 import CommentsPanel from "@/components/CommentsPanel";
 import EventsModal from "@/components/EventsModal";
+import WelcomeTour from "@/components/WelcomeTour";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -200,6 +201,7 @@ const Feed = () => {
       <BottomNav />
       <CommentsPanel post={posts[activeIndex] || null} open={commentsOpen} onClose={() => setCommentsOpen(false)} />
       <EventsModal open={eventsOpen} onClose={() => setEventsOpen(false)} />
+      <WelcomeTour />
     </div>
   );
 };
