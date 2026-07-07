@@ -49,6 +49,7 @@ const HandlerProfile = () => {
   const handlerId = user?.id || "handler-1";
   const isFollowing = activeProfile ? getFollowing(activeProfile.id, handlerId) : false;
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const isOwnProfile = isAuthenticated && activeProfile?.type === "handler";
 
