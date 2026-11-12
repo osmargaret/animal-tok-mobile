@@ -436,8 +436,8 @@ export default function ProfileScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Animals List */}
-            {pets.map((pet) => {
+            {/* Animals List - Deduplicated */}
+            {Array.from(new Map(pets.map((p) => [p.name.trim().toLowerCase(), p])).values()).map((pet) => {
               const isSelected = activeProfile?.id === pet.id && isAnimal;
               return (
                 <TouchableOpacity

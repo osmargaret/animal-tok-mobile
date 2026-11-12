@@ -116,7 +116,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try { setActiveProfile(JSON.parse(storedProfile)); } catch (e) {}
       }
       if (storedPets) {
-        try { setPets(JSON.parse(storedPets)); } catch (e) {}
+        try {
+          const parsed = JSON.parse(storedPets);
+          if (Array.isArray(parsed)) {
+            // Deduplicate pets by id and lowercase name
+            const seen = new Set<string>();
+            const unique = parsed.filter((p: any) => {
+              const key = `${p.id || ""}_${p.name || ""}`.toLowerCase().trim();
+              if (seen.has(key) || seen.has(p.name?.toLowerCase()?.trim())) return false;
+              seen.add(key);
+              if (p.name) seen.add(p.name.toLowerCase().trim());
+              return true;
+            });
+            setPets(unique);
+            AsyncStorage.setItem(PETS_KEY, JSON.stringify(unique)).catch(() => {});
+          }
+        } catch (e) {}
       }
     }).finally(() => setIsLoading(false));
 
@@ -147,9 +162,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addPet = (pet: ActiveProfile) => {
-    const updatedPets = [pet, ...pets];
-    setPets(updatedPets);
-    AsyncStorage.setItem(PETS_KEY, JSON.stringify(updatedPets)).catch(() => {});
+    setPets((prev) => {
+      const filtered = prev.filter(
+        (p) =>
+          String(p.id).toLowerCase() !== String(pet.id).toLowerCase() &&
+          p.name.trim().toLowerCase() !== pet.name.trim().toLowerCase()
+      );
+      const updated = [pet, ...filtered];
+      AsyncStorage.setItem(PETS_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
     // Automatically switch to the new pet profile
     persistProfile(pet);
   };
