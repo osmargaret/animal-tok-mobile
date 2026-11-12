@@ -264,9 +264,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header Bar */}
         <View style={styles.topBar}>
-          <Text style={styles.barTitle}>
-            {isAnimal ? `${activeProfile?.name || "Animal"}'s Profile` : "Handler Profile"}
-          </Text>
+          <Text style={styles.barTitle}>Profile</Text>
           <View style={styles.topBarActions}>
             <TouchableOpacity style={styles.editTopBtn} onPress={() => router.push("/edit-profile")}>
               <Edit2 size={13} color="#06b6d4" />
@@ -922,26 +920,28 @@ const styles = StyleSheet.create({
   },
   avatarAndStatsRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
+    marginTop: 8,
+    marginBottom: 4,
   },
   avatarWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: "#161b22",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: "#06b6d4",
     overflow: "hidden",
-    elevation: 6,
+    elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.45,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
   },
   avatarPhoto: {
     width: "100%",
@@ -958,20 +958,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingVertical: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: "rgba(13, 17, 23, 0.5)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(30, 41, 59, 0.7)",
+    marginLeft: 6,
   },
   statItem: {
     alignItems: "center",
+    paddingHorizontal: 4,
   },
   statNumber: {
     color: "#ffffff",
-    fontSize: 17,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "800",
   },
   statLabel: {
     color: "#94a3b8",
     fontSize: 11,
+    fontWeight: "600",
     marginTop: 2,
+    letterSpacing: 0.2,
   },
   statDivider: {
     width: 1,
