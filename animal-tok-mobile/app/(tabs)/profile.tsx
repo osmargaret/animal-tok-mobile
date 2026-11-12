@@ -458,9 +458,12 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "grid" && styles.gridTabActive]}
                 onPress={() => setActiveTab("grid")}
               >
-                <Grid size={15} color={activeTab === "grid" ? "#06b6d4" : "#64748b"} />
-                <Text style={[styles.gridTabLabel, activeTab === "grid" && styles.gridTabLabelActive]}>
-                  Posts ({currentPosts.length})
+                <Grid size={13} color={activeTab === "grid" ? "#06b6d4" : "#64748b"} />
+                <Text
+                  style={[styles.gridTabLabel, activeTab === "grid" && styles.gridTabLabelActive]}
+                  numberOfLines={1}
+                >
+                  Posts <Text style={styles.tabCount}>({currentPosts.length})</Text>
                 </Text>
               </TouchableOpacity>
 
@@ -468,9 +471,12 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "products" && styles.gridTabActive]}
                 onPress={() => setActiveTab("products")}
               >
-                <ShoppingBag size={15} color={activeTab === "products" ? "#06b6d4" : "#64748b"} />
-                <Text style={[styles.gridTabLabel, activeTab === "products" && styles.gridTabLabelActive]}>
-                  Products ({userProducts.length})
+                <ShoppingBag size={13} color={activeTab === "products" ? "#06b6d4" : "#64748b"} />
+                <Text
+                  style={[styles.gridTabLabel, activeTab === "products" && styles.gridTabLabelActive]}
+                  numberOfLines={1}
+                >
+                  Products <Text style={styles.tabCount}>({userProducts.length})</Text>
                 </Text>
               </TouchableOpacity>
 
@@ -478,9 +484,12 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "services" && styles.gridTabActive]}
                 onPress={() => setActiveTab("services")}
               >
-                <Wrench size={15} color={activeTab === "services" ? "#06b6d4" : "#64748b"} />
-                <Text style={[styles.gridTabLabel, activeTab === "services" && styles.gridTabLabelActive]}>
-                  Services ({userServices.length})
+                <Wrench size={13} color={activeTab === "services" ? "#06b6d4" : "#64748b"} />
+                <Text
+                  style={[styles.gridTabLabel, activeTab === "services" && styles.gridTabLabelActive]}
+                  numberOfLines={1}
+                >
+                  Services <Text style={styles.tabCount}>({userServices.length})</Text>
                 </Text>
               </TouchableOpacity>
 
@@ -488,9 +497,12 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "events" && styles.gridTabActive]}
                 onPress={() => setActiveTab("events")}
               >
-                <Calendar size={15} color={activeTab === "events" ? "#06b6d4" : "#64748b"} />
-                <Text style={[styles.gridTabLabel, activeTab === "events" && styles.gridTabLabelActive]}>
-                  Events ({userEvents.length})
+                <Calendar size={13} color={activeTab === "events" ? "#06b6d4" : "#64748b"} />
+                <Text
+                  style={[styles.gridTabLabel, activeTab === "events" && styles.gridTabLabelActive]}
+                  numberOfLines={1}
+                >
+                  Events <Text style={styles.tabCount}>({userEvents.length})</Text>
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1114,17 +1126,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 3.5,
     paddingVertical: 10,
+    paddingHorizontal: 2,
   },
   gridTabLabel: {
     color: "#64748b",
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 10.5,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   gridTabLabelActive: {
     color: "#06b6d4",
-    fontWeight: "800",
+    fontWeight: "900",
+  },
+  tabCount: {
+    fontSize: 9.5,
+    fontWeight: "600",
+    opacity: 0.9,
   },
   gridTabActive: {
     borderBottomWidth: 2,
