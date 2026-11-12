@@ -230,16 +230,29 @@ export default function ProfileScreen() {
     }, [activeProfile, user])
   );
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const doSignOut = async () => {
+      try {
+        await logout();
+      } finally {
+        router.replace("/auth");
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const ok = typeof window !== "undefined" ? window.confirm("Are you sure you want to sign out?") : true;
+      if (ok) {
+        await doSignOut();
+      }
+      return;
+    }
+
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Sign Out",
         style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.push("/auth");
-        },
+        onPress: doSignOut,
       },
     ]);
   };

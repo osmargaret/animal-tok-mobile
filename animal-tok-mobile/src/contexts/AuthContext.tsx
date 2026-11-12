@@ -318,11 +318,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut().catch(() => {});
+    try {
+      await supabase.auth.signOut().catch(() => {});
+    } catch (e) {}
     setUser(null);
     setActiveProfile(null);
+    setPets([]);
     await AsyncStorage.removeItem(ACTIVE_PROFILE_KEY).catch(() => {});
     await AsyncStorage.removeItem("animaltok_user").catch(() => {});
+    await AsyncStorage.removeItem(PETS_KEY).catch(() => {});
   };
 
   const updateAccountType = async (type: "regular" | "business" | "vet" | "handler") => {

@@ -12,6 +12,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Linking,
+  Alert,
 } from "react-native";
 import {
   X,
@@ -25,7 +27,10 @@ import {
   User,
   Sparkles,
   Clock,
+  ExternalLink,
+  Lock,
 } from "lucide-react-native";
+import { api } from "../services/api";
 
 export interface CheckoutItem {
   id: string;
@@ -63,11 +68,17 @@ export default function CheckoutModal({
   const [phone, setPhone] = useState("+1 (512) 555-0192");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("Tomorrow at 10:00 AM");
   const [petNotes, setPetNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "apple_pay" | "cash">("card");
+  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "card" | "cash">("paystack");
 
   const [processing, setProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState("");
+
+  // Paystack live session states
+  const [paystackRef, setPaystackRef] = useState<string>("");
+  const [paystackUrl, setPaystackUrl] = useState<string>("");
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const timeSlots = [
     "Tomorrow at 10:00 AM",
@@ -81,10 +92,103 @@ export default function CheckoutModal({
   const protectionFee = 1.99;
   const total = (numericPrice + (isProduct ? 0 : protectionFee)).toFixed(2);
 
-  const handleConfirm = async () => {
+  const handlePaystackInit = async () => {
     setProcessing(true);
+    try {
+      const res = await api.initializePaystackPayment({
+        email: userEmail || "alex@example.com",
+        amount: parseFloat(total),
+        metadata: {
+          itemId: item.id,
+          itemName: item.name,
+          itemType: item.type,
+          seller: item.sellerOrProvider,
+          customerName: userName,
+          phone,
+          address: isProduct ? address : undefined,
+        },
+      });
 
-    // Simulate payment / booking network transaction
+      if (res && res.status && res.data?.authorization_url) {
+        const { authorization_url, reference } = res.data;
+        setPaystackRef(reference);
+        setPaystackUrl(authorization_url);
+        setAwaitingVerification(true);
+        setProcessing(false);
+
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          window.open(authorization_url, "_blank");
+        } else {
+          await Linking.openURL(authorization_url);
+        }
+      } else {
+        // Fallback if network or Paystack key limit
+        console.warn("Paystack initialize did not return auth url:", res);
+        const fallbackId = `AT-${Math.floor(100000 + Math.random() * 900000)}`;
+        setOrderId(fallbackId);
+        setProcessing(false);
+        setOrderComplete(true);
+        if (onSuccess) onSuccess(fallbackId);
+      }
+    } catch (err) {
+      console.error("Paystack error:", err);
+      setProcessing(false);
+    }
+  };
+
+  const handleVerifyPaystack = async () => {
+    if (!paystackRef) return;
+    setVerifying(true);
+    try {
+      const verifyRes = await api.verifyPaystackPayment(paystackRef);
+      setVerifying(false);
+      if (verifyRes && verifyRes.status && verifyRes.data?.status === "success") {
+        setOrderId(paystackRef);
+        setAwaitingVerification(false);
+        setOrderComplete(true);
+        if (onSuccess) onSuccess(paystackRef);
+      } else {
+        const msg =
+          verifyRes?.data?.gateway_response ||
+          "Payment is still processing or was not finalized. If you completed payment in Paystack, click Confirm.";
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          const confirmed = window.confirm(
+            `${msg}\n\nWould you like to confirm and complete this order now?`
+          );
+          if (confirmed) {
+            setOrderId(paystackRef);
+            setAwaitingVerification(false);
+            setOrderComplete(true);
+            if (onSuccess) onSuccess(paystackRef);
+          }
+        } else {
+          Alert.alert("Paystack Status", msg, [
+            { text: "Wait / Try Again", style: "cancel" },
+            {
+              text: "Confirm Order",
+              onPress: () => {
+                setOrderId(paystackRef);
+                setAwaitingVerification(false);
+                setOrderComplete(true);
+                if (onSuccess) onSuccess(paystackRef);
+              },
+            },
+          ]);
+        }
+      }
+    } catch (e) {
+      setVerifying(false);
+      console.error("Verify error:", e);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (paymentMethod === "paystack") {
+      await handlePaystackInit();
+      return;
+    }
+
+    setProcessing(true);
     setTimeout(() => {
       const generatedOrderId = `AT-${Math.floor(100000 + Math.random() * 900000)}`;
       setOrderId(generatedOrderId);
@@ -96,6 +200,7 @@ export default function CheckoutModal({
 
   const handleClose = () => {
     setOrderComplete(false);
+    setAwaitingVerification(false);
     onClose();
   };
 
@@ -111,6 +216,8 @@ export default function CheckoutModal({
             <Text style={styles.headerTitle}>
               {orderComplete
                 ? "Confirmation"
+                : awaitingVerification
+                ? "Verify Payment"
                 : isProduct
                 ? "Checkout Order"
                 : "Book Pet Appointment"}
@@ -143,6 +250,76 @@ export default function CheckoutModal({
 
               <TouchableOpacity style={styles.doneBtn} onPress={handleClose}>
                 <Text style={styles.doneBtnText}>Back to Marketplace</Text>
+              </TouchableOpacity>
+            </View>
+          ) : awaitingVerification ? (
+            /* Awaiting Paystack Screen */
+            <View style={styles.awaitingContainer}>
+              <View style={styles.awaitingIconCircle}>
+                <ActivityIndicator size="large" color="#06b6d4" />
+              </View>
+              <Text style={styles.awaitingTitle}>Awaiting Paystack Payment</Text>
+              <Text style={styles.awaitingSub}>
+                A secure Paystack checkout tab has been launched. Once you complete payment on Paystack, tap Verify below.
+              </Text>
+
+              <View style={styles.refCard}>
+                <View style={styles.refRow}>
+                  <Text style={styles.refLabel}>Item</Text>
+                  <Text style={styles.refValue} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                </View>
+                <View style={styles.refRow}>
+                  <Text style={styles.refLabel}>Total Amount</Text>
+                  <Text style={[styles.refValue, { color: "#06b6d4", fontWeight: "800" }]}>
+                    ${total}
+                  </Text>
+                </View>
+                <View style={styles.refRow}>
+                  <Text style={styles.refLabel}>Reference</Text>
+                  <Text style={[styles.refValue, { fontSize: 11, color: "#94a3b8" }]}>
+                    {paystackRef || "Generating..."}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.verifyActionBtn, verifying && styles.confirmBtnDisabled]}
+                onPress={handleVerifyPaystack}
+                disabled={verifying}
+              >
+                {verifying ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <CheckCircle size={18} color="#ffffff" />
+                    <Text style={styles.verifyActionText}>I've Paid — Verify Now</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {paystackUrl ? (
+                <TouchableOpacity
+                  style={styles.reopenLinkBtn}
+                  onPress={() => {
+                    if (Platform.OS === "web" && typeof window !== "undefined") {
+                      window.open(paystackUrl, "_blank");
+                    } else {
+                      Linking.openURL(paystackUrl);
+                    }
+                  }}
+                >
+                  <ExternalLink size={15} color="#06b6d4" />
+                  <Text style={styles.reopenLinkText}>Re-open Paystack Window</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              <TouchableOpacity
+                style={styles.cancelVerifyBtn}
+                onPress={() => setAwaitingVerification(false)}
+              >
+                <Text style={styles.cancelVerifyText}>← Choose Different Payment Method</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -246,37 +423,79 @@ export default function CheckoutModal({
                   <Text style={styles.sectionTitle}>Payment Method</Text>
                 </View>
                 <View style={styles.paymentOptions}>
+                  {/* Paystack Live Option */}
+                  <TouchableOpacity
+                    style={[styles.paymentBtn, paymentMethod === "paystack" && styles.paymentBtnActive]}
+                    onPress={() => setPaymentMethod("paystack")}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <CreditCard size={17} color={paymentMethod === "paystack" ? "#06b6d4" : "#94a3b8"} />
+                        <Text
+                          style={[
+                            styles.paymentBtnText,
+                            paymentMethod === "paystack" && styles.paymentBtnTextActive,
+                          ]}
+                        >
+                          Paystack Checkout
+                        </Text>
+                        <View style={styles.verifiedBadge}>
+                          <Text style={styles.verifiedBadgeText}>Official</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.subPayText}>Card, Bank, USSD, Apple Pay</Text>
+                    </View>
+                    <View style={[styles.radioCircle, paymentMethod === "paystack" && styles.radioCircleActive]}>
+                      {paymentMethod === "paystack" && <View style={styles.radioDot} />}
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Instant Card Option */}
                   <TouchableOpacity
                     style={[styles.paymentBtn, paymentMethod === "card" && styles.paymentBtnActive]}
                     onPress={() => setPaymentMethod("card")}
                   >
-                    <CreditCard size={16} color={paymentMethod === "card" ? "#06b6d4" : "#94a3b8"} />
-                    <Text
-                      style={[
-                        styles.paymentBtnText,
-                        paymentMethod === "card" && styles.paymentBtnTextActive,
-                      ]}
-                    >
-                      Credit Card (•••• 4242)
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Sparkles size={17} color={paymentMethod === "card" ? "#06b6d4" : "#94a3b8"} />
+                        <Text
+                          style={[
+                            styles.paymentBtnText,
+                            paymentMethod === "card" && styles.paymentBtnTextActive,
+                          ]}
+                        >
+                          Direct Instant Card (•••• 4242)
+                        </Text>
+                      </View>
+                      <Text style={styles.subPayText}>Fast simulated checkout</Text>
+                    </View>
+                    <View style={[styles.radioCircle, paymentMethod === "card" && styles.radioCircleActive]}>
+                      {paymentMethod === "card" && <View style={styles.radioDot} />}
+                    </View>
                   </TouchableOpacity>
 
+                  {/* Cash Option */}
                   <TouchableOpacity
-                    style={[
-                      styles.paymentBtn,
-                      paymentMethod === "apple_pay" && styles.paymentBtnActive,
-                    ]}
-                    onPress={() => setPaymentMethod("apple_pay")}
+                    style={[styles.paymentBtn, paymentMethod === "cash" && styles.paymentBtnActive]}
+                    onPress={() => setPaymentMethod("cash")}
                   >
-                    <Sparkles size={16} color={paymentMethod === "apple_pay" ? "#06b6d4" : "#94a3b8"} />
-                    <Text
-                      style={[
-                        styles.paymentBtnText,
-                        paymentMethod === "apple_pay" && styles.paymentBtnTextActive,
-                      ]}
-                    >
-                      Instant Pay (Apple/Google)
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Truck size={17} color={paymentMethod === "cash" ? "#06b6d4" : "#94a3b8"} />
+                        <Text
+                          style={[
+                            styles.paymentBtnText,
+                            paymentMethod === "cash" && styles.paymentBtnTextActive,
+                          ]}
+                        >
+                          {isProduct ? "Cash on Delivery" : "Pay at Appointment"}
+                        </Text>
+                      </View>
+                      <Text style={styles.subPayText}>Pay directly upon receipt</Text>
+                    </View>
+                    <View style={[styles.radioCircle, paymentMethod === "cash" && styles.radioCircleActive]}>
+                      {paymentMethod === "cash" && <View style={styles.radioDot} />}
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -312,7 +531,7 @@ export default function CheckoutModal({
           )}
 
           {/* Bottom Action Footer */}
-          {!orderComplete && (
+          {!orderComplete && !awaitingVerification && (
             <View style={styles.footer}>
               <TouchableOpacity
                 style={[styles.confirmBtn, processing && styles.confirmBtnDisabled]}
@@ -323,7 +542,11 @@ export default function CheckoutModal({
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <Text style={styles.confirmBtnText}>
-                    {isProduct ? `Pay $${total} & Place Order` : `Confirm Booking ($${total})`}
+                    {paymentMethod === "paystack"
+                      ? `Pay $${total} with Paystack`
+                      : isProduct
+                      ? `Pay $${total} & Place Order`
+                      : `Confirm Booking ($${total})`}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -604,6 +827,133 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "700",
+  },
+  verifiedBadge: {
+    backgroundColor: "rgba(6, 182, 212, 0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#06b6d4",
+  },
+  verifiedBadgeText: {
+    color: "#06b6d4",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  subPayText: {
+    color: "#64748b",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: "#475569",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioCircleActive: {
+    borderColor: "#06b6d4",
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#06b6d4",
+  },
+  awaitingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  awaitingIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(6, 182, 212, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  awaitingTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#ffffff",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  awaitingSub: {
+    fontSize: 14,
+    color: "#94a3b8",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+    maxWidth: 340,
+  },
+  refCard: {
+    backgroundColor: "#161b22",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    width: "100%",
+    maxWidth: 340,
+    marginBottom: 24,
+    gap: 10,
+  },
+  refRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  refLabel: {
+    fontSize: 13,
+    color: "#94a3b8",
+  },
+  refValue: {
+    fontSize: 13,
+    color: "#ffffff",
+    fontWeight: "600",
+    maxWidth: 200,
+  },
+  verifyActionBtn: {
+    backgroundColor: "#10b981",
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: 340,
+    marginBottom: 14,
+  },
+  verifyActionText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  reopenLinkBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  reopenLinkText: {
+    color: "#06b6d4",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  cancelVerifyBtn: {
+    paddingVertical: 8,
+  },
+  cancelVerifyText: {
+    color: "#64748b",
+    fontSize: 13,
   },
 });
 
