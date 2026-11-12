@@ -1,7 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { View, StyleSheet, Text } from "react-native";
-import { Home, Compass, Plus, MessageSquare, ShoppingBag, User } from "lucide-react-native";
+import { Home, Search, Plus, MessageSquare, ShoppingBag, User } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 
 function TikTokCreateIcon() {
@@ -51,7 +51,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: "Explore",
-          tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
         }}
       />
       <Tabs.Screen
