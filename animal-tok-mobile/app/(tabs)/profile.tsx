@@ -217,6 +217,33 @@ export default function ProfileScreen() {
       });
     }
 
+    // Synchronize custom products & services
+    try {
+      const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
+      if (storedProds) {
+        const customProds = JSON.parse(storedProds);
+        if (Array.isArray(customProds)) {
+          const merged = [...customProds, ...marketProducts.filter((p) => !customProds.some((cp: any) => cp.id === p.id))];
+          setUserProducts(merged);
+        }
+      } else {
+        setUserProducts([...marketProducts]);
+      }
+
+      const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
+      if (storedSrvs) {
+        const customSrvs = JSON.parse(storedSrvs);
+        if (Array.isArray(customSrvs)) {
+          const merged = [...customSrvs, ...marketServices.filter((s) => !customSrvs.some((cs: any) => cs.id === s.id))];
+          setUserServices(merged);
+        }
+      } else {
+        setUserServices([...marketServices]);
+      }
+    } catch (e) {
+      console.warn("Error refreshing user marketplace items:", e);
+    }
+
     setLoading(false);
   };
 

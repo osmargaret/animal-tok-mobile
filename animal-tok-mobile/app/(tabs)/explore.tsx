@@ -35,7 +35,8 @@ import {
 } from "lucide-react-native";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import HostEventModal from "@/components/HostEventModal";
 
@@ -197,6 +198,42 @@ export default function ExploreScreen() {
   const [petDropdownOpen, setPetDropdownOpen] = useState(false);
   const [eventsList, setEventsList] = useState<ExploreEvent[]>(EXPLORE_EVENTS);
   const [hostModalVisible, setHostModalVisible] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const syncMarketplace = async () => {
+        try {
+          const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
+          if (storedProds) {
+            const custom = JSON.parse(storedProds);
+            if (Array.isArray(custom)) {
+              custom.forEach((cp) => {
+                if (!marketProducts.some((p) => p.id === cp.id)) {
+                  marketProducts.unshift(cp);
+                }
+              });
+            }
+          }
+          const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
+          if (storedSrvs) {
+            const custom = JSON.parse(storedSrvs);
+            if (Array.isArray(custom)) {
+              custom.forEach((cs) => {
+                if (!marketServices.some((s) => s.id === cs.id)) {
+                  marketServices.unshift(cs);
+                }
+              });
+            }
+          }
+          setRefreshKey((k) => k + 1);
+        } catch (e) {
+          console.warn("Marketplace sync warning:", e);
+        }
+      };
+      syncMarketplace();
+    }, [])
+  );
 
   const currentPet = useMemo(
     () => PET_FILTERS.find((p) => p.id === selectedPetFilter) || PET_FILTERS[0],
@@ -296,7 +333,7 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory]);
+  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
 
   // Filtered Events
   const filteredEvents = useMemo(() => {
@@ -320,7 +357,7 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory]);
+  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
 
   // Filtered Marketplace (Products & Services)
   const filteredProducts = useMemo(() => {
@@ -352,7 +389,7 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory]);
+  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
 
   const filteredServices = useMemo(() => {
     if (selectedCategory === "products" || selectedCategory === "food" || selectedCategory === "toys") {
@@ -380,7 +417,7 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory]);
+  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
 
   // Active Category list
   const currentCategories =
