@@ -12,7 +12,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { X, Check, Camera, Image as ImageIcon } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { marketProducts, marketServices } from "@/data/marketData";
@@ -22,8 +22,9 @@ import { uploadMedia, getBaseUrl } from "@/services/api";
 export default function AddProductScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { type: queryType } = useLocalSearchParams<{ type?: string }>();
   
-  const [type, setType] = useState<"product" | "service">("product");
+  const [type, setType] = useState<"product" | "service">(queryType === "service" ? "service" : "product");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("Accessories");

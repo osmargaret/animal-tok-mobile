@@ -626,7 +626,7 @@ export default function ProfileScreen() {
                   </View>
                   <TouchableOpacity
                     style={[styles.tabActionBtn, isVet && { backgroundColor: "#10b981" }]}
-                    onPress={() => router.push("/add-product")}
+                    onPress={() => router.push({ pathname: "/add-product", params: { type: "service" } })}
                   >
                     <Plus size={14} color="#ffffff" />
                     <Text style={styles.tabActionBtnText}>
@@ -657,7 +657,7 @@ export default function ProfileScreen() {
                     </Text>
                     <TouchableOpacity
                       style={[styles.emptyHubBtn, isVet && { backgroundColor: "#10b981" }]}
-                      onPress={() => router.push("/add-product")}
+                      onPress={() => router.push({ pathname: "/add-product", params: { type: "service" } })}
                     >
                       <Plus size={15} color="#ffffff" />
                       <Text style={styles.emptyHubBtnText}>Add Your First Service</Text>

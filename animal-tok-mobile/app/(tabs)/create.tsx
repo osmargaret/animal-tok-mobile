@@ -363,6 +363,45 @@ function DraggableTrimScrubber({
     })
   ).current;
 
+  // Web-friendly Pointer Capture for 100% reliable mouse & touch drag
+  const handlePointerDown = (isLeft: boolean) => (e: any) => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    try {
+      e?.target?.setPointerCapture?.(e.pointerId);
+    } catch (err) {}
+    const startX = e.clientX;
+    const initialVal = isLeft ? trimStartRef.current : trimEndRef.current;
+    const width = widthRef.current || 280;
+    const dur = durRef.current;
+
+    const onPointerMove = (moveEvt: any) => {
+      const dx = moveEvt.clientX - startX;
+      const dt = (dx / width) * dur;
+      if (isLeft) {
+        const newStart = Math.max(0, Math.min(trimEndRef.current - 0.5, initialVal + dt));
+        const rounded = Math.round(newStart * 10) / 10;
+        onTrimStartChange(rounded);
+        onSeekChange(rounded);
+      } else {
+        const newEnd = Math.min(dur, Math.max(trimStartRef.current + 0.5, initialVal + dt));
+        const rounded = Math.round(newEnd * 10) / 10;
+        onTrimEndChange(rounded);
+        onSeekChange(rounded);
+      }
+    };
+
+    const onPointerUp = (upEvt: any) => {
+      try {
+        upEvt?.target?.releasePointerCapture?.(upEvt.pointerId);
+      } catch (err) {}
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
   const handleTrackPress = (evt: any) => {
     const x = evt.nativeEvent.locationX;
     const ratio = Math.max(0, Math.min(1, x / widthRef.current));
@@ -439,8 +478,9 @@ function DraggableTrimScrubber({
             { left: `${startPct}%` },
             Platform.OS === "web" && ({ cursor: "ew-resize", userSelect: "none", touchAction: "none" } as any),
           ]}
-          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
           {...leftPanResponder.panHandlers}
+          {...({ onPointerDown: handlePointerDown(true) } as any)}
         >
           <Text style={styles.trimHandleGripText}>[</Text>
         </View>
@@ -453,8 +493,9 @@ function DraggableTrimScrubber({
             { left: `${endPct}%` },
             Platform.OS === "web" && ({ cursor: "ew-resize", userSelect: "none", touchAction: "none" } as any),
           ]}
-          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
           {...rightPanResponder.panHandlers}
+          {...({ onPointerDown: handlePointerDown(false) } as any)}
         >
           <Text style={styles.trimHandleGripText}>]</Text>
         </View>
