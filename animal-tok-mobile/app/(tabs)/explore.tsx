@@ -221,11 +221,37 @@ export default function ExploreScreen() {
   };
 
   const handleBuyProduct = (item: ProductItem) => {
-    Alert.alert("Added to Cart 🛍️", `${item.name} (${item.price}) added to your Animandler Cart.`);
+    const threadId = `trade_${(item.seller || "seller").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    router.push({
+      pathname: "/(tabs)/message/[id]",
+      params: {
+        id: threadId,
+        name: item.seller || "Pet Shop Seller",
+        avatar: "🛍️",
+        itemTitle: item.name,
+        itemPrice: item.price,
+        itemType: "product",
+        itemImage: item.image,
+        initialMessage: `Hi! I would like to buy "${item.name}" (${item.price}). Is it available?`,
+      },
+    });
   };
 
   const handleBookService = (item: ServiceItem) => {
-    Alert.alert("Booking Requested 📅", `Provider ${item.provider} has received your booking inquiry for ${item.name}.`);
+    const threadId = `booking_${(item.provider || "provider").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    router.push({
+      pathname: "/(tabs)/message/[id]",
+      params: {
+        id: threadId,
+        name: item.provider || "Service Provider",
+        avatar: "👨‍⚕️",
+        itemTitle: item.name,
+        itemPrice: item.price,
+        itemType: "service",
+        itemImage: item.image,
+        initialMessage: `Hello! I would like to book your "${item.name}" service (${item.price}). When is your earliest opening?`,
+      },
+    });
   };
 
   // Filtered Trending Posts

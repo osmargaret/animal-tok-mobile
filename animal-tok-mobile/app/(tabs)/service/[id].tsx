@@ -23,10 +23,15 @@ export default function ServiceDetailsModal() {
     router.push({
       pathname: "/(tabs)/message/[id]",
       params: {
-        id: `t_service_${id}_${currentUserId}`,
+        id: `booking_${(provider || "provider").toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
         name: `${provider} (Pet Service)`,
         recipientId: id,
         avatar: "✂️",
+        itemTitle: name,
+        itemPrice: price,
+        itemType: "service",
+        itemImage: image,
+        initialMessage: `Hello! I would like to book your "${name}" service (${price}). What are your available dates and times?`,
       },
     });
   };

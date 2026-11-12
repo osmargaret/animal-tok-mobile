@@ -21,6 +21,7 @@ import NotificationsModal from "@/components/NotificationsModal.native";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function FeedScreen() {
   const { height: windowHeight } = useWindowDimensions();
@@ -46,30 +47,66 @@ export default function FeedScreen() {
   const loadFeed = useCallback(async (resetPage = true) => {
     try {
       const targetPage = resetPage ? 1 : page;
-      const posts = await api.getFeedPosts(targetPage, 10);
-      if (posts && posts.length > 0) {
-        if (resetPage) {
-          setDisplayPosts(posts);
-          setPage(1);
-          setHasMore(posts.length >= 10);
-          setActiveIndex(0);
-          if (listRef.current) {
-            try {
-              listRef.current.scrollToOffset({ offset: 0, animated: false });
-            } catch (e) {}
-          }
-        } else {
-          setDisplayPosts((prev) => {
-            const existingIds = new Set(prev.map((p) => p.id));
-            const newPosts = posts.filter((p) => !existingIds.has(p.id));
-            return [...prev, ...newPosts];
-          });
-          setHasMore(posts.length >= 10);
-        }
-        setFeedVersion((v) => v + 1);
-      } else if (resetPage) {
-        setHasMore(false);
+
+      // 1. Fetch server posts
+      let serverPosts = await api.getFeedPosts(targetPage, 10);
+      if (!serverPosts || serverPosts.length === 0) {
+        serverPosts = feedPosts;
       }
+
+      // 2. Fetch locally persisted custom posts
+      let customPosts: FeedPost[] = [];
+      try {
+        const stored = await AsyncStorage.getItem("animaltok_custom_posts");
+        if (stored) {
+          customPosts = JSON.parse(stored);
+        }
+      } catch (e) {}
+
+      // In-memory newly created posts from feedPosts
+      const inMemoryNew = feedPosts.filter(
+        (fp) => !serverPosts.some((sp) => String(sp.id) === String(fp.id))
+      );
+
+      // Merge: newest custom & in-memory posts always show first at top of the feed
+      const merged: FeedPost[] = [];
+      const seen = new Set<string>();
+
+      for (const p of [...inMemoryNew, ...customPosts]) {
+        const idStr = String(p.id);
+        if (!seen.has(idStr)) {
+          seen.add(idStr);
+          merged.push(p);
+        }
+      }
+
+      for (const sp of serverPosts) {
+        const idStr = String(sp.id);
+        if (!seen.has(idStr)) {
+          seen.add(idStr);
+          merged.push(sp);
+        }
+      }
+
+      if (resetPage) {
+        setDisplayPosts(merged);
+        setPage(1);
+        setHasMore(serverPosts.length >= 10);
+        setActiveIndex(0);
+        if (listRef.current) {
+          try {
+            listRef.current.scrollToOffset({ offset: 0, animated: false });
+          } catch (e) {}
+        }
+      } else {
+        setDisplayPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => String(p.id)));
+          const newPosts = serverPosts.filter((p) => !existingIds.has(String(p.id)));
+          return [...prev, ...newPosts];
+        });
+        setHasMore(serverPosts.length >= 10);
+      }
+      setFeedVersion((v) => v + 1);
     } catch (e) {
       // Fallback stays in displayPosts
     }
@@ -143,8 +180,14 @@ export default function FeedScreen() {
           saves: newPost.sharesCount || 0,
           commentsList: []
         };
-        setDisplayPosts((prev) => [mappedPost, ...prev]);
+        setDisplayPosts((prev) => [mappedPost, ...prev.filter(p => String(p.id) !== String(mappedPost.id))]);
         setFeedVersion((v) => v + 1);
+        setActiveIndex(0);
+        if (listRef.current) {
+          try {
+            listRef.current.scrollToOffset({ offset: 0, animated: true });
+          } catch (e) {}
+        }
       });
 
       socket.on("new_notification", () => {

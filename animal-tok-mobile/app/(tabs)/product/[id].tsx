@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Star, ShoppingCart, CreditCard, ChevronLeft } from 'lucide-react-native';
+import { Star, ShoppingCart, CreditCard, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import CheckoutModal from '@/components/CheckoutModal.native';
 
@@ -16,6 +16,23 @@ export default function ProductDetailsModal() {
 
   const handleBuy = () => {
     setCheckoutVisible(true);
+  };
+
+  const handleChatSeller = () => {
+    const threadId = `trade_${(seller || "seller").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    router.push({
+      pathname: "/(tabs)/message/[id]",
+      params: {
+        id: threadId,
+        name: seller || "Seller",
+        avatar: "🛍️",
+        itemTitle: name,
+        itemPrice: price,
+        itemType: "product",
+        itemImage: image,
+        initialMessage: `Hi! I want to buy "${name}" (${price}). Is this still available?`,
+      },
+    });
   };
 
   const handleAddToCart = () => {
@@ -80,9 +97,9 @@ export default function ProductDetailsModal() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
-          <ShoppingCart size={20} color="#06b6d4" />
-          <Text style={styles.cartBtnText}>Add to Cart</Text>
+        <TouchableOpacity style={styles.cartBtn} onPress={handleChatSeller}>
+          <MessageCircle size={20} color="#06b6d4" />
+          <Text style={styles.cartBtnText}>Chat Seller</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.buyBtn} onPress={handleBuy}>

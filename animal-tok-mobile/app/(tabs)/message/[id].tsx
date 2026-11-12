@@ -10,11 +10,13 @@ import {
   Platform,
   SafeAreaView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Send, ArrowLeft, ShieldCheck, Lock } from "lucide-react-native";
+import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import CheckoutModal from "@/components/CheckoutModal.native";
 
 interface MessageBubble {
   id: string;
@@ -30,6 +32,11 @@ export default function MessageViewScreen() {
     name?: string;
     avatar?: string;
     animalId?: string;
+    itemTitle?: string;
+    itemPrice?: string;
+    itemType?: "product" | "service";
+    itemImage?: string;
+    initialMessage?: string;
   }>();
 
   const threadId = params.id || "general";
@@ -43,8 +50,15 @@ export default function MessageViewScreen() {
 
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [loading, setLoading] = useState(true);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(params.initialMessage || "");
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (params.initialMessage && !input) {
+      setInput(params.initialMessage);
+    }
+  }, [params.initialMessage]);
 
   useEffect(() => {
     // 1. Fetch live thread history from backend
@@ -153,6 +167,40 @@ export default function MessageViewScreen() {
           </View>
         </View>
 
+        {/* Trade / Marketplace Inquire & Buy Banner */}
+        {params.itemTitle ? (
+          <View style={styles.tradeCard}>
+            {params.itemImage ? (
+              <Image source={{ uri: params.itemImage }} style={styles.tradeImage} resizeMode="cover" />
+            ) : (
+              <View style={styles.tradeIconBox}>
+                <ShoppingBag size={20} color="#06b6d4" />
+              </View>
+            )}
+            <View style={{ flex: 1, marginHorizontal: 10 }}>
+              <View style={styles.tradeBadgeRow}>
+                <Text style={styles.tradeBadge}>
+                  {params.itemType === "service" ? "Pet Service" : "Product Item"}
+                </Text>
+              </View>
+              <Text style={styles.tradeTitle} numberOfLines={1}>
+                {params.itemTitle}
+              </Text>
+              <Text style={styles.tradePrice}>{params.itemPrice}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.tradeActionBtn}
+              onPress={() => setCheckoutModalVisible(true)}
+            >
+              <CreditCard size={14} color="#ffffff" />
+              <Text style={styles.tradeActionText}>
+                {params.itemType === "service" ? "Book & Pay" : "Buy / Checkout"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Message Thread */}
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -222,6 +270,46 @@ export default function MessageViewScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* In-Chat Direct Checkout & Paystack Booking */}
+      {params.itemTitle ? (
+        <CheckoutModal
+          visible={checkoutModalVisible}
+          onClose={() => setCheckoutModalVisible(false)}
+          item={{
+            id: threadId,
+            name: params.itemTitle,
+            price: params.itemPrice || "$29.99",
+            sellerOrProvider: contactName,
+            image: params.itemImage,
+            type: (params.itemType === "service" ? "service" : "product") as any,
+          }}
+          userEmail={user?.email}
+          userName={user?.name}
+          onSuccess={(orderId) => {
+            // Post an automatic confirmation message into the chat!
+            const confirmText = `🎉 Order Confirmed! (Ref #${orderId}) for "${params.itemTitle}" (${params.itemPrice}). Payment processed successfully via Paystack.`;
+            setInput("");
+            api.sendMessage(
+              threadId,
+              confirmText,
+              currentUserId,
+              recipientId,
+              user?.name || "Buyer",
+              user?.avatar || "👤"
+            );
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `order_${Date.now()}`,
+                sender: "me",
+                text: confirmText,
+                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              },
+            ]);
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -403,5 +491,72 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.5,
+  },
+  tradeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#161b22",
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tradeImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: "#0d1117",
+  },
+  tradeIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: "rgba(6, 182, 212, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tradeBadgeRow: {
+    flexDirection: "row",
+    marginBottom: 2,
+  },
+  tradeBadge: {
+    fontSize: 9,
+    color: "#06b6d4",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  tradeTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
+  tradePrice: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#10b981",
+    marginTop: 1,
+  },
+  tradeActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#06b6d4",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 14,
+  },
+  tradeActionText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#ffffff",
   },
 });

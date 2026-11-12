@@ -807,14 +807,18 @@ export default function CreateScreen() {
         saves: 0,
         commentsList: [],
       };
+      // Remove any prior item with same id before unshifting
+      const existingIdx = feedPosts.findIndex(p => String(p.id) === String(newPostItem.id));
+      if (existingIdx !== -1) feedPosts.splice(existingIdx, 1);
       feedPosts.unshift(newPostItem as any);
 
       // Persist post locally so it immediately shows in the profile grid and feed
       try {
         const storedPosts = await AsyncStorage.getItem("animaltok_custom_posts");
         const list = storedPosts ? JSON.parse(storedPosts) : [];
-        list.unshift(newPostItem);
-        await AsyncStorage.setItem("animaltok_custom_posts", JSON.stringify(list));
+        const filtered = list.filter((p: any) => String(p.id) !== String(newPostItem.id));
+        filtered.unshift(newPostItem);
+        await AsyncStorage.setItem("animaltok_custom_posts", JSON.stringify(filtered));
       } catch (e) {
         console.warn("Failed to persist custom post:", e);
       }
