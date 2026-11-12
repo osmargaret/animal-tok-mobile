@@ -1,5 +1,6 @@
 export interface FeedPost {
   id: number | string;
+  animalId?: string;
   username: string;
   displayName: string;
   avatar: string;

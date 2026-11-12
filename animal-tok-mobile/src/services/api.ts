@@ -434,7 +434,12 @@ export const api = {
         body: JSON.stringify({ userId })
       });
       if (!response.ok) throw new Error("Failed to like post");
-      return await response.json();
+      const data = await response.json();
+      return {
+        isLiked: Boolean(data.isLiked),
+        likes: typeof data.likesCount === "number" ? data.likesCount : (data.likes ?? 0),
+        likesCount: typeof data.likesCount === "number" ? data.likesCount : (data.likes ?? 0),
+      };
     } catch (e) {
       console.error("Failed to like post", e);
       return null;
@@ -451,7 +456,9 @@ export const api = {
         headers: { "Content-Type": "application/json" }
       });
       if (!response.ok) throw new Error("Failed to share post");
-      return await response.json();
+      const data = await response.json();
+      const count = typeof data.sharesCount === "number" ? data.sharesCount : (data.shares ?? 1);
+      return { success: true, shares: count, sharesCount: count };
     } catch (e) {
       console.error("Failed to share post", e);
       return null;
@@ -473,6 +480,27 @@ export const api = {
     } catch (e) {
       console.error("Failed to comment", e);
       return null;
+    }
+  },
+
+  /**
+   * Fetch real comments for post
+   */
+  getComments: async (postId: string) => {
+    try {
+      const response = await fetch(`${BASE_URL}/posts/${postId}/comments`);
+      if (!response.ok) return [];
+      const data = await response.json();
+      if (!Array.isArray(data)) return [];
+      return data.map((c: any) => ({
+        user: c.user || "@guest",
+        avatar: c.avatar || "🐾",
+        text: c.text || "",
+        time: c.createdAt ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
+      }));
+    } catch (e) {
+      console.warn("Failed to fetch comments", e);
+      return [];
     }
   },
 

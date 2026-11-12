@@ -258,21 +258,9 @@ export default function FeedScreen() {
                 post={item}
                 isActive={isScreenFocused && index === activeIndex}
                 onCommentOpen={() => {
-                  if (!activeProfile || activeProfile.type !== "animal") {
-                    Alert.alert(
-                      "Switch to a Pet Profile 🐾",
-                      "Only pet profiles can leave comments. Switch to your pet's profile to join the conversation!",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Go to Profile", onPress: () => router.push("/(tabs)/profile") },
-                      ]
-                    );
-                    return;
-                  }
                   setSelectedPost(item);
                   setCommentsVisible(true);
                 }}
-                onEventsOpen={() => router.push("/events")}
               />
             </View>
           )}

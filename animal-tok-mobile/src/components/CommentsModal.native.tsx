@@ -26,10 +26,24 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
   const [inputText, setInputText] = useState("");
   const { activeProfile } = useAuth();
 
-  // Reset local state if post changes
+  // Fetch real comments from backend when post changes or modal opens
   useEffect(() => {
-    if (post) setComments(post.commentsList || []);
-  }, [post?.id]);
+    if (!post?.id) return;
+    if (post.commentsList && post.commentsList.length > 0) {
+      setComments(post.commentsList);
+    }
+    if (visible) {
+      let isMounted = true;
+      api.getComments(post.id.toString()).then((serverComments) => {
+        if (isMounted && Array.isArray(serverComments) && serverComments.length > 0) {
+          setComments(serverComments);
+        }
+      });
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [post?.id, visible]);
 
   useEffect(() => {
     if (!post || !post.id || !visible) return;

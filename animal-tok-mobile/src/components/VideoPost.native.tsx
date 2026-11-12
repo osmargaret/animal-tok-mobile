@@ -12,10 +12,11 @@ import {
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Audio } from "expo-av";
-import { Heart, MessageCircle, Share2, Calendar, Music, Play, Volume2, VolumeX, Sparkles } from "lucide-react-native";
+import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Sparkles } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { FeedPost } from "@/data/feedData";
 import { api } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface VideoPostProps {
   post: FeedPost;
@@ -34,17 +35,27 @@ export default function VideoPost({
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const router = useRouter();
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post?.likes || 0);
-  const [sharesCount, setSharesCount] = useState(45);
-  const [commentCount, setCommentCount] = useState(post?.comments || 0);
+  const { user } = useAuth();
+  const [isLiked, setIsLiked] = useState(Boolean((post as any)?.isLiked));
+  const [likeCount, setLikeCount] = useState(Number(post?.likes ?? (post as any)?.likesCount ?? 0));
+  const [sharesCount, setSharesCount] = useState(Number(post?.saves ?? (post as any)?.sharesCount ?? 0));
+  const [commentCount, setCommentCount] = useState(Number(post?.comments ?? (post as any)?.commentsCount ?? 0));
   const [isPlaying, setIsPlaying] = useState(isActive);
   const [isMuted, setIsMuted] = useState(false);
   const [showMuteToast, setShowMuteToast] = useState(false);
   const muteToastTimer = useRef<any>(null);
   const [showPlayPulse, setShowPlayPulse] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const spinAnim = useRef(new Animated.Value(0)).current;
+
+  // Sync real-time post stats when post changes
+  useEffect(() => {
+    if (post) {
+      setLikeCount(Number(post?.likes ?? (post as any)?.likesCount ?? 0));
+      setSharesCount(Number(post?.saves ?? (post as any)?.sharesCount ?? 0));
+      setCommentCount(Number(post?.comments ?? (post as any)?.commentsCount ?? 0));
+      setIsLiked(Boolean((post as any)?.isLiked));
+    }
+  }, [post?.id, post?.likes, post?.comments, post?.saves]);
 
   const isVideo = Boolean(post.videoUrl && post.videoUrl.trim().length > 0 && !post.videoUrl.match(/\.(png|jpg|jpeg|webp|gif)$/i));
 
@@ -175,31 +186,7 @@ export default function VideoPost({
     };
   }, []);
 
-  // TikTok spinning vinyl record animation
-  useEffect(() => {
-    let loopAnim: Animated.CompositeAnimation | null = null;
-    if (isActive && isPlaying) {
-      loopAnim = Animated.loop(
-        Animated.timing(spinAnim, {
-          toValue: 1,
-          duration: 4000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      );
-      loopAnim.start();
-    } else {
-      spinAnim.stopAnimation();
-    }
-    return () => {
-      if (loopAnim) loopAnim.stop();
-    };
-  }, [isActive, isPlaying]);
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   const getPillarBadge = () => {
     const text = `${post.caption || ""} ${post.hashtags || ""}`.toLowerCase();
@@ -259,28 +246,23 @@ export default function VideoPost({
     setLikeCount((prev) => (nextIsLiked ? prev + 1 : Math.max(0, prev - 1)));
 
     // Send real-time call to backend
-    const res = await api.likePost(post.id.toString());
+    const res = await api.likePost(post.id.toString(), user?.id);
     if (res) {
       setIsLiked(res.isLiked);
-      setLikeCount(res.likes);
+      setLikeCount(res.likesCount ?? res.likes ?? (res.isLiked ? likeCount + 1 : Math.max(0, likeCount - 1)));
     }
   };
 
   const handleShare = async () => {
     setSharesCount((prev) => prev + 1);
     const res = await api.sharePost(post.id.toString());
-    if (res && res.shares) {
-      setSharesCount(res.shares);
+    if (res && (res.sharesCount !== undefined || res.shares !== undefined)) {
+      setSharesCount(res.sharesCount ?? res.shares);
     }
   };
 
   const handleProfilePress = () => {
-    // Extract animal ID or fallback to 1
-    const animalId = post.username.includes("bailey")
-      ? "1"
-      : post.username.includes("luna")
-      ? "2"
-      : "3";
+    const animalId = post.animalId || (post as any)?.animal_id || post.username?.replace(/^@/, "") || "1";
     router.push(`/animal/${animalId}` as const);
   };
 
@@ -424,51 +406,53 @@ export default function VideoPost({
 
       {/* Action Sidebar (Right Side) */}
       <View style={styles.actionSidebar}>
-        {/* Profile Avatar Button with plus badge */}
-        <TouchableOpacity style={styles.avatarButton} onPress={handleProfilePress}>
+        {/* Profile Avatar Button */}
+        <TouchableOpacity style={styles.avatarButton} onPress={handleProfilePress} activeOpacity={0.8}>
           <View style={styles.avatarCircle}>
-            <Text style={{ fontSize: 20 }}>{post.avatar}</Text>
+            <Text style={{ fontSize: 20 }}>{post.avatar || "🐾"}</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Like Button */}
-        <TouchableOpacity style={styles.actionItem} onPress={handleLike}>
+        {/* Like Button - Bolder, teal green, filled (not outline alone), reduced size */}
+        <TouchableOpacity style={styles.actionItem} onPress={handleLike} activeOpacity={0.75}>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <Heart
-              size={32}
-              color={isLiked ? "#ef4444" : "#ffffff"}
-              fill={isLiked ? "#ef4444" : "transparent"}
-            />
+            <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
+              <Heart
+                size={23}
+                color={isLiked ? "#ef4444" : "#06b6d4"}
+                fill={isLiked ? "#ef4444" : "#06b6d4"}
+                strokeWidth={2.6}
+              />
+            </View>
           </Animated.View>
           <Text style={styles.actionText}>{likeCount}</Text>
         </TouchableOpacity>
 
-        {/* Comment Button */}
-        <TouchableOpacity style={styles.actionItem} onPress={onCommentOpen}>
-          <MessageCircle size={30} color="#ffffff" />
+        {/* Comment Button - Bolder, teal green, filled (not outline alone), reduced size */}
+        <TouchableOpacity style={styles.actionItem} onPress={onCommentOpen} activeOpacity={0.75}>
+          <View style={styles.actionIconCircle}>
+            <MessageCircle
+              size={23}
+              color="#06b6d4"
+              fill="#06b6d4"
+              strokeWidth={2.6}
+            />
+          </View>
           <Text style={styles.actionText}>{commentCount}</Text>
         </TouchableOpacity>
 
-        {/* Events Button */}
-        <TouchableOpacity style={styles.actionItem} onPress={onEventsOpen}>
-          <Calendar size={28} color="#06b6d4" />
-          <Text style={styles.actionText}>Events</Text>
-        </TouchableOpacity>
-
-        {/* Share Button */}
-        <TouchableOpacity style={styles.actionItem} onPress={handleShare}>
-          <Share2 size={28} color="#ffffff" />
+        {/* Share Button - Bolder, teal green, filled (not outline alone), reduced size */}
+        <TouchableOpacity style={styles.actionItem} onPress={handleShare} activeOpacity={0.75}>
+          <View style={styles.actionIconCircle}>
+            <Share2
+              size={21}
+              color="#06b6d4"
+              fill="#06b6d4"
+              strokeWidth={2.6}
+            />
+          </View>
           <Text style={styles.actionText}>{sharesCount}</Text>
         </TouchableOpacity>
-
-        {/* TikTok Spinning Vinyl Disc */}
-        <Animated.View style={[styles.discContainer, { transform: [{ rotate: spin }] }]}>
-          <View style={styles.discOuter}>
-            <View style={styles.discInner}>
-              <Text style={{ fontSize: 13 }}>{post.avatar || "🐾"}</Text>
-            </View>
-          </View>
-        </Animated.View>
       </View>
 
       {/* Bottom Info Section */}
@@ -501,12 +485,12 @@ export default function VideoPost({
           >
             {isMuted ? (
               <>
-                <VolumeX size={14} color="#06b6d4" />
+                <VolumeX size={15} color="#94a3b8" strokeWidth={2.6} />
                 <Text style={styles.prominentSpeakerTextMuted}>MUTED</Text>
               </>
             ) : (
               <>
-                <Volume2 size={14} color="#ffffff" />
+                <Volume2 size={15} color="#06b6d4" strokeWidth={2.6} />
                 <Text style={styles.prominentSpeakerText}>SOUND</Text>
               </>
             )}
@@ -553,32 +537,59 @@ const styles = StyleSheet.create({
   actionSidebar: {
     position: "absolute",
     right: 14,
-    bottom: 95,
+    bottom: 80,
     alignItems: "center",
     gap: 16,
     zIndex: 20,
   },
   avatarButton: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(6, 182, 212, 0.3)",
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(13, 17, 23, 0.75)",
     borderWidth: 2,
     borderColor: "#06b6d4",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 4,
   },
   actionItem: {
     alignItems: "center",
   },
+  actionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(13, 17, 23, 0.72)",
+    borderWidth: 1.5,
+    borderColor: "rgba(6, 182, 212, 0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  actionIconCircleLiked: {
+    borderColor: "rgba(239, 68, 68, 0.6)",
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+  },
   actionText: {
     color: "#ffffff",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "800",
     marginTop: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.9)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   bottomInfo: {
     position: "absolute",
@@ -707,34 +718,34 @@ const styles = StyleSheet.create({
   prominentSpeakerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 14,
+    gap: 6,
+    backgroundColor: "rgba(13, 17, 23, 0.88)",
+    borderWidth: 1.8,
+    borderColor: "#06b6d4",
+    paddingHorizontal: 11,
+    paddingVertical: 5.5,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 4,
     elevation: 3,
   },
   prominentSpeakerBtnMuted: {
-    backgroundColor: "rgba(6, 182, 212, 0.2)",
-    borderColor: "#06b6d4",
+    backgroundColor: "rgba(13, 17, 23, 0.75)",
+    borderColor: "rgba(148, 163, 184, 0.4)",
   },
   prominentSpeakerText: {
-    color: "#ffffff",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    color: "#06b6d4",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.6,
   },
   prominentSpeakerTextMuted: {
-    color: "#06b6d4",
-    fontSize: 10,
+    color: "#94a3b8",
+    fontSize: 11,
     fontWeight: "800",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   audioTickerWrap: {
     flex: 1,
