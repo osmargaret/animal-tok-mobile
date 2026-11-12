@@ -28,12 +28,24 @@ import {
   Music,
   Video as VideoIcon,
   Plus,
+  ShoppingBag,
+  Wrench,
+  Calendar,
+  Stethoscope,
+  Store,
+  MapPin,
+  Users,
+  Check,
+  Star,
+  PlusCircle,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { feedPosts, FeedPost } from "@/data/feedData";
+import { marketProducts, marketServices, ProductItem, ServiceItem } from "@/data/marketData";
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
+import HostEventModal from "@/components/HostEventModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
@@ -41,13 +53,21 @@ const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
 export default function ProfileScreen() {
   const router = useRouter();
   const { activeProfile, user, switchProfile, switchToHandler, logout, pets } = useAuth();
-  const [activeTab, setActiveTab] = useState<"grid" | "likes" | "saved">("grid");
+  const [activeTab, setActiveTab] = useState<"grid" | "products" | "services" | "events">("grid");
 
   const [loading, setLoading] = useState(true);
   const [profileStats, setProfileStats] = useState<any>(null);
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
+  // Products, Services, Events owned or hosted by this profile
+  const [userProducts, setUserProducts] = useState<ProductItem[]>(marketProducts);
+  const [userServices, setUserServices] = useState<ServiceItem[]>(marketServices);
+  const [userEvents, setUserEvents] = useState<any[]>([]);
+  const [hostEventModalVisible, setHostEventModalVisible] = useState(false);
+
   const isAnimal = activeProfile?.type === "animal";
+  const isVet = user?.role === "vet" || user?.accountType === "vet";
+  const isBusiness = user?.role === "business" || user?.accountType === "business";
 
   const formatNumber = (num?: number | string | null) => {
     const val = typeof num === "number" ? num : Number(num) || 0;
@@ -306,14 +326,59 @@ export default function ProfileScreen() {
           <View style={styles.nameSection}>
             <View style={styles.nameRow}>
               <Text style={styles.profileName}>{activeProfile?.name}</Text>
-              <View style={[styles.typePill, isAnimal ? styles.typePillAnimal : styles.typePillHandler]}>
-                {isAnimal ? <PawPrint size={12} color="#06b6d4" /> : <ShieldCheck size={12} color="#8b5cf6" />}
-                <Text style={[styles.typePillText, isAnimal ? { color: "#06b6d4" } : { color: "#8b5cf6" }]}>
-                  {isAnimal ? "Verified Pet" : "Handler"}
+              <View
+                style={[
+                  styles.typePill,
+                  isAnimal
+                    ? styles.typePillAnimal
+                    : isVet
+                    ? styles.typePillVet
+                    : isBusiness
+                    ? styles.typePillBusiness
+                    : styles.typePillHandler,
+                ]}
+              >
+                {isAnimal ? (
+                  <PawPrint size={12} color="#06b6d4" />
+                ) : isVet ? (
+                  <Stethoscope size={12} color="#10b981" />
+                ) : isBusiness ? (
+                  <Store size={12} color="#f59e0b" />
+                ) : (
+                  <ShieldCheck size={12} color="#8b5cf6" />
+                )}
+                <Text
+                  style={[
+                    styles.typePillText,
+                    isAnimal
+                      ? { color: "#06b6d4" }
+                      : isVet
+                      ? { color: "#10b981" }
+                      : isBusiness
+                      ? { color: "#f59e0b" }
+                      : { color: "#8b5cf6" },
+                  ]}
+                >
+                  {isAnimal
+                    ? "Verified Pet"
+                    : isVet
+                    ? "Verified Vet"
+                    : isBusiness
+                    ? "Pet Business"
+                    : "Handler"}
                 </Text>
               </View>
             </View>
             <Text style={styles.profileUsername}>{activeProfile?.username}</Text>
+            {isVet && (user?.clinicName || user?.specialization) ? (
+              <View style={styles.clinicInfoRow}>
+                <Stethoscope size={13} color="#10b981" />
+                <Text style={styles.clinicInfoText}>
+                  {user.clinicName || "Licensed Veterinary Care"}
+                  {user.specialization ? ` • ${user.specialization}` : ""}
+                </Text>
+              </View>
+            ) : null}
             {profileStats?.bio ? <Text style={styles.bioText}>{profileStats.bio}</Text> : null}
           </View>
         </View>
@@ -387,35 +452,51 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            {/* Media Grid Tabs: Grid (Posts) | Likes | Saved */}
+            {/* Command Center Tabs: Posts | Products | Services | Events */}
             <View style={styles.gridTabRow}>
               <TouchableOpacity
                 style={[styles.gridTabBtn, activeTab === "grid" && styles.gridTabActive]}
                 onPress={() => setActiveTab("grid")}
               >
-                <Grid size={18} color={activeTab === "grid" ? "#06b6d4" : "#64748b"} />
+                <Grid size={15} color={activeTab === "grid" ? "#06b6d4" : "#64748b"} />
                 <Text style={[styles.gridTabLabel, activeTab === "grid" && styles.gridTabLabelActive]}>
                   Posts ({currentPosts.length})
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={[styles.gridTabBtn, activeTab === "likes" && styles.gridTabActive]}
-                onPress={() => setActiveTab("likes")}
+                style={[styles.gridTabBtn, activeTab === "products" && styles.gridTabActive]}
+                onPress={() => setActiveTab("products")}
               >
-                <Heart size={18} color={activeTab === "likes" ? "#ef4444" : "#64748b"} />
-                <Text style={[styles.gridTabLabel, activeTab === "likes" && styles.gridTabLabelActive]}>Likes</Text>
+                <ShoppingBag size={15} color={activeTab === "products" ? "#06b6d4" : "#64748b"} />
+                <Text style={[styles.gridTabLabel, activeTab === "products" && styles.gridTabLabelActive]}>
+                  Products ({userProducts.length})
+                </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={[styles.gridTabBtn, activeTab === "saved" && styles.gridTabActive]}
-                onPress={() => setActiveTab("saved")}
+                style={[styles.gridTabBtn, activeTab === "services" && styles.gridTabActive]}
+                onPress={() => setActiveTab("services")}
               >
-                <Bookmark size={18} color={activeTab === "saved" ? "#f59e0b" : "#64748b"} />
-                <Text style={[styles.gridTabLabel, activeTab === "saved" && styles.gridTabLabelActive]}>Saved</Text>
+                <Wrench size={15} color={activeTab === "services" ? "#06b6d4" : "#64748b"} />
+                <Text style={[styles.gridTabLabel, activeTab === "services" && styles.gridTabLabelActive]}>
+                  Services ({userServices.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.gridTabBtn, activeTab === "events" && styles.gridTabActive]}
+                onPress={() => setActiveTab("events")}
+              >
+                <Calendar size={15} color={activeTab === "events" ? "#06b6d4" : "#64748b"} />
+                <Text style={[styles.gridTabLabel, activeTab === "events" && styles.gridTabLabelActive]}>
+                  Events ({userEvents.length})
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Media Grid Content */}
-            {activeTab === "grid" ? (
+            {/* TAB 1: POSTS & VIDEOS */}
+            {activeTab === "grid" && (
               currentPosts.length > 0 ? (
                 <View style={styles.grid}>
                   {currentPosts.map((post: any, idx: number) => {
@@ -470,15 +551,167 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 </View>
               )
-            ) : activeTab === "likes" ? (
-              <View style={styles.emptyTabBox}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>❤️</Text>
-                <Text style={styles.emptyTabText}>No liked posts yet</Text>
+            )}
+
+            {/* TAB 2: PRODUCTS */}
+            {activeTab === "products" && (
+              <View style={styles.tabSectionBox}>
+                <View style={styles.tabSectionHeaderRow}>
+                  <View>
+                    <Text style={styles.tabSectionTitle}>My Listed Products</Text>
+                    <Text style={styles.tabSectionSub}>Items shown in the global Marketplace</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.tabActionBtn}
+                    onPress={() => router.push("/add-product")}
+                  >
+                    <Plus size={14} color="#ffffff" />
+                    <Text style={styles.tabActionBtnText}>List Product</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {userProducts.length > 0 ? (
+                  <View style={styles.hubProductsGrid}>
+                    {userProducts.map((prod) => (
+                      <View key={prod.id} style={styles.hubProductCard}>
+                        <Image source={{ uri: prod.image }} style={styles.hubProductImg} />
+                        <View style={styles.hubProductBody}>
+                          <Text style={styles.hubProductTag}>{prod.category}</Text>
+                          <Text style={styles.hubProductTitle} numberOfLines={1}>{prod.name}</Text>
+                          <Text style={styles.hubProductPrice}>{prod.price}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyHubBox}>
+                    <Text style={{ fontSize: 36, marginBottom: 8 }}>🛍️</Text>
+                    <Text style={styles.emptyHubTitle}>No Products Listed Yet</Text>
+                    <Text style={styles.emptyHubSub}>
+                      Turn pet treats, accessories, or merch into sales for the community.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.emptyHubBtn}
+                      onPress={() => router.push("/add-product")}
+                    >
+                      <Plus size={15} color="#ffffff" />
+                      <Text style={styles.emptyHubBtnText}>List Your First Product</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            ) : (
-              <View style={styles.emptyTabBox}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔖</Text>
-                <Text style={styles.emptyTabText}>No saved bookmarks yet</Text>
+            )}
+
+            {/* TAB 3: SERVICES */}
+            {activeTab === "services" && (
+              <View style={styles.tabSectionBox}>
+                <View style={styles.tabSectionHeaderRow}>
+                  <View>
+                    <Text style={styles.tabSectionTitle}>
+                      {isVet ? "Veterinary Services & Consults" : "My Pet Services"}
+                    </Text>
+                    <Text style={styles.tabSectionSub}>Bookable services for pet parents</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.tabActionBtn, isVet && { backgroundColor: "#10b981" }]}
+                    onPress={() => router.push("/add-product")}
+                  >
+                    <Plus size={14} color="#ffffff" />
+                    <Text style={styles.tabActionBtnText}>
+                      {isVet ? "Add Vet Service" : "Add Service"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {userServices.length > 0 ? (
+                  <View style={styles.hubServicesList}>
+                    {userServices.map((srv) => (
+                      <View key={srv.id} style={styles.hubServiceCard}>
+                        <Image source={{ uri: srv.image }} style={styles.hubServiceImg} />
+                        <View style={styles.hubServiceBody}>
+                          <Text style={styles.hubServiceTitle}>{srv.name}</Text>
+                          <Text style={styles.hubServiceProvider}>By {srv.provider}</Text>
+                          <Text style={styles.hubServicePrice}>{srv.price}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyHubBox}>
+                    <Text style={{ fontSize: 36, marginBottom: 8 }}>🩺</Text>
+                    <Text style={styles.emptyHubTitle}>No Services Offered Yet</Text>
+                    <Text style={styles.emptyHubSub}>
+                      Offer veterinary checks, mobile grooming, training, or pet sitting.
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.emptyHubBtn, isVet && { backgroundColor: "#10b981" }]}
+                      onPress={() => router.push("/add-product")}
+                    >
+                      <Plus size={15} color="#ffffff" />
+                      <Text style={styles.emptyHubBtnText}>Add Your First Service</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* TAB 4: EVENTS */}
+            {activeTab === "events" && (
+              <View style={styles.tabSectionBox}>
+                <View style={styles.tabSectionHeaderRow}>
+                  <View>
+                    <Text style={styles.tabSectionTitle}>Events I'm Hosting</Text>
+                    <Text style={styles.tabSectionSub}>Public meetups, mating days & clinics</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.tabActionBtn}
+                    onPress={() => setHostEventModalVisible(true)}
+                  >
+                    <Plus size={14} color="#ffffff" />
+                    <Text style={styles.tabActionBtnText}>Host Event</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {userEvents.length > 0 ? (
+                  <View style={styles.hubEventsList}>
+                    {userEvents.map((evt) => (
+                      <View key={evt.id} style={styles.hubEventCard}>
+                        {evt.image ? (
+                          <Image source={{ uri: evt.image }} style={styles.hubEventImg} />
+                        ) : null}
+                        <View style={styles.hubEventBody}>
+                          <View style={styles.hubEventCategoryPill}>
+                            <Text style={styles.hubEventCategoryText}>{evt.category}</Text>
+                          </View>
+                          <Text style={styles.hubEventTitle}>{evt.title}</Text>
+                          <View style={styles.hubEventMetaRow}>
+                            <Calendar size={13} color="#06b6d4" />
+                            <Text style={styles.hubEventMetaText}>{evt.date}</Text>
+                          </View>
+                          <View style={styles.hubEventMetaRow}>
+                            <MapPin size={13} color="#64748b" />
+                            <Text style={styles.hubEventMetaText}>{evt.location}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyHubBox}>
+                    <Text style={{ fontSize: 36, marginBottom: 8 }}>📅</Text>
+                    <Text style={styles.emptyHubTitle}>No Events Hosted Yet</Text>
+                    <Text style={styles.emptyHubSub}>
+                      Host a dog park meetup, agility competition, pedigree mating day, or clinic.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.emptyHubBtn}
+                      onPress={() => setHostEventModalVisible(true)}
+                    >
+                      <Plus size={15} color="#ffffff" />
+                      <Text style={styles.emptyHubBtnText}>Host Your First Event</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             )}
           </>
@@ -559,6 +792,12 @@ export default function ProfileScreen() {
           </View>
         </Modal>
       )}
+      {/* Host Event Modal */}
+      <HostEventModal
+        visible={hostEventModalVisible}
+        onClose={() => setHostEventModalVisible(false)}
+        onEventCreated={(newEvent) => setUserEvents((prev) => [newEvent, ...prev])}
+      />
     </SafeAreaView>
   );
 }
@@ -750,8 +989,26 @@ const styles = StyleSheet.create({
   typePillHandler: {
     backgroundColor: "rgba(139, 92, 246, 0.15)",
   },
+  typePillVet: {
+    backgroundColor: "rgba(16, 185, 129, 0.18)",
+  },
+  typePillBusiness: {
+    backgroundColor: "rgba(245, 158, 11, 0.18)",
+  },
   typePillText: {
     fontSize: 11,
+    fontWeight: "600",
+  },
+  clinicInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 3,
+    marginBottom: 4,
+  },
+  clinicInfoText: {
+    color: "#10b981",
+    fontSize: 12,
     fontWeight: "600",
   },
   bioText: {
@@ -1061,6 +1318,203 @@ const styles = StyleSheet.create({
   },
   postModalTimeText: {
     color: "#64748b",
+    fontSize: 11,
+  },
+  tabSectionBox: {
+    marginTop: 6,
+    marginBottom: 24,
+  },
+  tabSectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  tabSectionTitle: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+  tabSectionSub: {
+    color: "#94a3b8",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  tabActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#06b6d4",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+  },
+  tabActionBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  hubProductsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  hubProductCard: {
+    width: "48%",
+    backgroundColor: "#161b22",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+  },
+  hubProductImg: {
+    width: "100%",
+    height: 120,
+  },
+  hubProductBody: {
+    padding: 8,
+  },
+  hubProductTag: {
+    color: "#06b6d4",
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  hubProductTitle: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  hubProductPrice: {
+    color: "#10b981",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  emptyHubBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    backgroundColor: "#161b22",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "#21262d",
+    borderStyle: "dashed",
+  },
+  emptyHubTitle: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "bold",
+    marginTop: 10,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  emptyHubSub: {
+    color: "#94a3b8",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  emptyHubBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#06b6d4",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+  },
+  emptyHubBtnText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  hubServicesList: {
+    gap: 10,
+  },
+  hubServiceCard: {
+    flexDirection: "row",
+    backgroundColor: "#161b22",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+  },
+  hubServiceImg: {
+    width: 90,
+    height: 90,
+  },
+  hubServiceBody: {
+    flex: 1,
+    padding: 10,
+    justifyContent: "center",
+  },
+  hubServiceTitle: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 3,
+  },
+  hubServiceProvider: {
+    color: "#94a3b8",
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  hubServicePrice: {
+    color: "#10b981",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  hubEventsList: {
+    gap: 10,
+  },
+  hubEventCard: {
+    flexDirection: "row",
+    backgroundColor: "#161b22",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+  },
+  hubEventImg: {
+    width: 100,
+    height: 100,
+  },
+  hubEventBody: {
+    flex: 1,
+    padding: 10,
+    justifyContent: "center",
+  },
+  hubEventCategoryPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(6, 182, 212, 0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  hubEventCategoryText: {
+    color: "#06b6d4",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  hubEventTitle: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  hubEventMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  hubEventMetaText: {
+    color: "#94a3b8",
     fontSize: 11,
   },
 });

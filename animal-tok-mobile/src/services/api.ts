@@ -727,6 +727,86 @@ export const api = {
   },
 
   /**
+   * Create new event on backend
+   */
+  createEvent: async (data: {
+    title: string;
+    date: string;
+    time?: string;
+    location: string;
+    category?: string;
+    petType?: string;
+    description?: string;
+    image?: string;
+    organizerId?: string;
+    organizerName?: string;
+  }) => {
+    try {
+      const response = await fetch(`${BASE_URL}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create event");
+      return await response.json();
+    } catch (e) {
+      console.error("Failed to create event:", e);
+      return null;
+    }
+  },
+
+  /**
+   * Create new marketplace product on backend
+   */
+  createProduct: async (data: {
+    title: string;
+    price: number | string;
+    category?: string;
+    image?: string;
+    description?: string;
+    sellerId?: string;
+  }) => {
+    try {
+      const response = await fetch(`${BASE_URL}/marketplace/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create product");
+      return await response.json();
+    } catch (e) {
+      console.error("Failed to create product:", e);
+      return null;
+    }
+  },
+
+  /**
+   * Create new marketplace service on backend
+   */
+  createService: async (data: {
+    title: string;
+    price: string;
+    category?: string;
+    image?: string;
+    description?: string;
+    providerId?: string;
+    location?: string;
+  }) => {
+    try {
+      const response = await fetch(`${BASE_URL}/marketplace/services`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create service");
+      return await response.json();
+    } catch (e) {
+      console.error("Failed to create service:", e);
+      return null;
+    }
+  },
+
+  /**
    * Register device push notification token with backend
    */
   registerPushToken: async (userId: string, pushToken: string) => {

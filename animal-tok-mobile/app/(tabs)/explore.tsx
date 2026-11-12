@@ -31,11 +31,13 @@ import {
   Wrench,
   X,
   ChevronDown,
+  Plus,
 } from "lucide-react-native";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
+import HostEventModal from "@/components/HostEventModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -193,6 +195,8 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [rsvps, setRsvps] = useState<Record<string, boolean>>({});
   const [petDropdownOpen, setPetDropdownOpen] = useState(false);
+  const [eventsList, setEventsList] = useState<ExploreEvent[]>(EXPLORE_EVENTS);
+  const [hostModalVisible, setHostModalVisible] = useState(false);
 
   const currentPet = useMemo(
     () => PET_FILTERS.find((p) => p.id === selectedPetFilter) || PET_FILTERS[0],
@@ -270,7 +274,7 @@ export default function ExploreScreen() {
 
   // Filtered Events
   const filteredEvents = useMemo(() => {
-    return EXPLORE_EVENTS.filter((evt) => {
+    return eventsList.filter((evt) => {
       // Search
       const matchesSearch =
         !searchQuery ||
@@ -604,7 +608,17 @@ export default function ExploreScreen() {
                 <Calendar size={18} color="#06b6d4" />
                 <Text style={styles.sectionTitle}>Upcoming Pet Events</Text>
               </View>
-              <Text style={styles.resultsCount}>{filteredEvents.length} events</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <TouchableOpacity
+                  style={styles.hostEventBtn}
+                  onPress={() => setHostModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={13} color="#ffffff" />
+                  <Text style={styles.hostEventBtnText}>Host Event</Text>
+                </TouchableOpacity>
+                <Text style={styles.resultsCount}>{filteredEvents.length} events</Text>
+              </View>
             </View>
 
             {filteredEvents.length === 0 ? (
@@ -791,6 +805,29 @@ export default function ExploreScreen() {
         )}
 
       </ScrollView>
+
+      {/* Host Event Modal */}
+      <HostEventModal
+        visible={hostModalVisible}
+        onClose={() => setHostModalVisible(false)}
+        onEventCreated={(newEvent) => {
+          setEventsList((prev) => [
+            {
+              id: newEvent.id,
+              title: newEvent.title,
+              date: newEvent.date,
+              location: newEvent.location,
+              attendees: newEvent.attendeesCount || 1,
+              category: (newEvent.category?.toLowerCase() || "meetup") as any,
+              categoryLabel: newEvent.category || "Meetup",
+              petType: (newEvent.petType?.toLowerCase() || "all") as any,
+              description: newEvent.description || "",
+              image: newEvent.image || "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
+            },
+            ...prev,
+          ]);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -1026,6 +1063,20 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 12,
     fontWeight: "500",
+  },
+  hostEventBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#06b6d4",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  hostEventBtnText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "bold",
   },
 
   // Hashtags

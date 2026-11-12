@@ -9,7 +9,10 @@ export interface MockUser {
   username: string;
   email: string;
   avatar: string;
-  accountType?: "regular" | "pending" | "business";
+  accountType?: "regular" | "pending" | "business" | "vet" | "handler";
+  role?: "user" | "business" | "vet" | "admin";
+  clinicName?: string;
+  specialization?: string;
 }
 
 export interface ActiveProfile {
@@ -18,6 +21,8 @@ export interface ActiveProfile {
   username: string;
   avatar: string;
   type: "handler" | "animal";
+  role?: string;
+  clinicName?: string;
   breed?: string;
   age?: string;
   bio?: string;
@@ -33,8 +38,15 @@ interface AuthContextType {
   pets: ActiveProfile[];
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, username: string) => Promise<void>;
-  updateAccountType: (type: "regular") => Promise<void>;
+  signup: (
+    name: string,
+    email: string,
+    username: string,
+    accountType?: "handler" | "vet" | "business",
+    clinicName?: string,
+    specialization?: string
+  ) => Promise<void>;
+  updateAccountType: (type: "regular" | "business" | "vet" | "handler") => Promise<void>;
   addPet: (pet: ActiveProfile) => void;
   logout: () => Promise<void>;
   switchProfile: (profile: ActiveProfile) => void;
@@ -159,8 +171,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: data.user.name,
             username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
             email: data.user.email || email,
-            avatar: data.user.avatar || "🐾",
-            accountType: data.user.role === "business" ? "business" : "regular",
+            avatar: data.user.avatar || (data.user.role === "vet" ? "🩺" : "🐾"),
+            accountType: data.user.accountType || (data.user.role === "vet" ? "vet" : data.user.role === "business" ? "business" : "handler"),
+            role: data.user.role || "user",
+            clinicName: data.user.clinicName,
+            specialization: data.user.specialization,
           };
           setUser(loggedUser);
           await AsyncStorage.setItem("animaltok_user", JSON.stringify(loggedUser));
@@ -170,6 +185,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             username: loggedUser.username,
             avatar: loggedUser.avatar,
             type: "handler",
+            role: loggedUser.role,
+            clinicName: loggedUser.clinicName,
           });
 
           if (data.animal) {
@@ -227,13 +244,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signup = async (name: string, email: string, username: string) => {
+  const signup = async (
+    name: string,
+    email: string,
+    username: string,
+    accountType: "handler" | "vet" | "business" = "handler",
+    clinicName?: string,
+    specialization?: string
+  ) => {
     try {
       // Register with the Express backend & Neon Postgres
       const res = await fetch(`${getBaseUrl()}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, username }),
+        body: JSON.stringify({ name, email, username, accountType, clinicName, specialization }),
       });
 
       if (res.ok) {
@@ -244,8 +268,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: data.user.name,
             email: data.user.email,
             username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
-            avatar: data.user.avatar || "🐾",
-            accountType: "regular",
+            avatar: data.user.avatar || (accountType === "vet" ? "🩺" : "🐾"),
+            accountType: data.user.accountType || accountType,
+            role: data.user.role || (accountType === "vet" ? "vet" : accountType === "business" ? "business" : "user"),
+            clinicName: data.user.clinicName || clinicName,
+            specialization: data.user.specialization || specialization,
           };
           setUser(newUser);
           await AsyncStorage.setItem("animaltok_user", JSON.stringify(newUser));
@@ -255,6 +282,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             username: newUser.username,
             avatar: newUser.avatar,
             type: "handler",
+            role: newUser.role,
+            clinicName: newUser.clinicName,
           });
           return;
         }
@@ -269,7 +298,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       name,
       email,
       username: `@${username}`,
-      accountType: "regular",
+      accountType: accountType,
+      role: accountType === "vet" ? "vet" : accountType === "business" ? "business" : "user",
+      clinicName,
+      specialization,
+      avatar: accountType === "vet" ? "🩺" : "🐾",
     };
     setUser(newUser);
     await AsyncStorage.setItem("animaltok_user", JSON.stringify(newUser));
@@ -279,6 +312,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       username: newUser.username,
       avatar: newUser.avatar,
       type: "handler",
+      role: newUser.role,
+      clinicName: newUser.clinicName,
     });
   };
 
@@ -290,10 +325,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.removeItem("animaltok_user").catch(() => {});
   };
 
-  const updateAccountType = async (type: "regular") => {
+  const updateAccountType = async (type: "regular" | "business" | "vet" | "handler") => {
     if (user) {
       const updatedUser = { ...user, accountType: type };
       setUser(updatedUser);
+      await AsyncStorage.setItem("animaltok_user", JSON.stringify(updatedUser)).catch(() => {});
     }
   };
 
