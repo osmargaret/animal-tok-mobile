@@ -469,7 +469,7 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "grid" && styles.gridTabActive]}
                 onPress={() => setActiveTab("grid")}
               >
-                <Grid size={13} color={activeTab === "grid" ? "#06b6d4" : "#64748b"} />
+                <Grid size={11} color={activeTab === "grid" ? "#06b6d4" : "#64748b"} />
                 <Text
                   style={[styles.gridTabLabel, activeTab === "grid" && styles.gridTabLabelActive]}
                   numberOfLines={1}
@@ -482,7 +482,7 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "products" && styles.gridTabActive]}
                 onPress={() => setActiveTab("products")}
               >
-                <ShoppingBag size={13} color={activeTab === "products" ? "#06b6d4" : "#64748b"} />
+                <ShoppingBag size={11} color={activeTab === "products" ? "#06b6d4" : "#64748b"} />
                 <Text
                   style={[styles.gridTabLabel, activeTab === "products" && styles.gridTabLabelActive]}
                   numberOfLines={1}
@@ -495,7 +495,7 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "services" && styles.gridTabActive]}
                 onPress={() => setActiveTab("services")}
               >
-                <Wrench size={13} color={activeTab === "services" ? "#06b6d4" : "#64748b"} />
+                <Wrench size={11} color={activeTab === "services" ? "#06b6d4" : "#64748b"} />
                 <Text
                   style={[styles.gridTabLabel, activeTab === "services" && styles.gridTabLabelActive]}
                   numberOfLines={1}
@@ -508,7 +508,7 @@ export default function ProfileScreen() {
                 style={[styles.gridTabBtn, activeTab === "events" && styles.gridTabActive]}
                 onPress={() => setActiveTab("events")}
               >
-                <Calendar size={13} color={activeTab === "events" ? "#06b6d4" : "#64748b"} />
+                <Calendar size={11} color={activeTab === "events" ? "#06b6d4" : "#64748b"} />
                 <Text
                   style={[styles.gridTabLabel, activeTab === "events" && styles.gridTabLabelActive]}
                   numberOfLines={1}
@@ -1142,28 +1142,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#1e293b",
     marginBottom: 12,
+    paddingHorizontal: 2,
   },
   gridTabBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 3.5,
-    paddingVertical: 10,
-    paddingHorizontal: 2,
+    gap: 3,
+    paddingVertical: 9,
+    paddingHorizontal: 1,
   },
   gridTabLabel: {
     color: "#64748b",
-    fontSize: 10.5,
+    fontSize: 9.5,
     fontWeight: "700",
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   gridTabLabelActive: {
     color: "#06b6d4",
-    fontWeight: "900",
+    fontWeight: "800",
   },
   tabCount: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: "600",
     opacity: 0.9,
   },
