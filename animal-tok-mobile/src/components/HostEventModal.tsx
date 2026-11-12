@@ -13,7 +13,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { X, Calendar, MapPin, Sparkles, Camera, Image as ImageIcon, Check } from "lucide-react-native";
+import { X, Calendar, MapPin, Sparkles, Camera, Image as ImageIcon, Check, ShieldCheck, DollarSign, Users } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { api, uploadMedia } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +52,9 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
   const [petType, setPetType] = useState("all");
   const [description, setDescription] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+  const [ticketPrice, setTicketPrice] = useState("15.00");
+  const [capacity, setCapacity] = useState("50");
   const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
@@ -87,6 +90,8 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
       }
 
       const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label || "Meetup";
+      const cleanPrice = parseFloat(ticketPrice.replace(/[^0-9.]/g, "")) || 0;
+      const formattedPrice = isPaid && cleanPrice > 0 ? `$${cleanPrice.toFixed(2)}` : "Free";
 
       const payload = {
         title: title.trim(),
@@ -98,10 +103,19 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
         image: finalImageUrl || "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
         organizerId: user?.id || "u_1",
         organizerName: user?.name || "Community Host",
+        isPaid: Boolean(isPaid && cleanPrice > 0),
+        ticketPrice: formattedPrice,
+        capacity: isPaid ? parseInt(capacity) || 50 : 100,
+        escrowStatus: isPaid && cleanPrice > 0 ? "held" : "active",
       };
 
       const created = await api.createEvent(payload);
-      Alert.alert("Event Created! 🎉", `"${title}" has been published to the Events Hub.`);
+      Alert.alert(
+        "Event Created! 🎉",
+        isPaid
+          ? `"${title}" has been published with Escrow Protection. Ticket funds will be secured in platform escrow.`
+          : `"${title}" has been published to the Events Hub.`
+      );
       if (onEventCreated) onEventCreated(created || payload);
       onClose();
 
@@ -227,6 +241,76 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
               value={description}
               onChangeText={setDescription}
             />
+
+            {/* Event Admission: Free vs Ticketed / Paid */}
+            <Text style={styles.fieldLabel}>Event Admission & Pricing</Text>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity
+                style={[styles.toggleBtn, !isPaid && styles.toggleBtnActive]}
+                onPress={() => setIsPaid(false)}
+              >
+                <Text style={[styles.toggleBtnText, !isPaid && styles.toggleBtnTextActive]}>
+                  Free RSVP Event
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.toggleBtn, isPaid && styles.toggleBtnActive]}
+                onPress={() => setIsPaid(true)}
+              >
+                <Text style={[styles.toggleBtnText, isPaid && styles.toggleBtnTextActive]}>
+                  🎟️ Paid / Ticketed
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Paid Event Details & Escrow Box */}
+            {isPaid && (
+              <View style={styles.paidFieldsBox}>
+                <View style={styles.paidInputsRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subFieldLabel}>Ticket Price ($)</Text>
+                    <View style={styles.inputPrefixWrap}>
+                      <DollarSign size={15} color="#06b6d4" />
+                      <TextInput
+                        style={styles.inputPrefixText}
+                        placeholder="15.00"
+                        placeholderTextColor="#64748b"
+                        keyboardType="numeric"
+                        value={ticketPrice}
+                        onChangeText={setTicketPrice}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subFieldLabel}>Max Capacity</Text>
+                    <View style={styles.inputPrefixWrap}>
+                      <Users size={15} color="#06b6d4" />
+                      <TextInput
+                        style={styles.inputPrefixText}
+                        placeholder="50"
+                        placeholderTextColor="#64748b"
+                        keyboardType="numeric"
+                        value={capacity}
+                        onChangeText={setCapacity}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                {/* Escrow Guarantee Callout */}
+                <View style={styles.escrowNoticeCard}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <ShieldCheck size={16} color="#10b981" />
+                    <Text style={styles.escrowNoticeTitle}>Animandler Escrow Protection</Text>
+                  </View>
+                  <Text style={styles.escrowNoticeBody}>
+                    Ticket proceeds are held securely in platform escrow. If you need to cancel or postpone the event, ticket holders receive an automated 100% refund. Host payout is released 24h after your event concludes.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* Publish Button */}
             <TouchableOpacity
@@ -391,6 +475,87 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "bold",
+  },
+  toggleRow: {
+    flexDirection: "row",
+    backgroundColor: "#0d1117",
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    marginBottom: 14,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 9,
+  },
+  toggleBtnActive: {
+    backgroundColor: "#06b6d4",
+  },
+  toggleBtnText: {
+    color: "#94a3b8",
+    fontSize: 12.5,
+    fontWeight: "600",
+  },
+  toggleBtnTextActive: {
+    color: "#ffffff",
+    fontWeight: "800",
+  },
+  paidFieldsBox: {
+    backgroundColor: "#0d1117",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    marginBottom: 14,
+    gap: 12,
+  },
+  paidInputsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  subFieldLabel: {
+    color: "#94a3b8",
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+  inputPrefixWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#161b22",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    paddingHorizontal: 10,
+    height: 42,
+    gap: 6,
+  },
+  inputPrefixText: {
+    flex: 1,
+    color: "#ffffff",
+    fontSize: 13,
+  },
+  escrowNoticeCard: {
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.25)",
+    borderRadius: 10,
+    padding: 10,
+  },
+  escrowNoticeTitle: {
+    color: "#10b981",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  escrowNoticeBody: {
+    color: "#94a3b8",
+    fontSize: 11,
+    lineHeight: 16,
   },
 });
 

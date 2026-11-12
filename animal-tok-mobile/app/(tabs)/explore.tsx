@@ -32,6 +32,8 @@ import {
   X,
   ChevronDown,
   Plus,
+  ShieldCheck,
+  Ticket,
 } from "lucide-react-native";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
@@ -39,6 +41,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import HostEventModal from "@/components/HostEventModal";
+import CheckoutModal from "@/components/CheckoutModal.native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -98,6 +101,11 @@ interface ExploreEvent {
   petType: "dog" | "cat" | "bird" | "rabbit" | "exotic" | "all";
   description: string;
   image: string;
+  isPaid?: boolean;
+  ticketPrice?: string;
+  capacity?: number;
+  escrowStatus?: string;
+  organizerName?: string;
 }
 
 const EXPLORE_EVENTS: ExploreEvent[] = [
@@ -112,6 +120,11 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
     petType: "dog",
     description: "Pedigree certified stud dogs and dam meetups with on-site genetic verification and health clearances.",
     image: "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
+    isPaid: true,
+    ticketPrice: "$25.00",
+    capacity: 40,
+    escrowStatus: "held",
+    organizerName: "Cedar Creek Canine Estate",
   },
   {
     id: "e2",
@@ -124,6 +137,11 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
     petType: "dog",
     description: "Timed obstacle course, flyball tournaments, and high-jump competitions with medals for all skill tiers.",
     image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&fit=crop",
+    isPaid: true,
+    ticketPrice: "$35.00",
+    capacity: 120,
+    escrowStatus: "held",
+    organizerName: "Texas Canine League",
   },
   {
     id: "e3",
@@ -136,6 +154,10 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
     petType: "cat",
     description: "Pedigree cat beauty showcase, agility climbing trials, and luxury feline pampering lounge.",
     image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&fit=crop",
+    isPaid: false,
+    ticketPrice: "Free",
+    capacity: 100,
+    organizerName: "Austin Feline Club",
   },
   {
     id: "e4",
@@ -148,6 +170,11 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
     petType: "bird",
     description: "Indoor free-flight socializing, harness training workshops, and exotic bird nutrition talks.",
     image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=600&fit=crop",
+    isPaid: true,
+    ticketPrice: "$15.00",
+    capacity: 50,
+    escrowStatus: "held",
+    organizerName: "Botanical Avian Society",
   },
   {
     id: "e5",
@@ -160,6 +187,10 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
     petType: "all",
     description: "Over 150 dogs, cats, rabbits, and small pets looking for forever homes. Vaccinations & microchips included.",
     image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&fit=crop",
+    isPaid: false,
+    ticketPrice: "Free",
+    capacity: 300,
+    organizerName: "Town Lake Animal Center",
   },
   {
     id: "e6",
@@ -198,6 +229,8 @@ export default function ExploreScreen() {
   const [petDropdownOpen, setPetDropdownOpen] = useState(false);
   const [eventsList, setEventsList] = useState<ExploreEvent[]>(EXPLORE_EVENTS);
   const [hostModalVisible, setHostModalVisible] = useState(false);
+  const [selectedCheckoutEvent, setSelectedCheckoutEvent] = useState<ExploreEvent | null>(null);
+  const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
 
   useFocusEffect(
@@ -719,6 +752,16 @@ export default function ExploreScreen() {
                               {event.petType === "dog" ? "🐕 Dog" : event.petType === "cat" ? "🐈 Cat" : event.petType === "bird" ? "🦜 Bird" : "🐾 All Pets"}
                             </Text>
                           </View>
+                          {event.isPaid ? (
+                            <View style={styles.escrowBadge}>
+                              <ShieldCheck size={11} color="#10b981" />
+                              <Text style={styles.escrowBadgeText}>Escrow Protected</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.freeBadge}>
+                              <Text style={styles.freeBadgeText}>Free RSVP</Text>
+                            </View>
+                          )}
                         </View>
 
                         <Text style={styles.eventTitle}>{event.title}</Text>
@@ -746,19 +789,39 @@ export default function ExploreScreen() {
                             </Text>
                           </View>
 
-                          <TouchableOpacity
-                            style={[styles.rsvpButton, isAttending && styles.rsvpButtonActive]}
-                            onPress={() => toggleRsvp(event.id, event.title)}
-                          >
-                            {isAttending ? (
-                              <>
-                                <Check size={14} color="#ffffff" />
-                                <Text style={styles.rsvpButtonTextActive}>Going</Text>
-                              </>
+                          {event.isPaid ? (
+                            purchasedTickets[event.id] ? (
+                              <View style={styles.ticketActiveBtn}>
+                                <Check size={13} color="#10b981" />
+                                <Text style={styles.ticketActiveText}>Ticket Active 🎟️</Text>
+                              </View>
                             ) : (
-                              <Text style={styles.rsvpButtonText}>RSVP</Text>
-                            )}
-                          </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.buyTicketBtn}
+                                onPress={() => setSelectedCheckoutEvent(event)}
+                                activeOpacity={0.85}
+                              >
+                                <Ticket size={13} color="#ffffff" />
+                                <Text style={styles.buyTicketText}>
+                                  Get Ticket • {event.ticketPrice || "$15"}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          ) : (
+                            <TouchableOpacity
+                              style={[styles.rsvpButton, isAttending && styles.rsvpButtonActive]}
+                              onPress={() => toggleRsvp(event.id, event.title)}
+                            >
+                              {isAttending ? (
+                                <>
+                                  <Check size={14} color="#ffffff" />
+                                  <Text style={styles.rsvpButtonTextActive}>Going</Text>
+                                </>
+                              ) : (
+                                <Text style={styles.rsvpButtonText}>RSVP Free</Text>
+                              )}
+                            </TouchableOpacity>
+                          )}
                         </View>
                       </View>
                     </View>
@@ -886,11 +949,38 @@ export default function ExploreScreen() {
               petType: (newEvent.petType?.toLowerCase() || "all") as any,
               description: newEvent.description || "",
               image: newEvent.image || "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
+              isPaid: newEvent.isPaid,
+              ticketPrice: newEvent.ticketPrice,
+              capacity: newEvent.capacity,
+              escrowStatus: newEvent.escrowStatus,
+              organizerName: newEvent.organizerName || "Community Host",
             },
             ...prev,
           ]);
         }}
       />
+
+      {/* Event Ticket Checkout Modal with Escrow Protection */}
+      {selectedCheckoutEvent && (
+        <CheckoutModal
+          visible={!!selectedCheckoutEvent}
+          item={{
+            id: selectedCheckoutEvent.id,
+            name: selectedCheckoutEvent.title,
+            price: selectedCheckoutEvent.ticketPrice || "$15.00",
+            sellerOrProvider: selectedCheckoutEvent.organizerName || "Event Organizer",
+            image: selectedCheckoutEvent.image,
+            type: "event",
+            date: selectedCheckoutEvent.date,
+            location: selectedCheckoutEvent.location,
+          }}
+          onClose={() => setSelectedCheckoutEvent(null)}
+          onSuccess={() => {
+            setPurchasedTickets((prev) => ({ ...prev, [selectedCheckoutEvent.id]: true }));
+            setSelectedCheckoutEvent(null);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -1342,6 +1432,70 @@ const styles = StyleSheet.create({
   },
   rsvpButtonTextActive: {
     color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  escrowBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 12,
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.35)",
+  },
+  escrowBadgeText: {
+    color: "#10b981",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  freeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 12,
+    backgroundColor: "rgba(6, 182, 212, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.25)",
+  },
+  freeBadgeText: {
+    color: "#06b6d4",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  buyTicketBtn: {
+    backgroundColor: "#06b6d4",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+    shadowColor: "#06b6d4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buyTicketText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  ticketActiveBtn: {
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    borderWidth: 1,
+    borderColor: "#10b981",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  ticketActiveText: {
+    color: "#10b981",
     fontSize: 12,
     fontWeight: "700",
   },

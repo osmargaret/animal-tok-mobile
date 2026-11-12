@@ -38,8 +38,10 @@ export interface CheckoutItem {
   price: string;
   sellerOrProvider: string;
   image?: string;
-  type: "product" | "service";
+  type: "product" | "service" | "event";
   category?: string;
+  date?: string;
+  location?: string;
 }
 
 interface CheckoutModalProps {
@@ -62,11 +64,12 @@ export default function CheckoutModal({
   if (!item) return null;
 
   const isProduct = item.type === "product";
+  const isEvent = item.type === "event";
 
   // Form states
   const [address, setAddress] = useState("1204 Zilker Park Blvd, Austin, TX");
   const [phone, setPhone] = useState("+1 (512) 555-0192");
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState("Tomorrow at 10:00 AM");
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(item.date || "Tomorrow at 10:00 AM");
   const [petNotes, setPetNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"paystack" | "card" | "cash">("paystack");
 
@@ -88,9 +91,9 @@ export default function CheckoutModal({
   ];
 
   // Pricing calculation
-  const numericPrice = parseFloat(item.price.replace(/[^0-9.]/g, "")) || 29.99;
-  const protectionFee = 1.99;
-  const total = (numericPrice + (isProduct ? 0 : protectionFee)).toFixed(2);
+  const numericPrice = parseFloat(item.price.replace(/[^0-9.]/g, "")) || 20.0;
+  const protectionFee = isEvent || isProduct ? 0 : 1.99;
+  const total = (numericPrice + protectionFee).toFixed(2);
 
   const handlePaystackInit = async () => {
     setProcessing(true);
@@ -218,6 +221,8 @@ export default function CheckoutModal({
                 ? "Confirmation"
                 : awaitingVerification
                 ? "Verify Payment"
+                : isEvent
+                ? "Get Event Ticket"
                 : isProduct
                 ? "Checkout Order"
                 : "Book Pet Appointment"}
@@ -234,7 +239,11 @@ export default function CheckoutModal({
                 <CheckCircle size={56} color="#10b981" />
               </View>
               <Text style={styles.successTitle}>
-                {isProduct ? "Order Placed Successfully! 🎉" : "Appointment Requested! 📅"}
+                {isEvent
+                  ? "Ticket Purchased Successfully! 🎟️"
+                  : isProduct
+                  ? "Order Placed Successfully! 🎉"
+                  : "Appointment Requested! 📅"}
               </Text>
               <Text style={styles.successSub}>
                 Reference: <Text style={{ color: "#06b6d4", fontWeight: "700" }}>#{orderId}</Text>
@@ -242,14 +251,16 @@ export default function CheckoutModal({
 
               <View style={styles.successCard}>
                 <Text style={styles.successCardText}>
-                  {isProduct
+                  {isEvent
+                    ? `Your digital ticket for "${item.name}" has been issued to ${userEmail}. Your funds are held securely in Escrow until the event completes. If the event is cancelled, 100% of your ticket is instantly refunded.`
+                    : isProduct
                     ? `Your order for "${item.name}" has been confirmed with ${item.sellerOrProvider}. A tracking number will be sent to ${userEmail}.`
                     : `Your booking request for "${item.name}" has been sent to ${item.sellerOrProvider}. They will contact you at ${phone} to confirm the appointment.`}
                 </Text>
               </View>
 
               <TouchableOpacity style={styles.doneBtn} onPress={handleClose}>
-                <Text style={styles.doneBtnText}>Back to Marketplace</Text>
+                <Text style={styles.doneBtnText}>{isEvent ? "View Ticket in Events" : "Done"}</Text>
               </TouchableOpacity>
             </View>
           ) : awaitingVerification ? (
@@ -336,20 +347,48 @@ export default function CheckoutModal({
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemCategory}>
-                    {isProduct ? "Physical Pet Product" : "Professional Pet Service"}
+                    {isEvent
+                      ? "Ticketed Event • Escrow Protected"
+                      : isProduct
+                      ? "Physical Pet Product"
+                      : "Professional Pet Service"}
                   </Text>
                   <Text style={styles.itemName} numberOfLines={2}>
                     {item.name}
                   </Text>
                   <Text style={styles.itemSeller}>
-                    By {item.sellerOrProvider}
+                    {isEvent ? `Hosted by ${item.sellerOrProvider}` : `By ${item.sellerOrProvider}`}
                   </Text>
                   <Text style={styles.itemPrice}>{item.price}</Text>
                 </View>
               </View>
 
-              {/* Delivery / Location Section */}
-              {isProduct ? (
+              {/* Delivery / Location / Event Section */}
+              {isEvent ? (
+                <View style={styles.section}>
+                  <View style={styles.sectionTitleRow}>
+                    <ShieldCheck size={18} color="#10b981" />
+                    <Text style={[styles.sectionTitle, { color: "#10b981" }]}>Animandler Escrow Protection</Text>
+                  </View>
+                  <View style={styles.escrowBannerBox}>
+                    <Text style={styles.escrowBannerText}>
+                      🛡️ Your ticket payment is held in secure platform escrow. Funds are only released to the organizer 24 hours after the event concludes. If the host cancels or postpones the event, you will receive an automatic 100% refund.
+                    </Text>
+                  </View>
+                  {item.date && (
+                    <View style={[styles.eventMetaRow, { marginTop: 10 }]}>
+                      <Calendar size={14} color="#06b6d4" />
+                      <Text style={styles.eventMetaText}>{item.date}</Text>
+                    </View>
+                  )}
+                  {item.location && (
+                    <View style={[styles.eventMetaRow, { marginTop: 6 }]}>
+                      <MapPin size={14} color="#64748b" />
+                      <Text style={styles.eventMetaText}>{item.location}</Text>
+                    </View>
+                  )}
+                </View>
+              ) : isProduct ? (
                 <View style={styles.section}>
                   <View style={styles.sectionTitleRow}>
                     <Truck size={18} color="#06b6d4" />
@@ -508,17 +547,19 @@ export default function CheckoutModal({
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>
-                    {isProduct ? "Shipping & Handling" : "Service Booking Fee"}
+                    {isEvent ? "Animandler Escrow Protection" : isProduct ? "Shipping & Handling" : "Service Booking Fee"}
                   </Text>
                   <Text style={[styles.summaryValue, { color: "#10b981" }]}>
-                    {isProduct ? "FREE" : `$${protectionFee.toFixed(2)}`}
+                    {isEvent || isProduct ? "FREE" : `$${protectionFee.toFixed(2)}`}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>AnimalTok Guarantee</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                     <ShieldCheck size={14} color="#10b981" />
-                    <Text style={[styles.summaryValue, { color: "#10b981" }]}>Protected</Text>
+                    <Text style={[styles.summaryValue, { color: "#10b981" }]}>
+                      {isEvent ? "Escrow Protected" : "Protected"}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
@@ -543,7 +584,11 @@ export default function CheckoutModal({
                 ) : (
                   <Text style={styles.confirmBtnText}>
                     {paymentMethod === "paystack"
-                      ? `Pay $${total} with Paystack`
+                      ? isEvent
+                        ? `Pay $${total} via Paystack (Escrow)`
+                        : `Pay $${total} with Paystack`
+                      : isEvent
+                      ? `Confirm Ticket Purchase ($${total})`
                       : isProduct
                       ? `Pay $${total} & Place Order`
                       : `Confirm Booking ($${total})`}
@@ -954,6 +999,30 @@ const styles = StyleSheet.create({
   cancelVerifyText: {
     color: "#64748b",
     fontSize: 13,
+  },
+  escrowBannerBox: {
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.25)",
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 6,
+  },
+  escrowBannerText: {
+    color: "#10b981",
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  eventMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  eventMetaText: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });
 
