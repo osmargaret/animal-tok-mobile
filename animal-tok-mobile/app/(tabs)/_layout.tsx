@@ -50,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Discover",
+          title: "Explore",
           tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
         }}
       />
