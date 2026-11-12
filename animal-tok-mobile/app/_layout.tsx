@@ -53,6 +53,7 @@ export default function RootLayout() {
           <View style={styles.container}>
             <Stack
               screenOptions={{
+                headerShown: false,
                 headerStyle: {
                   backgroundColor: "#0d1117",
                 },
@@ -70,8 +71,26 @@ export default function RootLayout() {
               <Stack.Screen
                 name="auth"
                 options={{
-                  title: "Login / Sign Up",
+                  headerShown: false,
                   presentation: "modal",
+                }}
+              />
+              <Stack.Screen
+                name="edit-profile"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="add-product"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="onboarding"
+                options={{
+                  headerShown: false,
                 }}
               />
             </Stack>

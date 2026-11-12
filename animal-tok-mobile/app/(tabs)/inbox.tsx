@@ -115,12 +115,6 @@ export default function InboxScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={22} color="#ffffff" />
-          </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>Direct Messages</Text>
             <View style={styles.statusRow}>
