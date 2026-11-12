@@ -30,6 +30,7 @@ import {
   Package,
   Wrench,
   X,
+  ChevronDown,
 } from "lucide-react-native";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
@@ -49,6 +50,7 @@ const PET_FILTERS = [
   { id: "bird", label: "Birds", icon: "🦜" },
   { id: "rabbit", label: "Rabbits", icon: "🐇" },
   { id: "exotic", label: "Exotic", icon: "🦎" },
+  { id: "horse", label: "Horses", icon: "🐎" },
 ];
 
 // Tab-specific categories
@@ -190,6 +192,12 @@ export default function ExploreScreen() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [rsvps, setRsvps] = useState<Record<string, boolean>>({});
+  const [petDropdownOpen, setPetDropdownOpen] = useState(false);
+
+  const currentPet = useMemo(
+    () => PET_FILTERS.find((p) => p.id === selectedPetFilter) || PET_FILTERS[0],
+    [selectedPetFilter]
+  );
 
   // Reset category when switching tabs
   const handleTabChange = (tab: ExploreTab) => {
@@ -354,7 +362,11 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScrollBeginDrag={() => setPetDropdownOpen(false)}
+      >
         
         {/* Top Header */}
         <View style={styles.topHeader}>
@@ -362,26 +374,84 @@ export default function ExploreScreen() {
           <Text style={styles.pageSub}>Discover trending pets, live events & marketplace</Text>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchBarContainer}>
-          <Search size={18} color="#94a3b8" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={
-              activeTab === "trending"
-                ? "Search trending videos, tags, or pets..."
-                : activeTab === "events"
-                ? "Search mating, agility, or city events..."
-                : "Search products, grooming, or training..."
-            }
-            placeholderTextColor="#64748b"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <X size={16} color="#94a3b8" />
+        {/* Search & Pet Filter Input Group */}
+        <View style={styles.inputGroupWrapper}>
+          <View style={styles.inputGroupContainer}>
+            {/* Left: Search Bar */}
+            <View style={styles.searchLeftBox}>
+              <Search size={17} color="#94a3b8" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={
+                  activeTab === "trending"
+                    ? "Search videos, tags, pets..."
+                    : activeTab === "events"
+                    ? "Search mating, agility, events..."
+                    : "Search products, grooming..."
+                }
+                placeholderTextColor="#64748b"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={() => setPetDropdownOpen(false)}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <X size={15} color="#94a3b8" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Input Group Divider */}
+            <View style={styles.inputGroupDivider} />
+
+            {/* Right: Pet Filter Dropdown Trigger */}
+            <TouchableOpacity
+              style={[styles.dropdownTrigger, petDropdownOpen && styles.dropdownTriggerActive]}
+              onPress={() => setPetDropdownOpen(!petDropdownOpen)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.dropdownTriggerIcon}>{currentPet.icon}</Text>
+              <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+                {currentPet.label}
+              </Text>
+              <ChevronDown
+                size={14}
+                color={selectedPetFilter !== "all" ? "#06b6d4" : "#94a3b8"}
+                style={petDropdownOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
+              />
             </TouchableOpacity>
+          </View>
+
+          {/* Floating Dropdown Menu Options */}
+          {petDropdownOpen && (
+            <View style={styles.dropdownMenu}>
+              <View style={styles.dropdownHeader}>
+                <Text style={styles.dropdownHeaderText}>Select Pet Species</Text>
+              </View>
+              {PET_FILTERS.map((pet) => {
+                const isSelected = selectedPetFilter === pet.id;
+                return (
+                  <TouchableOpacity
+                    key={pet.id}
+                    style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setSelectedPetFilter(pet.id);
+                      setPetDropdownOpen(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.dropdownItemIcon}>{pet.icon}</Text>
+                    <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
+                      {pet.label}
+                    </Text>
+                    {isSelected && <Check size={14} color="#06b6d4" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           )}
         </View>
 
@@ -389,7 +459,10 @@ export default function ExploreScreen() {
         <View style={styles.tabsRow}>
           <TouchableOpacity
             style={[styles.tabButton, activeTab === "trending" && styles.tabButtonActive]}
-            onPress={() => handleTabChange("trending")}
+            onPress={() => {
+              setPetDropdownOpen(false);
+              handleTabChange("trending");
+            }}
           >
             <Flame size={16} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
             <Text style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}>
@@ -399,7 +472,10 @@ export default function ExploreScreen() {
 
           <TouchableOpacity
             style={[styles.tabButton, activeTab === "events" && styles.tabButtonActive]}
-            onPress={() => handleTabChange("events")}
+            onPress={() => {
+              setPetDropdownOpen(false);
+              handleTabChange("events");
+            }}
           >
             <Calendar size={16} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
             <Text style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}>
@@ -409,35 +485,16 @@ export default function ExploreScreen() {
 
           <TouchableOpacity
             style={[styles.tabButton, activeTab === "marketplace" && styles.tabButtonActive]}
-            onPress={() => handleTabChange("marketplace")}
+            onPress={() => {
+              setPetDropdownOpen(false);
+              handleTabChange("marketplace");
+            }}
           >
             <ShoppingBag size={16} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
             <Text style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}>
               Marketplace
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Filter Row: Pet Types */}
-        <View style={styles.filterSection}>
-          <Text style={styles.filterSectionLabel}>Filter by Pet:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {PET_FILTERS.map((pet) => {
-              const isActive = selectedPetFilter === pet.id;
-              return (
-                <TouchableOpacity
-                  key={pet.id}
-                  style={[styles.petFilterChip, isActive && styles.petFilterChipActive]}
-                  onPress={() => setSelectedPetFilter(pet.id)}
-                >
-                  <Text style={styles.petFilterIcon}>{pet.icon}</Text>
-                  <Text style={[styles.petFilterText, isActive && styles.petFilterTextActive]}>
-                    {pet.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
         </View>
 
         {/* Category Row (Tab-Specific Categories) */}
@@ -761,22 +818,116 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  searchBarContainer: {
+  // Input Group & Dropdown Styles
+  inputGroupWrapper: {
+    position: "relative",
+    zIndex: 999,
+    marginBottom: 14,
+  },
+  inputGroupContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#161b22",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 46,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#1e293b",
-    marginBottom: 14,
+    height: 48,
+    paddingHorizontal: 12,
+  },
+  searchLeftBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   searchInput: {
     flex: 1,
     color: "#ffffff",
-    marginLeft: 10,
     fontSize: 13,
+    paddingVertical: 0,
+  },
+  inputGroupDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: "#334155",
+    marginHorizontal: 8,
+  },
+  dropdownTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(30, 41, 59, 0.4)",
+    maxWidth: 130,
+  },
+  dropdownTriggerActive: {
+    backgroundColor: "rgba(6, 182, 212, 0.15)",
+    borderWidth: 1,
+    borderColor: "#06b6d4",
+  },
+  dropdownTriggerIcon: {
+    fontSize: 14,
+  },
+  dropdownTriggerText: {
+    color: "#cbd5e1",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  dropdownMenu: {
+    position: "absolute",
+    top: 54,
+    right: 0,
+    width: 195,
+    backgroundColor: "#161b22",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#334155",
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 20,
+    zIndex: 1000,
+  },
+  dropdownHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e293b",
+    marginBottom: 4,
+  },
+  dropdownHeaderText: {
+    color: "#64748b",
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 8,
+  },
+  dropdownItemActive: {
+    backgroundColor: "rgba(6, 182, 212, 0.12)",
+  },
+  dropdownItemIcon: {
+    fontSize: 14,
+  },
+  dropdownItemText: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    fontWeight: "500",
+    flex: 1,
+  },
+  dropdownItemTextActive: {
+    color: "#06b6d4",
+    fontWeight: "700",
   },
 
   // 3-Tab Segment Switcher
@@ -812,10 +963,6 @@ const styles = StyleSheet.create({
     color: "#06b6d4",
   },
 
-  // Filters (Pet Types)
-  filterSection: {
-    marginBottom: 10,
-  },
   filterSectionLabel: {
     color: "#64748b",
     fontSize: 11,
@@ -823,37 +970,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
-  },
-  filterScroll: {
-    gap: 8,
-    paddingBottom: 4,
-  },
-  petFilterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: "#161b22",
-    borderWidth: 1,
-    borderColor: "#1e293b",
-  },
-  petFilterChipActive: {
-    backgroundColor: "rgba(6, 182, 212, 0.2)",
-    borderColor: "#06b6d4",
-  },
-  petFilterIcon: {
-    fontSize: 13,
-  },
-  petFilterText: {
-    color: "#94a3b8",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  petFilterTextActive: {
-    color: "#06b6d4",
-    fontWeight: "700",
   },
 
   // Category Pills
