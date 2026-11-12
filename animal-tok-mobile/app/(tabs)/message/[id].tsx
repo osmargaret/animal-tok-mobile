@@ -137,7 +137,9 @@ export default function MessageViewScreen() {
       currentUserId,
       recipientId,
       senderName,
-      senderAvatar
+      senderAvatar,
+      contactName,
+      contactAvatar
     );
   };
 
@@ -154,7 +156,11 @@ export default function MessageViewScreen() {
             <ArrowLeft size={22} color="#ffffff" />
           </TouchableOpacity>
           <View style={styles.avatarCircle}>
-            <Text style={{ fontSize: 22 }}>{contactAvatar}</Text>
+            {contactAvatar && (contactAvatar.startsWith("http") || contactAvatar.startsWith("data:") || contactAvatar.startsWith("/")) ? (
+              <Image source={{ uri: contactAvatar }} style={styles.headerAvatarImg} resizeMode="cover" />
+            ) : (
+              <Text style={{ fontSize: 22 }}>{contactAvatar || "🐾"}</Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.contactName} numberOfLines={1}>
@@ -341,6 +347,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: "#06b6d4",
+    overflow: "hidden",
+  },
+  headerAvatarImg: {
+    width: "100%",
+    height: "100%",
   },
   contactName: {
     color: "#ffffff",

@@ -636,7 +636,9 @@ export const api = {
     senderId?: string,
     recipientId?: string,
     senderName?: string,
-    senderAvatar?: string
+    senderAvatar?: string,
+    recipientName?: string,
+    recipientAvatar?: string
   ) => {
     try {
       const response = await fetch(`${BASE_URL}/messages/send`, {
@@ -648,7 +650,9 @@ export const api = {
           senderId,
           recipientId,
           senderName,
-          senderAvatar
+          senderAvatar,
+          recipientName,
+          recipientAvatar,
         })
       });
       if (!response.ok) throw new Error("Failed to send message");

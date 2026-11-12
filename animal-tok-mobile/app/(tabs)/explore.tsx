@@ -227,7 +227,7 @@ export default function ExploreScreen() {
       params: {
         id: threadId,
         name: item.seller || "Pet Shop Seller",
-        avatar: "🛍️",
+        avatar: item.image || "🛍️",
         itemTitle: item.name,
         itemPrice: item.price,
         itemType: "product",
@@ -244,7 +244,7 @@ export default function ExploreScreen() {
       params: {
         id: threadId,
         name: item.provider || "Service Provider",
-        avatar: "👨‍⚕️",
+        avatar: item.image || "👨‍⚕️",
         itemTitle: item.name,
         itemPrice: item.price,
         itemType: "service",

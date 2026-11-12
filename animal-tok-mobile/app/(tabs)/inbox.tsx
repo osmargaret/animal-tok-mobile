@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TextInput,
+  Image,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { MessageSquare, ArrowLeft, Search, Sparkles, ChevronRight } from "lucide-react-native";
@@ -30,6 +31,46 @@ interface ThreadItem {
     role?: string;
   };
   unreadCount: number;
+}
+
+function getCleanParticipantName(item: ThreadItem): string {
+  if (item.participant.name && item.participant.name !== "Chat Partner") {
+    return item.participant.name;
+  }
+  const tid = item.threadId;
+  if (tid.startsWith("trade_")) {
+    const clean = tid.replace(/^trade_/, "").replace(/_/g, " ");
+    return clean.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  if (tid.startsWith("booking_")) {
+    const clean = tid.replace(/^booking_/, "").replace(/_/g, " ");
+    return clean.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  if (tid.startsWith("t_service_")) {
+    return "Pet Care Specialist";
+  }
+  if (tid.startsWith("t_animal_") || tid.startsWith("animal_")) {
+    return "Pet Handler";
+  }
+  return "Pet Handler";
+}
+
+function getCleanAvatar(item: ThreadItem): string {
+  if (
+    item.participant.avatar &&
+    item.participant.avatar !== "🐾" &&
+    item.participant.avatar !== "👤"
+  ) {
+    return item.participant.avatar;
+  }
+  const tid = item.threadId;
+  if (tid.startsWith("trade_")) {
+    return "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&fit=crop";
+  }
+  if (tid.startsWith("booking_")) {
+    return "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&fit=crop";
+  }
+  return "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&fit=crop";
 }
 
 export default function InboxScreen() {
@@ -99,13 +140,15 @@ export default function InboxScreen() {
   );
 
   const openChat = (item: ThreadItem) => {
+    const cleanName = getCleanParticipantName(item);
+    const cleanAvatar = getCleanAvatar(item);
     router.push({
       pathname: "/(tabs)/message/[id]",
       params: {
         id: item.threadId,
         recipientId: item.participant.id,
-        name: item.participant.name,
-        avatar: item.participant.avatar,
+        name: cleanName,
+        avatar: cleanAvatar,
       },
     });
   };
@@ -114,22 +157,7 @@ export default function InboxScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Top Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View>
-            <Text style={styles.headerTitle}>Direct Messages</Text>
-            <View style={styles.statusRow}>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: isConnected ? "#10b981" : "#eab308" },
-                ]}
-              />
-              <Text style={styles.statusText}>
-                {isConnected ? "Real-time Live" : "Connecting..."}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <Text style={styles.headerTitle}>Direct Messages</Text>
       </View>
 
       {/* Search Bar */}
@@ -181,6 +209,8 @@ export default function InboxScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const isMe = item.lastMessage.senderId === currentUserId;
+            const cleanName = getCleanParticipantName(item);
+            const cleanAvatar = getCleanAvatar(item);
             return (
               <TouchableOpacity
                 style={styles.threadItem}
@@ -189,14 +219,22 @@ export default function InboxScreen() {
               >
                 {/* Avatar */}
                 <View style={styles.avatarContainer}>
-                  <Text style={styles.avatarText}>{item.participant.avatar || "🐾"}</Text>
+                  {cleanAvatar.startsWith("http") || cleanAvatar.startsWith("data:") || cleanAvatar.startsWith("/") ? (
+                    <Image
+                      source={{ uri: cleanAvatar }}
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>{cleanAvatar}</Text>
+                  )}
                 </View>
 
                 {/* Details */}
                 <View style={styles.threadInfo}>
                   <View style={styles.topRow}>
                     <Text style={styles.participantName} numberOfLines={1}>
-                      {item.participant.name}
+                      {cleanName}
                     </Text>
                     <Text style={styles.timestamp}>
                       {item.lastMessage.timestamp}
@@ -306,6 +344,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1.5,
     borderColor: "#06b6d4",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: 22,
