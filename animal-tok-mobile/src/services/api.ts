@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 
 export function getBaseUrl(): string {
-  let url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000/api";
+  let url = process.env.EXPO_PUBLIC_API_URL || "https://animal-tok-backend.onrender.com/api";
   if (Platform.OS === "android" && url.includes("localhost")) {
     url = url.replace("localhost", "10.0.2.2");
   }
