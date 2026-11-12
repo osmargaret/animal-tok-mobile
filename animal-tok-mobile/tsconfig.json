@@ -1,0 +1,40 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/pages/**/*",
+    "src/components/ui/**/*",
+    "src/components/DesktopSidebar.tsx",
+    "src/components/MobileHeader.tsx",
+    "src/components/BottomNav.tsx",
+    "src/components/HamburgerMenu.tsx",
+    "src/components/AuthModal.tsx",
+    "src/components/ActionIcons.tsx",
+    "src/components/CommentsPanel.tsx",
+    "src/components/CreateOverlay.tsx",
+    "src/components/EventsModal.tsx",
+    "src/components/NavLink.tsx",
+    "src/components/ProfileSwitcher.tsx",
+    "src/components/PullToRefreshIndicator.tsx",
+    "src/components/VideoPost.tsx",
+    "src/hooks/**/*",
+    "src/test/**/*"
+  ]
+}
