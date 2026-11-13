@@ -834,14 +834,38 @@ export default function ProfileScreen() {
                 {userServices.length > 0 ? (
                   <View style={styles.hubServicesList}>
                     {userServices.map((srv) => (
-                      <View key={srv.id} style={styles.hubServiceCard}>
+                      <TouchableOpacity
+                        key={srv.id}
+                        style={styles.hubServiceCard}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(tabs)/service/[id]",
+                            params: {
+                              id: srv.id,
+                              name: srv.name,
+                              price: srv.price,
+                              rating: srv.rating || "5.0",
+                              provider: srv.provider,
+                              image: srv.image,
+                              category: srv.category || "Professional Care",
+                              description: srv.description || "",
+                              availability: srv.availability || "Monday to Friday, 9:00 AM – 10:00 PM",
+                              locationName: srv.locationName || "",
+                              locationAddress: srv.locationAddress || "",
+                              mode: srv.mode || "onsite",
+                              isOwner: "true",
+                            },
+                          })
+                        }
+                        activeOpacity={0.85}
+                      >
                         <Image source={{ uri: srv.image }} style={styles.hubServiceImg} />
                         <View style={styles.hubServiceBody}>
                           <Text style={styles.hubServiceTitle}>{srv.name}</Text>
                           <Text style={styles.hubServiceProvider}>By {srv.provider}</Text>
                           <Text style={styles.hubServicePrice}>{srv.price}</Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 ) : (
