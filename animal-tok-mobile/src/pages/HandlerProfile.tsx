@@ -11,7 +11,7 @@ const pets = [
     id: "bella",
     name: "Bella",
     breed: "Labrador · 3 yrs",
-    followers: "1.2K followers",
+    followers: "0 followers",
     emoji: "🐕",
     gradient: "from-amber-500/20 to-orange-500/20",
   },
@@ -19,7 +19,7 @@ const pets = [
     id: "whiskers",
     name: "Whiskers",
     breed: "Maine Coon · 5 yrs",
-    followers: "890 followers",
+    followers: "0 followers",
     emoji: "🐱",
     gradient: "from-purple-500/20 to-pink-500/20",
   },
@@ -27,7 +27,7 @@ const pets = [
     id: "spirit",
     name: "Spirit",
     breed: "Arabian · 8 yrs",
-    followers: "2.3K followers",
+    followers: "0 followers",
     emoji: "🐴",
     gradient: "from-emerald-500/20 to-teal-500/20",
   },
@@ -65,9 +65,9 @@ const HandlerProfile = () => {
 
               {/* Stats */}
               <div className="flex gap-4 mt-2">
-                <StatItem value="124" label="Posts" />
-                <StatItem value="3.2K" label="Followers" />
-                <StatItem value="622" label="Likes" />
+                <StatItem value="0" label="Posts" />
+                <StatItem value="0" label="Followers" />
+                <StatItem value="0" label="Likes" />
               </div>
             </div>
 

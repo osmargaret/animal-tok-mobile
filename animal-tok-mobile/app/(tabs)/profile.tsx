@@ -160,14 +160,13 @@ export default function ProfileScreen() {
       // Sum likes on pet's posts
       const totalLikes = animalPosts.reduce((acc: number, p: any) => acc + (Number(p.likes) || 0), 0);
 
-      // Follower count: real for user's pet (0 for new pet), seed numbers only for seeded demo pets
-      const isSeed = ["1", "2", "3", "bailey", "luna", "coco"].includes(String(activeProfile.id).toLowerCase());
-      const followersCount = isSeed ? (animalData?.followers ?? 1200) : (animalData?.followers ?? 0);
+      // Follower count: real followers from profile/database (default 0)
+      const followersCount = Number(animalData?.followers || 0);
 
       // Bio: DO NOT use Bailey's tennis ball bio for other pets!
       let petBio = activeProfile.bio;
       if (!petBio && animalData?.bio) {
-        if (isSeed || !animalData.bio.includes("tennis balls")) {
+        if (!animalData.bio.includes("tennis balls")) {
           petBio = animalData.bio;
         }
       }
@@ -179,7 +178,7 @@ export default function ProfileScreen() {
       const galleryPhotos =
         activeProfile.photos && activeProfile.photos.length > 0
           ? activeProfile.photos
-          : animalData?.photos && isSeed
+          : animalData?.photos
           ? animalData.photos
           : [];
 
@@ -200,7 +199,7 @@ export default function ProfileScreen() {
       setProfileStats({
         followers: followersCount,
         following: 0,
-        likes: totalLikes > 0 ? formatNumber(totalLikes) : isSeed ? animalData?.likes || "0" : "0",
+        likes: totalLikes > 0 ? formatNumber(totalLikes) : "0",
         bio: petBio,
         coverImage:
           activeProfile.coverImage ||
@@ -238,9 +237,9 @@ export default function ProfileScreen() {
       const totalLikes = handlerPosts.reduce((acc: number, p: any) => acc + (Number(p.likes) || 0), 0);
 
       setProfileStats({
-        followers: 124,
-        following: Math.max(1, pets.length),
-        likes: totalLikes > 0 ? formatNumber(totalLikes) : handlerPosts.length > 0 ? formatNumber(handlerPosts.length * 18) : "12",
+        followers: 0,
+        following: 0,
+        likes: totalLikes > 0 ? formatNumber(totalLikes) : "0",
         bio: (user as any)?.bio || `Handler & parent of ${pets.map((p) => p.name).join(", ") || "pets"}! 🐾`,
         coverImage: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80",
         badges: [{ icon: "🛡️", label: "Verified Handler" }],

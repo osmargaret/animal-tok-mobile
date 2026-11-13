@@ -50,7 +50,7 @@ const MyStore = () => {
               <div className="flex gap-4 mt-1.5">
                 <span className="text-xs"><span className="font-bold text-foreground">24</span> <span className="text-muted-foreground">Products</span></span>
                 <span className="text-xs"><span className="font-bold text-foreground">187</span> <span className="text-muted-foreground">Sold</span></span>
-                <span className="text-xs"><span className="font-bold text-foreground">2.1K</span> <span className="text-muted-foreground">Followers</span></span>
+                <span className="text-xs"><span className="font-bold text-foreground">0</span> <span className="text-muted-foreground">Followers</span></span>
               </div>
             </div>
           </div>
