@@ -1503,6 +1503,7 @@ export default function CreateScreen() {
       <ProfileSwitcherModal
         visible={switcherVisible}
         onClose={() => setSwitcherVisible(false)}
+        title="Who is posting"
       />
     </View>
   );

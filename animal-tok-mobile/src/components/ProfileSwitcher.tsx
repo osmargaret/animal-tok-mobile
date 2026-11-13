@@ -44,7 +44,7 @@ const ProfileSwitcher = () => {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute top-full mt-2 right-0 z-50 w-56 rounded-2xl bg-card border border-border shadow-xl overflow-hidden">
             <div className="px-3 py-2 border-b border-border">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Switch Profile</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Who is posting</p>
             </div>
             {profiles.map((p) => (
               <button

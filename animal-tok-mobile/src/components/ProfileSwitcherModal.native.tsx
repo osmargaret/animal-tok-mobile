@@ -14,9 +14,14 @@ import { useAuth } from "@/contexts/AuthContext";
 interface ProfileSwitcherModalProps {
   visible: boolean;
   onClose: () => void;
+  title?: string;
 }
 
-export default function ProfileSwitcherModal({ visible, onClose }: ProfileSwitcherModalProps) {
+export default function ProfileSwitcherModal({
+  visible,
+  onClose,
+  title = "Who is posting",
+}: ProfileSwitcherModalProps) {
   const { user, activeProfile, switchProfile, switchToHandler, pets } = useAuth();
 
   if (!user || !activeProfile) return null;
@@ -47,7 +52,7 @@ export default function ProfileSwitcherModal({ visible, onClose }: ProfileSwitch
           <TouchableWithoutFeedback>
             <View style={styles.content}>
               <View style={styles.header}>
-                <Text style={styles.title}>Switch Profile</Text>
+                <Text style={styles.title}>{title}</Text>
               </View>
 
               <ScrollView style={styles.scrollArea}>

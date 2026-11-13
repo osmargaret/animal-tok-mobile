@@ -238,7 +238,7 @@ export default function MessageViewScreen() {
           </View>
         </View>
 
-        {/* Trade / Marketplace Inquire & Buy Banner */}
+        {/* Trade / Marketplace Item Reference Banner */}
         {params.itemTitle ? (
           <View style={styles.tradeCard}>
             {params.itemImage ? (
@@ -259,16 +259,6 @@ export default function MessageViewScreen() {
               </Text>
               <Text style={styles.tradePrice}>{params.itemPrice}</Text>
             </View>
-
-            <TouchableOpacity
-              style={styles.tradeActionBtn}
-              onPress={() => setCheckoutModalVisible(true)}
-            >
-              <CreditCard size={14} color="#ffffff" />
-              <Text style={styles.tradeActionText}>
-                {params.itemType === "service" ? "Book & Pay" : "Buy / Checkout"}
-              </Text>
-            </TouchableOpacity>
           </View>
         ) : null}
 
