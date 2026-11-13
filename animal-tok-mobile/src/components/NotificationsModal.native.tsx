@@ -29,11 +29,16 @@ interface NotificationsModalProps {
 
 export default function NotificationsModal({ visible, onClose }: NotificationsModalProps) {
   const { user } = useAuth();
-  const currentUserId = user?.id || "u_3";
+  const currentUserId = user?.id;
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifs = () => {
+    if (!currentUserId) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     api.getNotifications(currentUserId).then((data) => {
       setNotifications(data);
@@ -48,6 +53,7 @@ export default function NotificationsModal({ visible, onClose }: NotificationsMo
   }, [visible, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     const socket = api.connectSocket(currentUserId);
     if (!socket) return;
 

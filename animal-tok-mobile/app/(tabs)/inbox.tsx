@@ -81,7 +81,7 @@ export default function InboxScreen() {
   const insets = useSafeAreaInsets();
   const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
   const { user } = useAuth();
-  const currentUserId = user?.id || "u_3";
+  const currentUserId = user?.id;
 
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,6 +90,12 @@ export default function InboxScreen() {
   const [isConnected, setIsConnected] = useState(false);
 
   const fetchThreads = useCallback(async () => {
+    if (!currentUserId) {
+      setThreads([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const data = await api.getInboxThreads(currentUserId);
       if (Array.isArray(data)) {
@@ -105,11 +111,22 @@ export default function InboxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchThreads();
-    }, [fetchThreads])
+      if (currentUserId) {
+        fetchThreads();
+      } else {
+        setThreads([]);
+        setLoading(false);
+      }
+    }, [fetchThreads, currentUserId])
   );
 
   useEffect(() => {
+    if (!currentUserId) {
+      setThreads([]);
+      setLoading(false);
+      return;
+    }
+
     fetchThreads();
 
     const socket = api.connectSocket(currentUserId);
@@ -135,6 +152,7 @@ export default function InboxScreen() {
   }, [currentUserId, fetchThreads]);
 
   const onRefresh = () => {
+    if (!currentUserId) return;
     setRefreshing(true);
     fetchThreads();
   };
@@ -157,6 +175,36 @@ export default function InboxScreen() {
       },
     });
   };
+
+  if (!user) {
+    return (
+      <View style={[styles.safeArea, { paddingTop: topSafeInset + 16 }]}>
+        <View style={styles.guestContainer}>
+          <View style={styles.guestIconCircle}>
+            <MessageSquare size={38} color="#06b6d4" />
+          </View>
+          <Text style={styles.guestTitle}>Direct Messages</Text>
+          <Text style={styles.guestSubtitle}>
+            Create an account or sign in to chat directly with pet handlers, ask questions about pets, and book care services.
+          </Text>
+          <TouchableOpacity
+            style={styles.guestPrimaryBtn}
+            onPress={() => router.push({ pathname: "/auth", params: { mode: "signup" } })}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.guestPrimaryBtnText}>Create Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.guestSecondaryBtn}
+            onPress={() => router.push({ pathname: "/auth", params: { mode: "login" } })}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.guestSecondaryBtnText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.safeArea}>
@@ -437,6 +485,64 @@ const styles = StyleSheet.create({
   exploreButtonText: {
     color: "#ffffff",
     fontSize: 14,
+    fontWeight: "600",
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  guestIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(6, 182, 212, 0.14)",
+    borderWidth: 1.5,
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  guestTitle: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  guestSubtitle: {
+    color: "#94a3b8",
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: "center",
+    marginBottom: 28,
+  },
+  guestPrimaryBtn: {
+    width: "100%",
+    backgroundColor: "#06b6d4",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  guestPrimaryBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  guestSecondaryBtn: {
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderWidth: 1,
+    borderColor: "#30363d",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  guestSecondaryBtnText: {
+    color: "#e2e8f0",
+    fontSize: 15,
     fontWeight: "600",
   },
 });

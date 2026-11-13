@@ -63,9 +63,13 @@ export default function AnimalProfileScreen() {
   }, [id, user]);
 
   const handleFollow = async () => {
+    if (!user) {
+      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      return;
+    }
     if (!animal || followLoading) return;
     
-    const userId = user?.id || "u_1";
+    const userId = user.id;
 
     // Optimistic UI Update
     setFollowLoading(true);
@@ -189,7 +193,11 @@ export default function AnimalProfileScreen() {
             <TouchableOpacity
               style={styles.messageBtn}
               onPress={() => {
-                const currentUserId = user?.id || "u_3";
+                if (!user) {
+                  router.push({ pathname: "/auth", params: { mode: "signup" } });
+                  return;
+                }
+                const currentUserId = user.id;
                 const threadId = `t_${animal.id}_${currentUserId}`;
                 const handlerTitle = `${animal.name}'s Handler (${animal.handler || animal.handlerName || "Handler"})`;
                 router.push({

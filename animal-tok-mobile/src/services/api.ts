@@ -507,7 +507,8 @@ export const api = {
   /**
    * Fetch live notifications
    */
-  getNotifications: async (userId: string = "u_3") => {
+  getNotifications: async (userId?: string) => {
+    if (!userId || userId === "null" || userId === "undefined") return [];
     try {
       const response = await fetch(`${BASE_URL}/notifications?userId=${encodeURIComponent(userId)}`);
       if (!response.ok) throw new Error("Failed to fetch notifications");
@@ -521,7 +522,8 @@ export const api = {
   /**
    * Mark all notifications as read
    */
-  markNotificationsRead: async (userId: string = "u_3") => {
+  markNotificationsRead: async (userId?: string) => {
+    if (!userId || userId === "null" || userId === "undefined") return { success: false };
     try {
       const response = await fetch(`${BASE_URL}/notifications/read-all`, {
         method: "POST",
@@ -538,7 +540,8 @@ export const api = {
   /**
    * Fetch user conversation threads for the Inbox
    */
-  getInboxThreads: async (userId: string = "u_3") => {
+  getInboxThreads: async (userId?: string) => {
+    if (!userId || userId === "null" || userId === "undefined") return [];
     try {
       const response = await fetch(`${BASE_URL}/messages/threads?userId=${encodeURIComponent(userId)}`);
       if (!response.ok) throw new Error("Failed to fetch inbox threads");

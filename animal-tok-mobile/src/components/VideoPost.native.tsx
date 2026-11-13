@@ -264,6 +264,11 @@ export default function VideoPost({
   }, [post?.id]);
 
   const handleLike = async () => {
+    if (!user && onAuthPrompt) {
+      onAuthPrompt();
+      return;
+    }
+
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 1.3, duration: 120, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1.0, duration: 120, useNativeDriver: true }),

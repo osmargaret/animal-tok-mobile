@@ -45,6 +45,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import HostEventModal from "@/components/HostEventModal";
 import CheckoutModal from "@/components/CheckoutModal.native";
+import GuestAuthModal from "@/components/GuestAuthModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -223,7 +224,7 @@ export default function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
-  const { activeProfile } = useAuth();
+  const { activeProfile, user } = useAuth();
 
   // Selected state
   const [activeTab, setActiveTab] = useState<ExploreTab>("trending");
@@ -237,6 +238,11 @@ export default function ExploreScreen() {
   const [selectedCheckoutEvent, setSelectedCheckoutEvent] = useState<ExploreEvent | null>(null);
   const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Guest Auth Modal state
+  const [guestAuthVisible, setGuestAuthVisible] = useState(false);
+  const [guestAuthTitle, setGuestAuthTitle] = useState("Join Animandler 🐾");
+  const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
 
   useFocusEffect(
     React.useCallback(() => {
@@ -295,11 +301,27 @@ export default function ExploreScreen() {
 
   // Reset category when switching tabs
   const handleTabChange = (tab: ExploreTab) => {
+    if (tab !== "trending" && !user) {
+      setGuestAuthTitle(tab === "events" ? "Explore Pet Events 🎉" : "Pet Marketplace & Care 🛍️");
+      setGuestAuthSubtitle(
+        tab === "events"
+          ? "Create an account or sign in to browse upcoming pet meetups, register for competitions, and RSVP!"
+          : "Create an account or sign in to purchase pet supplies, food, gear, and book certified vet and grooming services!"
+      );
+      setGuestAuthVisible(true);
+      return;
+    }
     setActiveTab(tab);
     setSelectedCategory("all");
   };
 
   const toggleRsvp = (eventId: string, title: string) => {
+    if (!user) {
+      setGuestAuthTitle("RSVP for Events 🐾");
+      setGuestAuthSubtitle("Create an account or sign in to reserve your spot at pet events and meet other pet parents!");
+      setGuestAuthVisible(true);
+      return;
+    }
     const nextState = !rsvps[eventId];
     setRsvps((prev) => ({ ...prev, [eventId]: nextState }));
     Alert.alert(
@@ -311,6 +333,12 @@ export default function ExploreScreen() {
   };
 
   const handleBuyProduct = (item: ProductItem) => {
+    if (!user) {
+      setGuestAuthTitle("Buy Pet Products 🛍️");
+      setGuestAuthSubtitle("Create an account or sign in to message sellers, purchase items, and track orders.");
+      setGuestAuthVisible(true);
+      return;
+    }
     const threadId = `trade_${(item.seller || "seller").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
     router.push({
       pathname: "/(tabs)/message/[id]",
@@ -328,6 +356,12 @@ export default function ExploreScreen() {
   };
 
   const handleBookService = (item: ServiceItem) => {
+    if (!user) {
+      setGuestAuthTitle("Book Pet Services 🩺");
+      setGuestAuthSubtitle("Create an account or sign in to book grooming, training, vet appointments, and care services.");
+      setGuestAuthVisible(true);
+      return;
+    }
     const threadId = `booking_${(item.provider || "provider").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
     router.push({
       pathname: "/(tabs)/message/[id]",
@@ -720,6 +754,31 @@ export default function ExploreScreen() {
         {/* TAB 2: EVENTS TAB CONTENT                                      */}
         {/* ============================================================== */}
         {activeTab === "events" && (
+          !user ? (
+            <View style={styles.lockedExploreContainer}>
+              <View style={styles.lockedIconCircle}>
+                <Calendar size={38} color="#06b6d4" />
+              </View>
+              <Text style={styles.lockedTitle}>Pet Events & Agility Shows</Text>
+              <Text style={styles.lockedSubtitle}>
+                Create an account or sign in to browse upcoming pet meetups, register for sports & agility competitions, and RSVP with other pet parents!
+              </Text>
+              <TouchableOpacity
+                style={styles.lockedPrimaryBtn}
+                onPress={() => router.push({ pathname: "/auth", params: { mode: "signup" } })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.lockedPrimaryBtnText}>Create Free Account</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.lockedSecondaryBtn}
+                onPress={() => router.push({ pathname: "/auth", params: { mode: "login" } })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.lockedSecondaryBtnText}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
           <View style={styles.tabContentContainer}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
@@ -729,7 +788,15 @@ export default function ExploreScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <TouchableOpacity
                   style={styles.hostEventBtn}
-                  onPress={() => setHostModalVisible(true)}
+                  onPress={() => {
+                    if (!user) {
+                      setGuestAuthTitle("Host a Pet Event 🐾");
+                      setGuestAuthSubtitle("Create an account or sign in to host pet meetups, breeding events, and agility competitions!");
+                      setGuestAuthVisible(true);
+                      return;
+                    }
+                    setHostModalVisible(true);
+                  }}
                   activeOpacity={0.8}
                 >
                   <Plus size={13} color="#ffffff" />
@@ -820,7 +887,15 @@ export default function ExploreScreen() {
                             ) : (
                               <TouchableOpacity
                                 style={styles.buyTicketBtn}
-                                onPress={() => setSelectedCheckoutEvent(event)}
+                                onPress={() => {
+                                  if (!user) {
+                                    setGuestAuthTitle("RSVP & Ticket Purchase 🎫");
+                                    setGuestAuthSubtitle("Create an account or sign in to purchase event tickets with escrow protection.");
+                                    setGuestAuthVisible(true);
+                                    return;
+                                  }
+                                  setSelectedCheckoutEvent(event);
+                                }}
                                 activeOpacity={0.85}
                               >
                                 <Ticket size={13} color="#ffffff" />
@@ -852,12 +927,38 @@ export default function ExploreScreen() {
               </View>
             )}
           </View>
+          )
         )}
 
         {/* ============================================================== */}
         {/* TAB 3: MARKETPLACE TAB CONTENT                                 */}
         {/* ============================================================== */}
         {activeTab === "marketplace" && (
+          !user ? (
+            <View style={styles.lockedExploreContainer}>
+              <View style={styles.lockedIconCircle}>
+                <ShoppingBag size={38} color="#06b6d4" />
+              </View>
+              <Text style={styles.lockedTitle}>Pet Marketplace & Services</Text>
+              <Text style={styles.lockedSubtitle}>
+                Create an account or sign in to browse pet supplies, buy food & accessories, and book certified veterinary and grooming services!
+              </Text>
+              <TouchableOpacity
+                style={styles.lockedPrimaryBtn}
+                onPress={() => router.push({ pathname: "/auth", params: { mode: "signup" } })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.lockedPrimaryBtnText}>Create Free Account</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.lockedSecondaryBtn}
+                onPress={() => router.push({ pathname: "/auth", params: { mode: "login" } })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.lockedSecondaryBtnText}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
           <View style={styles.tabContentContainer}>
             {/* Products Section */}
             {filteredProducts.length > 0 && (
@@ -950,6 +1051,7 @@ export default function ExploreScreen() {
               </View>
             )}
           </View>
+          )
         )}
 
       </ScrollView>
@@ -1003,6 +1105,14 @@ export default function ExploreScreen() {
           }}
         />
       )}
+
+      {/* Guest Auth Modal */}
+      <GuestAuthModal
+        visible={guestAuthVisible}
+        onClose={() => setGuestAuthVisible(false)}
+        title={guestAuthTitle}
+        subtitle={guestAuthSubtitle}
+      />
     </View>
   );
 }
@@ -1689,5 +1799,68 @@ const styles = StyleSheet.create({
   emptySub: {
     color: "#64748b",
     fontSize: 12,
+  },
+  lockedExploreContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 48,
+    backgroundColor: "#161b22",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    marginTop: 16,
+  },
+  lockedIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "rgba(6, 182, 212, 0.14)",
+    borderWidth: 1.5,
+    borderColor: "rgba(6, 182, 212, 0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  lockedTitle: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  lockedSubtitle: {
+    color: "#94a3b8",
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  lockedPrimaryBtn: {
+    width: "100%",
+    backgroundColor: "#06b6d4",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  lockedPrimaryBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  lockedSecondaryBtn: {
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderWidth: 1,
+    borderColor: "#30363d",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  lockedSecondaryBtnText: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

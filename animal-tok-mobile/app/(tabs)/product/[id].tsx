@@ -15,10 +15,18 @@ export default function ProductDetailsModal() {
   const { id, name, price, rating, seller, image, category } = params as Record<string, string>;
 
   const handleBuy = () => {
+    if (!user) {
+      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      return;
+    }
     setCheckoutVisible(true);
   };
 
   const handleChatSeller = () => {
+    if (!user) {
+      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      return;
+    }
     const threadId = `trade_${(seller || "seller").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
     router.push({
       pathname: "/(tabs)/message/[id]",
@@ -36,6 +44,10 @@ export default function ProductDetailsModal() {
   };
 
   const handleAddToCart = () => {
+    if (!user) {
+      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      return;
+    }
     Alert.alert("Added to Cart 🛒", `${name} has been added to your cart.`);
   };
 

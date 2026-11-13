@@ -42,7 +42,7 @@ export default function MessageViewScreen() {
   const threadId = params.id || "general";
   const router = useRouter();
   const { user } = useAuth();
-  const currentUserId = user?.id || "u_3";
+  const currentUserId = user?.id || "";
 
   const contactName = params.name || (params.id === "2" ? "Luna's Handler" : "Pet Handler");
   const contactAvatar = params.avatar || "🐾";
@@ -142,6 +142,26 @@ export default function MessageViewScreen() {
       contactAvatar
     );
   };
+
+  if (!user) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center", padding: 24 }]}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
+        <Text style={{ color: "#ffffff", fontSize: 20, fontWeight: "bold", marginBottom: 8, textAlign: "center" }}>
+          Sign In to Chat
+        </Text>
+        <Text style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 }}>
+          You need an account to message pet handlers and view conversation history.
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: "#06b6d4", paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 }}
+          onPress={() => router.replace({ pathname: "/auth", params: { mode: "login" } })}
+        >
+          <Text style={{ color: "#ffffff", fontWeight: "bold", fontSize: 15 }}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

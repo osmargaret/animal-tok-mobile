@@ -15,11 +15,19 @@ export default function ServiceDetailsModal() {
   const { id, name, price, rating, provider, image } = params as Record<string, string>;
 
   const handleBook = () => {
+    if (!user) {
+      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      return;
+    }
     setBookingVisible(true);
   };
 
   const handleMessage = () => {
-    const currentUserId = user?.id || "u_3";
+    if (!user) {
+      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      return;
+    }
+    const currentUserId = user.id;
     router.push({
       pathname: "/(tabs)/message/[id]",
       params: {
