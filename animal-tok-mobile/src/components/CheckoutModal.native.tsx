@@ -239,7 +239,7 @@ export default function CheckoutModal({
               <View style={styles.successCard}>
                 <Text style={styles.successCardText}>
                   {isEvent
-                    ? `Your digital ticket for "${item.name}" has been issued to ${userEmail}. Your funds are held securely in Escrow until the event completes. If the event is cancelled, 100% of your ticket is instantly refunded.`
+                    ? `Your digital ticket for "${item.name}" has been issued to ${userEmail}. A confirmation has been sent to your email.`
                     : isProduct
                     ? `Your order for "${item.name}" has been confirmed with ${item.sellerOrProvider}. A tracking number will be sent to ${userEmail}.`
                     : `Your booking request for "${item.name}" has been sent to ${item.sellerOrProvider}. They will contact you at ${phone} to confirm the appointment.`}
@@ -335,7 +335,7 @@ export default function CheckoutModal({
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemCategory}>
                     {isEvent
-                      ? "Ticketed Event • Escrow Protected"
+                      ? "Ticketed Community Event"
                       : isProduct
                       ? "Physical Pet Product"
                       : "Professional Pet Service"}
@@ -354,13 +354,8 @@ export default function CheckoutModal({
               {isEvent ? (
                 <View style={styles.section}>
                   <View style={styles.sectionTitleRow}>
-                    <ShieldCheck size={18} color="#10b981" />
-                    <Text style={[styles.sectionTitle, { color: "#10b981" }]}>Animandler Escrow Protection</Text>
-                  </View>
-                  <View style={styles.escrowBannerBox}>
-                    <Text style={styles.escrowBannerText}>
-                      🛡️ Your ticket payment is held in secure platform escrow. Funds are only released to the organizer 24 hours after the event concludes. If the host cancels or postpones the event, you will receive an automatic 100% refund.
-                    </Text>
+                    <Calendar size={18} color="#06b6d4" />
+                    <Text style={styles.sectionTitle}>Event Details</Text>
                   </View>
                   {item.date && (
                     <View style={[styles.eventMetaRow, { marginTop: 10 }]}>
@@ -450,18 +445,18 @@ export default function CheckoutModal({
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>
-                    {isEvent ? "Animandler Escrow Protection" : isProduct ? "Shipping & Handling" : "Service Booking Fee"}
+                    {isEvent ? "Booking & Processing" : isProduct ? "Shipping & Handling" : "Service Booking Fee"}
                   </Text>
                   <Text style={[styles.summaryValue, { color: "#10b981" }]}>
                     {isEvent || isProduct ? "FREE" : `$${protectionFee.toFixed(2)}`}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>AnimalTok Guarantee</Text>
+                  <Text style={styles.summaryLabel}>Order Protection</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                     <ShieldCheck size={14} color="#10b981" />
                     <Text style={[styles.summaryValue, { color: "#10b981" }]}>
-                      {isEvent ? "Escrow Protected" : "Protected"}
+                      Protected
                     </Text>
                   </View>
                 </View>
@@ -486,9 +481,7 @@ export default function CheckoutModal({
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <Text style={styles.confirmBtnText}>
-                    {isEvent
-                      ? `Pay $${total} via Paystack (Escrow)`
-                      : `Pay $${total} via Paystack`}
+                    {`Pay $${total} via Paystack`}
                   </Text>
                 )}
               </TouchableOpacity>

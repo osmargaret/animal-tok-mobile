@@ -107,7 +107,6 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
         isPaid: Boolean(isPaid && cleanPrice > 0),
         ticketPrice: formattedPrice,
         capacity: isPaid ? parseInt(capacity) || 50 : 100,
-        escrowStatus: isPaid && cleanPrice > 0 ? "held" : "active",
       };
 
       const created = await api.createEvent(payload);
@@ -123,9 +122,7 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
 
       Alert.alert(
         "Event Created! 🎉",
-        isPaid
-          ? `"${title}" has been published with Escrow Protection. Ticket funds will be secured in platform escrow.`
-          : `"${title}" has been published to the Events Hub.`
+        `"${title}" has been published to the Events Hub.`
       );
       if (onEventCreated) onEventCreated(finalEvent);
       onClose();
@@ -308,17 +305,6 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
                       />
                     </View>
                   </View>
-                </View>
-
-                {/* Escrow Guarantee Callout */}
-                <View style={styles.escrowNoticeCard}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <ShieldCheck size={16} color="#10b981" />
-                    <Text style={styles.escrowNoticeTitle}>Animandler Escrow Protection</Text>
-                  </View>
-                  <Text style={styles.escrowNoticeBody}>
-                    Ticket proceeds are held securely in platform escrow. If you need to cancel or postpone the event, ticket holders receive an automated 100% refund. Host payout is released 24h after your event concludes.
-                  </Text>
                 </View>
               </View>
             )}

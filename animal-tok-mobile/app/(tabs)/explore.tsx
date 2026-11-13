@@ -45,6 +45,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import HostEventModal from "@/components/HostEventModal";
 import CheckoutModal from "@/components/CheckoutModal.native";
+import AttendEventModal from "@/components/AttendEventModal";
 import GuestAuthModal from "@/components/GuestAuthModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -235,6 +236,7 @@ export default function ExploreScreen() {
   const [petDropdownOpen, setPetDropdownOpen] = useState(false);
   const [eventsList, setEventsList] = useState<ExploreEvent[]>(EXPLORE_EVENTS);
   const [hostModalVisible, setHostModalVisible] = useState(false);
+  const [selectedAttendEvent, setSelectedAttendEvent] = useState<ExploreEvent | null>(null);
   const [selectedCheckoutEvent, setSelectedCheckoutEvent] = useState<ExploreEvent | null>(null);
   const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
@@ -313,6 +315,24 @@ export default function ExploreScreen() {
     }
     setActiveTab(tab);
     setSelectedCategory("all");
+  };
+
+  const handleAttendEvent = (event: ExploreEvent) => {
+    if (!user) {
+      setGuestAuthTitle("Attend Pet Event 🎉");
+      setGuestAuthSubtitle("Create an account or sign in to register and reserve your spot!");
+      setGuestAuthVisible(true);
+      return;
+    }
+    setSelectedAttendEvent(event);
+  };
+
+  const handleRegistrationSuccess = (eventId: string) => {
+    setRsvps((prev) => ({ ...prev, [eventId]: true }));
+    setPurchasedTickets((prev) => ({ ...prev, [eventId]: true }));
+    setEventsList((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, attendees: (e.attendees || 0) + 1 } : e))
+    );
   };
 
   const toggleRsvp = (eventId: string, title: string) => {
@@ -842,13 +862,12 @@ export default function ExploreScreen() {
                             </Text>
                           </View>
                           {event.isPaid ? (
-                            <View style={styles.escrowBadge}>
-                              <ShieldCheck size={11} color="#10b981" />
-                              <Text style={styles.escrowBadgeText}>Escrow Protected</Text>
+                            <View style={styles.paidBadge}>
+                              <Text style={styles.paidBadgeText}>Ticketed • {event.ticketPrice}</Text>
                             </View>
                           ) : (
                             <View style={styles.freeBadge}>
-                              <Text style={styles.freeBadgeText}>Free RSVP</Text>
+                              <Text style={styles.freeBadgeText}>Free Admission</Text>
                             </View>
                           )}
                         </View>
@@ -887,37 +906,30 @@ export default function ExploreScreen() {
                             ) : (
                               <TouchableOpacity
                                 style={styles.buyTicketBtn}
-                                onPress={() => {
-                                  if (!user) {
-                                    setGuestAuthTitle("RSVP & Ticket Purchase 🎫");
-                                    setGuestAuthSubtitle("Create an account or sign in to purchase event tickets with escrow protection.");
-                                    setGuestAuthVisible(true);
-                                    return;
-                                  }
-                                  setSelectedCheckoutEvent(event);
-                                }}
+                                onPress={() => handleAttendEvent(event)}
                                 activeOpacity={0.85}
                               >
                                 <Ticket size={13} color="#ffffff" />
                                 <Text style={styles.buyTicketText}>
-                                  Get Ticket • {event.ticketPrice || "$15"}
+                                  Attend • {event.ticketPrice || "$15"}
                                 </Text>
                               </TouchableOpacity>
                             )
                           ) : (
-                            <TouchableOpacity
-                              style={[styles.rsvpButton, isAttending && styles.rsvpButtonActive]}
-                              onPress={() => toggleRsvp(event.id, event.title)}
-                            >
-                              {isAttending ? (
-                                <>
-                                  <Check size={14} color="#ffffff" />
-                                  <Text style={styles.rsvpButtonTextActive}>Going</Text>
-                                </>
-                              ) : (
-                                <Text style={styles.rsvpButtonText}>RSVP Free</Text>
-                              )}
-                            </TouchableOpacity>
+                            isAttending ? (
+                              <View style={styles.ticketActiveBtn}>
+                                <Check size={13} color="#10b981" />
+                                <Text style={styles.ticketActiveText}>Attending ✓</Text>
+                              </View>
+                            ) : (
+                              <TouchableOpacity
+                                style={styles.rsvpButton}
+                                onPress={() => handleAttendEvent(event)}
+                                activeOpacity={0.85}
+                              >
+                                <Text style={styles.rsvpButtonText}>Attend Event</Text>
+                              </TouchableOpacity>
+                            )
                           )}
                         </View>
                       </View>
@@ -1084,24 +1096,26 @@ export default function ExploreScreen() {
         }}
       />
 
-      {/* Event Ticket Checkout Modal with Escrow Protection */}
-      {selectedCheckoutEvent && (
-        <CheckoutModal
-          visible={!!selectedCheckoutEvent}
-          item={{
-            id: selectedCheckoutEvent.id,
-            name: selectedCheckoutEvent.title,
-            price: selectedCheckoutEvent.ticketPrice || "$15.00",
-            sellerOrProvider: selectedCheckoutEvent.organizerName || "Event Organizer",
-            image: selectedCheckoutEvent.image,
-            type: "event",
-            date: selectedCheckoutEvent.date,
-            location: selectedCheckoutEvent.location,
+      {/* Attend Event Form Modal */}
+      {selectedAttendEvent && (
+        <AttendEventModal
+          visible={!!selectedAttendEvent}
+          event={{
+            id: selectedAttendEvent.id,
+            title: selectedAttendEvent.title,
+            date: selectedAttendEvent.date,
+            location: selectedAttendEvent.location,
+            image: selectedAttendEvent.image,
+            categoryLabel: selectedAttendEvent.categoryLabel,
+            organizerName: selectedAttendEvent.organizerName,
+            isPaid: selectedAttendEvent.isPaid,
+            ticketPrice: selectedAttendEvent.ticketPrice,
+            attendees: selectedAttendEvent.attendees,
           }}
-          onClose={() => setSelectedCheckoutEvent(null)}
-          onSuccess={() => {
-            setPurchasedTickets((prev) => ({ ...prev, [selectedCheckoutEvent.id]: true }));
-            setSelectedCheckoutEvent(null);
+          user={user}
+          onClose={() => setSelectedAttendEvent(null)}
+          onSuccess={(eventId) => {
+            handleRegistrationSuccess(eventId);
           }}
         />
       )}
@@ -1574,19 +1588,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  escrowBadge: {
+  paidBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3.5,
     borderRadius: 12,
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    backgroundColor: "rgba(6, 182, 212, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.35)",
+    borderColor: "rgba(6, 182, 212, 0.35)",
   },
-  escrowBadgeText: {
-    color: "#10b981",
+  paidBadgeText: {
+    color: "#06b6d4",
     fontSize: 10.5,
     fontWeight: "700",
   },
