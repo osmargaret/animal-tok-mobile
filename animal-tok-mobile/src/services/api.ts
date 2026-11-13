@@ -527,8 +527,8 @@ export const api = {
         user: c.user || "@guest",
         avatar: c.avatar || "🐾",
         text: c.text || "",
-        time: formatRelativeTime(c.createdAt, c.id),
-        createdAt: c.createdAt,
+        time: formatRelativeTime(c.createdAt || c.created_at || c.time, c.id),
+        createdAt: c.createdAt || c.created_at,
       }));
     } catch (e) {
       console.warn("Failed to fetch comments", e);
@@ -600,8 +600,8 @@ export const api = {
         username: p.animalUsername || `@${(p.animalName || 'pet').toLowerCase().replace(/\s+/g, '')}`,
         displayName: p.animalName || "Pet",
         avatar: p.animalAvatar || "🐾",
-        time: formatRelativeTime(p.createdAt, p.id),
-        createdAt: p.createdAt,
+        time: formatRelativeTime(p.createdAt || p.created_at || p.time, p.id),
+        createdAt: p.createdAt || p.created_at,
         caption: p.caption || "",
         hashtags: Array.isArray(p.tags) ? p.tags.map((t: string) => `#${t.replace(/^#/, '')}`).join(' ') : (p.tags || "#AnimalTok"),
         videoUrl: p.videoUrl || "",

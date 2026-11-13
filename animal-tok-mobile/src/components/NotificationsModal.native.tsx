@@ -120,7 +120,7 @@ export default function NotificationsModal({ visible, onClose }: NotificationsMo
                       <View style={{ flex: 1 }}>
                         <Text style={styles.itemTitle}>{item.title}</Text>
                         <Text style={styles.itemMsg}>{item.message}</Text>
-                        <Text style={styles.itemTime}>{formatRelativeTime(item.timestamp, item.id)}</Text>
+                        <Text style={styles.itemTime}>{formatRelativeTime(item.timestamp || (item as any)?.createdAt || (item as any)?.created_at, item.id)}</Text>
                       </View>
                     </View>
                   ))

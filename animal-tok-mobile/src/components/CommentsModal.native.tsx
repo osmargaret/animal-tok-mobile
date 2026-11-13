@@ -133,7 +133,7 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
                 <View style={styles.commentBody}>
                   <View style={styles.nameRow}>
                     <Text style={styles.commentUser}>{item.user}</Text>
-                    <Text style={styles.commentTime}>{formatRelativeTime(item.createdAt || item.time)}</Text>
+                    <Text style={styles.commentTime}>{formatRelativeTime(item.createdAt || (item as any)?.created_at || item.time, (item as any)?.id)}</Text>
                   </View>
                   <Text style={styles.commentText}>{item.text}</Text>
                 </View>

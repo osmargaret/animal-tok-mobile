@@ -96,7 +96,7 @@ export default function FeedScreen() {
           seen.add(idStr);
           merged.push({
             ...p,
-            time: formatRelativeTime(p.createdAt || p.time, p.id),
+            time: formatRelativeTime(p.createdAt || (p as any)?.created_at || p.time, p.id),
           });
         }
       }
@@ -107,7 +107,7 @@ export default function FeedScreen() {
           seen.add(idStr);
           merged.push({
             ...sp,
-            time: formatRelativeTime(sp.createdAt || sp.time, sp.id),
+            time: formatRelativeTime(sp.createdAt || (sp as any)?.created_at || sp.time, sp.id),
           });
         }
       }
@@ -192,8 +192,8 @@ export default function FeedScreen() {
           username: newPost.animalUsername || `@${(newPost.animalName || "pet").toLowerCase().replace(/\s+/g, "")}`,
           displayName: newPost.animalName || "Pet",
           avatar: newPost.animalAvatar || "🐾",
-          time: formatRelativeTime(newPost.createdAt, newPost.id),
-          createdAt: newPost.createdAt,
+          time: formatRelativeTime(newPost.createdAt || newPost.created_at || newPost.time, newPost.id),
+          createdAt: newPost.createdAt || newPost.created_at,
           caption: newPost.caption || "",
           hashtags: Array.isArray(newPost.tags) ? newPost.tags.map((t: string) => `#${t.replace(/^#/, "")}`).join(" ") : (newPost.tags || "#AnimalTok"),
           videoUrl: newPost.videoUrl || "",

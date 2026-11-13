@@ -90,18 +90,25 @@ export default function ProfileScreen() {
     setLoading(true);
 
     // 1. Gather all posts (feedPosts + locally persisted custom posts)
-    let allPosts: any[] = [...feedPosts];
+    let allPosts: any[] = feedPosts.map((fp) => ({
+      ...fp,
+      time: formatRelativeTime(fp.createdAt || (fp as any)?.created_at || fp.time, fp.id),
+    }));
     try {
       const stored = await AsyncStorage.getItem("animaltok_custom_posts");
       if (stored) {
         const custom = JSON.parse(stored);
         if (Array.isArray(custom)) {
           custom.forEach((p) => {
-            if (!allPosts.some((existing) => String(existing.id) === String(p.id))) {
-              allPosts.unshift({
-                ...p,
-                time: formatRelativeTime(p.createdAt || p.time, p.id),
-              });
+            const formatted = {
+              ...p,
+              time: formatRelativeTime(p.createdAt || p.created_at || p.time, p.id),
+            };
+            const existingIdx = allPosts.findIndex((existing) => String(existing.id) === String(p.id));
+            if (existingIdx !== -1) {
+              allPosts[existingIdx] = formatted;
+            } else {
+              allPosts.unshift(formatted);
             }
           });
         }
@@ -113,11 +120,15 @@ export default function ProfileScreen() {
       const serverPosts = await api.getFeedPosts(1, 40);
       if (serverPosts && Array.isArray(serverPosts)) {
         serverPosts.forEach((p) => {
-          if (!allPosts.some((existing) => String(existing.id) === String(p.id))) {
-            allPosts.push({
-              ...p,
-              time: formatRelativeTime(p.createdAt || p.time, p.id),
-            });
+          const formatted = {
+            ...p,
+            time: formatRelativeTime(p.createdAt || (p as any)?.created_at || p.time, p.id),
+          };
+          const existingIdx = allPosts.findIndex((existing) => String(existing.id) === String(p.id));
+          if (existingIdx !== -1) {
+            allPosts[existingIdx] = formatted;
+          } else {
+            allPosts.push(formatted);
           }
         });
       }
@@ -1090,7 +1101,7 @@ export default function ProfileScreen() {
                     <Heart size={14} color="#ef4444" />
                     <Text style={styles.postModalStatText}>{formatNumber(selectedPost.likes || 0)} Likes</Text>
                   </View>
-                  <Text style={styles.postModalTimeText}>{formatRelativeTime(selectedPost.createdAt || selectedPost.time, selectedPost.id)}</Text>
+                  <Text style={styles.postModalTimeText}>{formatRelativeTime(selectedPost.createdAt || (selectedPost as any)?.created_at || selectedPost.time, selectedPost.id)}</Text>
                 </View>
               </View>
             </View>
