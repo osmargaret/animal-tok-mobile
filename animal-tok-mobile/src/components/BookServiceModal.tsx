@@ -27,9 +27,12 @@ import {
   Building,
   Video as VideoIcon,
   Sparkles,
+  MessageSquare,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ServiceItem } from "@/data/marketData";
+import { api } from "@/services/api";
 
 export interface ServiceBookingItem {
   id: string;
@@ -66,6 +69,7 @@ export default function BookServiceModal({
 }: BookServiceModalProps) {
   if (!service) return null;
 
+  const router = useRouter();
   const [clientName, setClientName] = useState(user?.name || "Alex Morgan");
   const [clientEmail, setClientEmail] = useState(user?.email || "alex@example.com");
   const [clientPhone, setClientPhone] = useState("+1 (512) 555-0192");
@@ -130,6 +134,63 @@ export default function BookServiceModal({
       if (!Array.isArray(list)) list = [];
       list.unshift(booking);
       await AsyncStorage.setItem("animaltok_service_bookings", JSON.stringify(list));
+
+      // Auto-send confirmation message thread to service creator
+      try {
+        const threadId = `booking_${booking.id}`;
+        const modeLine =
+          booking.mode === "virtual"
+            ? "💻  Virtual / Video Consultation"
+            : "🏢  Onsite / In-person Visit";
+        const msgBody =
+          `🗓️ Service Booking Confirmed — #${booking.id}\n` +
+          `─────────────────────────\n` +
+          `🏷️  Service: ${booking.serviceName}\n` +
+          `📅  Scheduled: ${booking.appointmentDate}\n` +
+          `${modeLine}\n` +
+          `💰  Fee: ${booking.price}\n` +
+          `🐾  Pet: ${booking.petInfo || "Not specified"}\n` +
+          `─────────────────────────\n` +
+          `👤  Client: ${booking.clientName}\n` +
+          `📞  ${booking.clientPhone}` +
+          (booking.clientEmail ? `\n📧  ${booking.clientEmail}` : "") +
+          (booking.notes ? `\n📝  Notes: ${booking.notes}` : "");
+
+        const clientId = user?.id || "u_client";
+        const providerId = booking.providerId || "u_provider";
+        const clientDisplayName = booking.clientName || user?.name || "Client";
+        const providerDisplayName = booking.providerName || "Service Provider";
+
+        await api.sendMessage(
+          threadId,
+          msgBody,
+          clientId,
+          providerId,
+          clientDisplayName,
+          user?.avatar || "🐾",
+          providerDisplayName,
+          service.image || "🩺"
+        );
+
+        // Also persist thread locally so it appears instantly in the Inbox and chat
+        const localThreadKey = `animaltok_thread_${threadId}`;
+        const localMsg = {
+          id: `msg_${Date.now()}`,
+          sender: "me",
+          text: msgBody,
+          time: "Just now",
+          threadId,
+          senderId: clientId,
+          recipientId: providerId,
+          createdAt: new Date().toISOString(),
+        };
+        const existingThread = await AsyncStorage.getItem(localThreadKey);
+        const threadMsgs = existingThread ? JSON.parse(existingThread) : [];
+        threadMsgs.push(localMsg);
+        await AsyncStorage.setItem(localThreadKey, JSON.stringify(threadMsgs));
+      } catch (msgErr) {
+        console.warn("Auto-message after booking failed (non-blocking):", msgErr);
+      }
 
       setIsSubmitting(false);
       setConfirmed(true);
@@ -211,12 +272,38 @@ export default function BookServiceModal({
               </View>
 
               <Text style={styles.successNote}>
-                Your booking request has been submitted to {service.provider}. They will contact you shortly to confirm and coordinate.
+                Your booking request and confirmation have been sent to {service.provider}. A chat thread has been started so you can message each other directly.
               </Text>
 
-              <TouchableOpacity style={styles.doneBtn} onPress={handleClose} activeOpacity={0.85}>
-                <Text style={styles.doneBtnText}>Done</Text>
-              </TouchableOpacity>
+              <View style={styles.successActions}>
+                <TouchableOpacity
+                  style={styles.chatBtn}
+                  onPress={() => {
+                    handleClose();
+                    router.push({
+                      pathname: "/(tabs)/message/[id]",
+                      params: {
+                        id: `booking_${bookingRef}`,
+                        recipientId: service.providerId || "u_provider",
+                        name: service.provider,
+                        avatar: service.image || "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&fit=crop",
+                        itemTitle: service.name,
+                        itemPrice: service.price,
+                        itemType: "service",
+                        itemImage: service.image,
+                      },
+                    });
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <MessageSquare size={16} color="#ffffff" />
+                  <Text style={styles.chatBtnText}>Chat with Provider</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.doneBtn} onPress={handleClose} activeOpacity={0.85}>
+                  <Text style={styles.doneBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           ) : (
             /* Booking Form */
@@ -689,18 +776,39 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 16,
   },
-  doneBtn: {
+  successActions: {
+    width: "100%",
+    gap: 10,
+  },
+  chatBtn: {
     width: "100%",
     backgroundColor: "#06b6d4",
     paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  chatBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  doneBtn: {
+    width: "100%",
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    paddingVertical: 13,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   doneBtnText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
+    color: "#94a3b8",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 

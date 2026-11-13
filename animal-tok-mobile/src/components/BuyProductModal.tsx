@@ -30,7 +30,9 @@ import {
   Mail,
   ShieldCheck,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ProductItem } from "@/data/marketData";
 import { api } from "@/services/api";
@@ -59,6 +61,8 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
   user,
 }) => {
   if (!product) return null;
+
+  const router = useRouter();
 
   // Variants & Options
   const availableTypes =
@@ -233,6 +237,67 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
     ordersList.unshift(orderData);
     await AsyncStorage.setItem("animaltok_product_orders", JSON.stringify(ordersList));
 
+    // Auto-send confirmation message thread to seller
+    try {
+      const threadId = `order_${orderData.id}`;
+      const fulfillmentLine =
+        orderData.fulfillment === "pickup"
+          ? `📍  Pick Up: ${orderData.pickupTime || "TBD"} — ${orderData.pickupLocation || ""}`
+          : `🚚  Delivery to: ${orderData.deliveryAddress || ""}`;
+      const msgBody =
+        `🛍️ New Order — #${orderData.id}\n` +
+        `─────────────────────────\n` +
+        `📦  ${orderData.productName}\n` +
+        `🔖  Type: ${orderData.type}  •  Size: ${orderData.size}  •  Colour: ${orderData.color}\n` +
+        `🔢  Qty: ${orderData.quantity}  •  Total: $${orderData.total}\n` +
+        `${fulfillmentLine}\n` +
+        `─────────────────────────\n` +
+        `👤  Buyer: ${orderData.buyerName}\n` +
+        `📞  ${orderData.buyerPhone}` +
+        (orderData.buyerEmail ? `\n📧  ${orderData.buyerEmail}` : "") +
+        (orderData.deliveryNotes ? `\n📝  Notes: ${orderData.deliveryNotes}` : "");
+
+      const buyerId = user?.id || "u_buyer";
+      const sellerId = orderData.sellerId || "u_seller";
+      const buyerName = orderData.buyerName || user?.name || "Buyer";
+      const sellerName = orderData.seller || "Seller";
+
+      await api.sendMessage(
+        threadId,
+        msgBody,
+        buyerId,
+        sellerId,
+        buyerName,
+        user?.avatar || "🛒",
+        sellerName,
+        "🏪"
+      );
+
+      // Also persist thread locally so both sides can see it in Inbox
+      const localThreadKey = `animaltok_thread_${threadId}`;
+      const localMsg = {
+        id: `msg_${Date.now()}`,
+        sender: "me",
+        text: msgBody,
+        time: "Just now",
+        threadId,
+        senderId: buyerId,
+        senderName: buyerName,
+        senderAvatar: user?.avatar || "🛒",
+        recipientId: sellerId,
+        recipientName: sellerName,
+        createdAt: new Date().toISOString(),
+        isOrder: true,
+        orderId: orderData.id,
+      };
+      const existingThread = await AsyncStorage.getItem(localThreadKey);
+      const threadMsgs = existingThread ? JSON.parse(existingThread) : [];
+      threadMsgs.push(localMsg);
+      await AsyncStorage.setItem(localThreadKey, JSON.stringify(threadMsgs));
+    } catch (msgErr) {
+      console.warn("Auto-message after order failed (non-blocking):", msgErr);
+    }
+
     setConfirmedOrderId(orderData.id);
     setOrderComplete(true);
     setSubmitting(false);
@@ -303,9 +368,36 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.finishBtn} onPress={resetForm}>
-                <Text style={styles.finishBtnText}>Done</Text>
-              </TouchableOpacity>
+              <View style={styles.successActions}>
+                <TouchableOpacity
+                  style={styles.chatBtn}
+                  onPress={() => {
+                    const orderIdToOpen = confirmedOrderId;
+                    resetForm();
+                    router.push({
+                      pathname: "/(tabs)/message/[id]",
+                      params: {
+                        id: `order_${orderIdToOpen}`,
+                        recipientId: product.sellerId || "u_seller",
+                        name: product.seller,
+                        avatar: product.image || "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&fit=crop",
+                        itemTitle: product.name,
+                        itemPrice: `$${totalAmount}`,
+                        itemType: "product",
+                        itemImage: product.image,
+                      },
+                    });
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <MessageSquare size={16} color="#ffffff" />
+                  <Text style={styles.chatBtnText}>Chat with Seller</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.finishBtn} onPress={resetForm}>
+                  <Text style={styles.finishBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : awaitingPaystack ? (
             /* Awaiting Paystack Screen */
@@ -1019,18 +1111,39 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontWeight: "600",
   },
-  finishBtn: {
+  successActions: {
+    width: "100%",
+    gap: 10,
+    marginTop: 20,
+  },
+  chatBtn: {
     width: "100%",
     backgroundColor: "#06b6d4",
     borderRadius: 12,
     paddingVertical: 13,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 20,
+    justifyContent: "center",
+    gap: 8,
   },
-  finishBtnText: {
+  chatBtnText: {
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "700",
+  },
+  finishBtn: {
+    width: "100%",
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  finishBtnText: {
+    color: "#94a3b8",
+    fontSize: 14,
+    fontWeight: "600",
   },
   awaitingBox: {
     padding: 28,
