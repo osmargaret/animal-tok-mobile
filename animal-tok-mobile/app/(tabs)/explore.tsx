@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ import {
   Wrench,
   X,
   ChevronDown,
+  ChevronUp,
   Plus,
   ShieldCheck,
   Ticket,
@@ -241,7 +242,12 @@ export default function ExploreScreen() {
   const [hostModalVisible, setHostModalVisible] = useState(false);
   const [selectedAttendEvent, setSelectedAttendEvent] = useState<ExploreEvent | null>(null);
   const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
+  const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const toggleEventExpand = (id: string) => {
+    setExpandedEvents((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Guest Auth Modal state
   const [guestAuthVisible, setGuestAuthVisible] = useState(false);
@@ -837,6 +843,7 @@ export default function ExploreScreen() {
               <View style={styles.eventsList}>
                 {filteredEvents.map((event) => {
                   const isAttending = !!rsvps[event.id];
+                  const isExpanded = !!expandedEvents[event.id];
                   const categoryBadgeColor =
                     event.category === "mating"
                       ? "#ec4899"
@@ -848,51 +855,69 @@ export default function ExploreScreen() {
 
                   return (
                     <View key={event.id} style={styles.eventCard}>
-                      <Image source={{ uri: event.image }} style={styles.eventImage} />
+                      <View style={styles.eventImageWrap}>
+                        <Image source={{ uri: event.image }} style={styles.eventImage} resizeMode="cover" />
+                        <View style={event.isPaid ? styles.imagePaidBadge : styles.imageFreeBadge}>
+                          <Text style={event.isPaid ? styles.imagePaidBadgeText : styles.imageFreeBadgeText}>
+                            {event.isPaid ? `Ticketed • ${event.ticketPrice}` : "Free Admission"}
+                          </Text>
+                        </View>
+                      </View>
+
                       <View style={styles.eventBody}>
-                        {/* Badges Row */}
+                        {/* Badges Row - wraps cleanly on all screen sizes */}
                         <View style={styles.eventBadgeRow}>
-                          <View style={[styles.categoryBadge, { backgroundColor: `${categoryBadgeColor}20`, borderColor: categoryBadgeColor }]}>
+                          <View style={[styles.categoryBadge, { backgroundColor: `${categoryBadgeColor}18`, borderColor: `${categoryBadgeColor}60` }]}>
                             <Text style={[styles.categoryBadgeText, { color: categoryBadgeColor }]}>
                               {event.categoryLabel}
                             </Text>
                           </View>
                           <View style={styles.petTypeBadge}>
                             <Text style={styles.petTypeBadgeText}>
-                              {event.petType === "dog" ? "🐕 Dog" : event.petType === "cat" ? "🐈 Cat" : event.petType === "bird" ? "🦜 Bird" : "🐾 All Pets"}
+                              {event.petType === "dog" ? "🐕 Dog" : event.petType === "cat" ? "🐱 Cat" : event.petType === "bird" ? "🦜 Bird" : "🐾 All Pets"}
                             </Text>
                           </View>
-                          {event.isPaid ? (
-                            <View style={styles.paidBadge}>
-                              <Text style={styles.paidBadgeText}>Ticketed • {event.ticketPrice}</Text>
-                            </View>
-                          ) : (
-                            <View style={styles.freeBadge}>
-                              <Text style={styles.freeBadgeText}>Free Admission</Text>
-                            </View>
-                          )}
                         </View>
 
                         <Text style={styles.eventTitle}>{event.title}</Text>
-                        <Text style={styles.eventDesc} numberOfLines={2}>
-                          {event.description}
-                        </Text>
 
-                        {/* Date & Location */}
+                        {/* Date */}
                         <View style={styles.eventMetaRow}>
-                          <Calendar size={14} color="#06b6d4" />
+                          <Calendar size={13} color="#06b6d4" />
                           <Text style={styles.eventMetaText}>{event.date}</Text>
                         </View>
 
-                        <View style={styles.eventMetaRow}>
-                          <MapPin size={14} color="#64748b" />
-                          <Text style={styles.eventMetaText} numberOfLines={1}>{event.location}</Text>
-                        </View>
+                        {/* Retractable details: Description & Location */}
+                        {isExpanded ? (
+                          <View style={styles.eventExpandedDetails}>
+                            <Text style={styles.eventDesc}>{event.description}</Text>
+                            <View style={styles.eventMetaRow}>
+                              <MapPin size={13} color="#94a3b8" />
+                              <Text style={styles.eventMetaText} numberOfLines={2}>{event.location}</Text>
+                            </View>
+                          </View>
+                        ) : null}
+
+                        {/* Retract / Expand Toggle Button with down/up arrow */}
+                        <TouchableOpacity
+                          style={styles.expandToggleBtn}
+                          onPress={() => toggleEventExpand(event.id)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.expandToggleBtnText}>
+                            {isExpanded ? "Show less" : "See details"}
+                          </Text>
+                          {isExpanded ? (
+                            <ChevronUp size={13} color="#06b6d4" />
+                          ) : (
+                            <ChevronDown size={13} color="#06b6d4" />
+                          )}
+                        </TouchableOpacity>
 
                         {/* Bottom Actions */}
                         <View style={styles.eventFooterRow}>
                           <View style={styles.attendeesBox}>
-                            <Users size={14} color="#94a3b8" />
+                            <Users size={13} color="#94a3b8" />
                             <Text style={styles.attendeesText}>
                               {event.attendees + (isAttending ? 1 : 0)} attending
                             </Text>
@@ -916,21 +941,19 @@ export default function ExploreScreen() {
                                 </Text>
                               </TouchableOpacity>
                             )
+                          ) : isAttending ? (
+                            <View style={styles.ticketActiveBtn}>
+                              <Check size={13} color="#10b981" />
+                              <Text style={styles.ticketActiveText}>Attending ✓</Text>
+                            </View>
                           ) : (
-                            isAttending ? (
-                              <View style={styles.ticketActiveBtn}>
-                                <Check size={13} color="#10b981" />
-                                <Text style={styles.ticketActiveText}>Attending ✓</Text>
-                              </View>
-                            ) : (
-                              <TouchableOpacity
-                                style={styles.rsvpButton}
-                                onPress={() => handleAttendEvent(event)}
-                                activeOpacity={0.85}
-                              >
-                                <Text style={styles.rsvpButtonText}>Attend Event</Text>
-                              </TouchableOpacity>
-                            )
+                            <TouchableOpacity
+                              style={styles.rsvpButton}
+                              onPress={() => handleAttendEvent(event)}
+                              activeOpacity={0.85}
+                            >
+                              <Text style={styles.rsvpButtonText}>Attend Event</Text>
+                            </TouchableOpacity>
                           )}
                         </View>
                       </View>
@@ -1524,79 +1547,137 @@ const styles = StyleSheet.create({
 
   // Events List
   eventsList: {
-    gap: 14,
+    gap: 12,
   },
   eventCard: {
     backgroundColor: "#161b22",
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#1e293b",
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  eventImageWrap: {
+    width: "100%",
+    height: 125,
+    position: "relative",
   },
   eventImage: {
     width: "100%",
-    height: 140,
+    height: "100%",
+  },
+  imageFreeBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(13, 17, 23, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.45)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  imageFreeBadgeText: {
+    color: "#06b6d4",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  imagePaidBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(13, 17, 23, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.45)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  imagePaidBadgeText: {
+    color: "#f59e0b",
+    fontSize: 10.5,
+    fontWeight: "700",
   },
   eventBody: {
-    padding: 14,
+    padding: 12,
   },
   eventBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 6,
   },
   categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     borderWidth: 1,
   },
   categoryBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "700",
   },
   petTypeBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 10,
     backgroundColor: "#21262d",
   },
   petTypeBadgeText: {
     color: "#cbd5e1",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "600",
   },
   eventTitle: {
     color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  eventExpandedDetails: {
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(30, 41, 59, 0.6)",
   },
   eventDesc: {
     color: "#94a3b8",
     fontSize: 12,
     lineHeight: 18,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   eventMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 5,
+    gap: 6,
+    marginBottom: 4,
   },
   eventMetaText: {
     color: "#cbd5e1",
-    fontSize: 12,
+    fontSize: 11.5,
     flex: 1,
+  },
+  expandToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 4,
+    paddingVertical: 4,
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  expandToggleBtnText: {
+    color: "#06b6d4",
+    fontSize: 11.5,
+    fontWeight: "600",
   },
   eventFooterRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: "#21262d",
   },

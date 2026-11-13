@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles } from "lucide-react-native";
+import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles, ChevronDown, ChevronUp } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
@@ -60,6 +60,7 @@ export default function MessageViewScreen() {
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState(params.initialMessage || "");
+  const [itemCardExpanded, setItemCardExpanded] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -238,26 +239,66 @@ export default function MessageViewScreen() {
 
         {/* Trade / Marketplace Item Reference Banner */}
         {params.itemTitle ? (
-          <View style={styles.tradeCard}>
-            {params.itemImage ? (
-              <Image source={{ uri: params.itemImage }} style={styles.tradeImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.tradeIconBox}>
-                <ShoppingBag size={20} color="#06b6d4" />
-              </View>
-            )}
-            <View style={{ flex: 1, marginHorizontal: 10 }}>
-              <View style={styles.tradeBadgeRow}>
-                <Text style={styles.tradeBadge}>
-                  {params.itemType === "service" ? "Pet Service" : "Product Item"}
+          !itemCardExpanded ? (
+            /* Retracted / Collapsed (Finer, minimal strip with down arrow) */
+            <TouchableOpacity
+              style={styles.tradeCardRetracted}
+              onPress={() => setItemCardExpanded(true)}
+              activeOpacity={0.85}
+            >
+              {params.itemImage ? (
+                <Image source={{ uri: params.itemImage }} style={styles.tradeThumbMini} resizeMode="cover" />
+              ) : (
+                <ShoppingBag size={14} color="#06b6d4" />
+              )}
+              <View style={styles.tradeBadgeMiniWrap}>
+                <Text style={styles.tradeBadgeMini}>
+                  {params.itemType === "service" ? "Service" : "Product"}
                 </Text>
               </View>
-              <Text style={styles.tradeTitle} numberOfLines={1}>
+              <Text style={styles.tradeTitleMini} numberOfLines={1}>
                 {params.itemTitle}
               </Text>
-              <Text style={styles.tradePrice}>{params.itemPrice}</Text>
+              {params.itemPrice ? (
+                <Text style={styles.tradePriceMini}>{params.itemPrice}</Text>
+              ) : null}
+              <View style={styles.chevronWrap}>
+                <ChevronDown size={16} color="#06b6d4" />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            /* Expanded (Detailed finer card with up arrow to retract) */
+            <View style={styles.tradeCardExpanded}>
+              <View style={styles.tradeExpandedMain}>
+                {params.itemImage ? (
+                  <Image source={{ uri: params.itemImage }} style={styles.tradeImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.tradeIconBox}>
+                    <ShoppingBag size={20} color="#06b6d4" />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                  <View style={styles.tradeBadgeRow}>
+                    <Text style={styles.tradeBadge}>
+                      {params.itemType === "service" ? "Pet Service" : "Product Item"}
+                    </Text>
+                  </View>
+                  <Text style={styles.tradeTitle} numberOfLines={2}>
+                    {params.itemTitle}
+                  </Text>
+                  <Text style={styles.tradePrice}>{params.itemPrice}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.chevronWrapExpanded}
+                  onPress={() => setItemCardExpanded(false)}
+                  activeOpacity={0.8}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <ChevronUp size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )
         ) : null}
 
         {/* Message Thread */}
@@ -520,34 +561,93 @@ const styles = StyleSheet.create({
   sendBtnDisabled: {
     opacity: 0.5,
   },
-  tradeCard: {
+  tradeCardRetracted: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(22, 27, 34, 0.95)",
+    marginHorizontal: 12,
+    marginTop: 6,
+    marginBottom: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(56, 189, 248, 0.2)",
+    gap: 8,
+  },
+  tradeThumbMini: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    backgroundColor: "#0d1117",
+  },
+  tradeBadgeMiniWrap: {
+    backgroundColor: "rgba(6, 182, 212, 0.12)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tradeBadgeMini: {
+    fontSize: 9.5,
+    color: "#06b6d4",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  tradeTitleMini: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#f1f5f9",
+  },
+  tradePriceMini: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#10b981",
+  },
+  chevronWrap: {
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tradeCardExpanded: {
     backgroundColor: "#161b22",
     marginHorizontal: 12,
-    marginTop: 8,
+    marginTop: 6,
     marginBottom: 4,
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#1e293b",
+    borderColor: "rgba(56, 189, 248, 0.25)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
   },
+  tradeExpandedMain: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   tradeImage: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 8,
     backgroundColor: "#0d1117",
   },
   tradeIconBox: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 8,
     backgroundColor: "rgba(6, 182, 212, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chevronWrapExpanded: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -572,19 +672,5 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#10b981",
     marginTop: 1,
-  },
-  tradeActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#06b6d4",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 14,
-  },
-  tradeActionText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#ffffff",
   },
 });
