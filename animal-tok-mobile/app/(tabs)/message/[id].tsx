@@ -16,9 +16,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import CheckoutModal from "@/components/CheckoutModal.native";
+
+// Local storage key per thread for offline persistence
+const threadKey = (id: string) => `animaltok_thread_${id}`;
 
 interface MessageBubble {
   id: string;
@@ -70,6 +74,19 @@ export default function MessageViewScreen() {
     // 1. Fetch live thread history from backend
     const fetchHistory = async () => {
       setLoading(true);
+
+      // Load locally persisted messages first (instant, no network needed)
+      try {
+        const local = await AsyncStorage.getItem(threadKey(threadId));
+        if (local) {
+          const localMsgs: MessageBubble[] = JSON.parse(local);
+          if (Array.isArray(localMsgs) && localMsgs.length > 0) {
+            setMessages(localMsgs);
+          }
+        }
+      } catch (_) {}
+
+      // Then try to fetch from server and merge
       try {
         const serverMsgs = await api.getThreadMessages(threadId);
         if (Array.isArray(serverMsgs) && serverMsgs.length > 0) {
@@ -80,11 +97,12 @@ export default function MessageViewScreen() {
             time: m.timestamp || "Just now",
           }));
           setMessages(mapped);
-        } else {
-          setMessages([]);
+          // Persist server messages locally
+          await AsyncStorage.setItem(threadKey(threadId), JSON.stringify(mapped)).catch(() => {});
         }
+        // If server returns empty, keep the locally loaded messages (don't wipe them)
       } catch (err) {
-        console.warn("Failed to load message history:", err);
+        console.warn("Failed to load message history from server, using local cache:", err);
       } finally {
         setLoading(false);
       }
@@ -98,15 +116,20 @@ export default function MessageViewScreen() {
 
       const onNewMessage = (m: any) => {
         if (m.threadId === threadId && m.senderId !== currentUserId) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: m.id,
-              sender: "them",
-              text: m.text,
-              time: m.timestamp || "Just now",
-            },
-          ]);
+          setMessages((prev) => {
+            const updated = [
+              ...prev,
+              {
+                id: m.id,
+                sender: "them" as const,
+                text: m.text,
+                time: m.timestamp || "Just now",
+              },
+            ];
+            // Persist incoming messages locally too
+            AsyncStorage.setItem(threadKey(threadId), JSON.stringify(updated)).catch(() => {});
+            return updated;
+          });
         }
       };
 
@@ -132,12 +155,17 @@ export default function MessageViewScreen() {
       text: currentText,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-    setMessages((prev) => [...prev, optimisticMsg]);
+    setMessages((prev) => {
+      const updated = [...prev, optimisticMsg];
+      // Persist locally so messages survive screen unmount / backend delays
+      AsyncStorage.setItem(threadKey(threadId), JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
 
     // Send to backend with full participant context
     const senderName = user?.name || "User";
     const senderAvatar = user?.avatar || "👤";
-    await api.sendMessage(
+    const serverMsg = await api.sendMessage(
       threadId,
       currentText,
       currentUserId,
@@ -147,6 +175,17 @@ export default function MessageViewScreen() {
       contactName,
       contactAvatar
     );
+
+    // Replace temp bubble with real server ID if we got one back
+    if (serverMsg?.id) {
+      setMessages((prev) => {
+        const updated = prev.map((m) =>
+          m.id === tempId ? { ...m, id: serverMsg.id, time: serverMsg.timestamp || m.time } : m
+        );
+        AsyncStorage.setItem(threadKey(threadId), JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+    }
   };
 
   if (!user) {

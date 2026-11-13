@@ -25,7 +25,6 @@ import {
   Truck,
   Phone,
   User,
-  Sparkles,
   Clock,
   ExternalLink,
   Lock,
@@ -71,7 +70,7 @@ export default function CheckoutModal({
   const [phone, setPhone] = useState("+1 (512) 555-0192");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(item.date || "Tomorrow at 10:00 AM");
   const [petNotes, setPetNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "card" | "cash">("paystack");
+  // Payment is always via Paystack — no in-app method selector needed
 
   const [processing, setProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -186,19 +185,7 @@ export default function CheckoutModal({
   };
 
   const handleConfirm = async () => {
-    if (paymentMethod === "paystack") {
-      await handlePaystackInit();
-      return;
-    }
-
-    setProcessing(true);
-    setTimeout(() => {
-      const generatedOrderId = `AT-${Math.floor(100000 + Math.random() * 900000)}`;
-      setOrderId(generatedOrderId);
-      setProcessing(false);
-      setOrderComplete(true);
-      if (onSuccess) onSuccess(generatedOrderId);
-    }, 1200);
+    await handlePaystackInit();
   };
 
   const handleClose = () => {
@@ -330,7 +317,7 @@ export default function CheckoutModal({
                 style={styles.cancelVerifyBtn}
                 onPress={() => setAwaitingVerification(false)}
               >
-                <Text style={styles.cancelVerifyText}>← Choose Different Payment Method</Text>
+                <Text style={styles.cancelVerifyText}>← Cancel Payment</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -455,90 +442,6 @@ export default function CheckoutModal({
                 )}
               </View>
 
-              {/* Payment Methods */}
-              <View style={styles.section}>
-                <View style={styles.sectionTitleRow}>
-                  <CreditCard size={18} color="#06b6d4" />
-                  <Text style={styles.sectionTitle}>Payment Method</Text>
-                </View>
-                <View style={styles.paymentOptions}>
-                  {/* Paystack Live Option */}
-                  <TouchableOpacity
-                    style={[styles.paymentBtn, paymentMethod === "paystack" && styles.paymentBtnActive]}
-                    onPress={() => setPaymentMethod("paystack")}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <CreditCard size={17} color={paymentMethod === "paystack" ? "#06b6d4" : "#94a3b8"} />
-                        <Text
-                          style={[
-                            styles.paymentBtnText,
-                            paymentMethod === "paystack" && styles.paymentBtnTextActive,
-                          ]}
-                        >
-                          Paystack Checkout
-                        </Text>
-                        <View style={styles.verifiedBadge}>
-                          <Text style={styles.verifiedBadgeText}>Official</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.subPayText}>Card, Bank, USSD, Apple Pay</Text>
-                    </View>
-                    <View style={[styles.radioCircle, paymentMethod === "paystack" && styles.radioCircleActive]}>
-                      {paymentMethod === "paystack" && <View style={styles.radioDot} />}
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Instant Card Option */}
-                  <TouchableOpacity
-                    style={[styles.paymentBtn, paymentMethod === "card" && styles.paymentBtnActive]}
-                    onPress={() => setPaymentMethod("card")}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <Sparkles size={17} color={paymentMethod === "card" ? "#06b6d4" : "#94a3b8"} />
-                        <Text
-                          style={[
-                            styles.paymentBtnText,
-                            paymentMethod === "card" && styles.paymentBtnTextActive,
-                          ]}
-                        >
-                          Direct Instant Card (•••• 4242)
-                        </Text>
-                      </View>
-                      <Text style={styles.subPayText}>Fast simulated checkout</Text>
-                    </View>
-                    <View style={[styles.radioCircle, paymentMethod === "card" && styles.radioCircleActive]}>
-                      {paymentMethod === "card" && <View style={styles.radioDot} />}
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Cash Option */}
-                  <TouchableOpacity
-                    style={[styles.paymentBtn, paymentMethod === "cash" && styles.paymentBtnActive]}
-                    onPress={() => setPaymentMethod("cash")}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <Truck size={17} color={paymentMethod === "cash" ? "#06b6d4" : "#94a3b8"} />
-                        <Text
-                          style={[
-                            styles.paymentBtnText,
-                            paymentMethod === "cash" && styles.paymentBtnTextActive,
-                          ]}
-                        >
-                          {isProduct ? "Cash on Delivery" : "Pay at Appointment"}
-                        </Text>
-                      </View>
-                      <Text style={styles.subPayText}>Pay directly upon receipt</Text>
-                    </View>
-                    <View style={[styles.radioCircle, paymentMethod === "cash" && styles.radioCircleActive]}>
-                      {paymentMethod === "cash" && <View style={styles.radioDot} />}
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
               {/* Order Summary */}
               <View style={styles.summaryCard}>
                 <View style={styles.summaryRow}>
@@ -583,15 +486,9 @@ export default function CheckoutModal({
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <Text style={styles.confirmBtnText}>
-                    {paymentMethod === "paystack"
-                      ? isEvent
-                        ? `Pay $${total} via Paystack (Escrow)`
-                        : `Pay $${total} with Paystack`
-                      : isEvent
-                      ? `Confirm Ticket Purchase ($${total})`
-                      : isProduct
-                      ? `Pay $${total} & Place Order`
-                      : `Confirm Booking ($${total})`}
+                    {isEvent
+                      ? `Pay $${total} via Paystack (Escrow)`
+                      : `Pay $${total} via Paystack`}
                   </Text>
                 )}
               </TouchableOpacity>

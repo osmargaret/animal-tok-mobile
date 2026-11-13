@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { io, Socket } from "socket.io-client";
 import { formatRelativeTime } from "@/utils/timeAgo";
 import { feedPosts, type FeedPost } from "@/data/feedData";
@@ -397,31 +398,60 @@ export const api = {
    */
   checkIsFollowing: async (animalId: string, userId: string) => {
     try {
-      const response = await fetch(`${BASE_URL}/follow/check?animalId=${animalId}&userId=${userId}`);
-      if (!response.ok) return false;
-      const data = await response.json();
-      return !!data.isFollowing;
-    } catch (e) {
-      return false;
-    }
+      const response = await fetch(`${BASE_URL}/follow/check?animalId=${encodeURIComponent(animalId)}&userId=${encodeURIComponent(userId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        return !!data.isFollowing;
+      }
+    } catch (e) {}
+
+    // Local fallback check
+    try {
+      const stored = await AsyncStorage.getItem("animaltok_followed_animals");
+      if (stored) {
+        const list = JSON.parse(stored);
+        if (Array.isArray(list)) {
+          return list.includes(String(animalId).toLowerCase());
+        }
+      }
+    } catch (e) {}
+    return false;
   },
 
   /**
    * Toggle follow state via POST to Express API
    */
   toggleFollow: async (animalId: string, userId: string) => {
+    // 1. Maintain local persisted state
+    let localNext = true;
+    try {
+      const stored = await AsyncStorage.getItem("animaltok_followed_animals");
+      let list: string[] = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(list)) list = [];
+      const idKey = String(animalId).toLowerCase();
+      if (list.includes(idKey)) {
+        list = list.filter((x) => x !== idKey);
+        localNext = false;
+      } else {
+        list.push(idKey);
+        localNext = true;
+      }
+      await AsyncStorage.setItem("animaltok_followed_animals", JSON.stringify(list));
+    } catch (e) {}
+
     try {
       const response = await fetch(`${BASE_URL}/follow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animalId, userId })
       });
-      if (!response.ok) throw new Error("Failed to toggle follow");
-      return await response.json();
+      if (response.ok) {
+        return await response.json();
+      }
     } catch (e) {
-      console.error("Failed to save follow state", e);
-      return { isFollowing: false, followerCount: 0 };
+      console.warn("Backend follow toggle failed, using local fallback:", e);
     }
+    return { isFollowing: localNext, followerCount: localNext ? 1 : 0 };
   },
 
   /**
