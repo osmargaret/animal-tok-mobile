@@ -341,7 +341,6 @@ export default function LiveCameraModal({
           <View style={StyleSheet.absoluteFill}>
             {/* Live Camera Viewfinder */}
             <CameraView
-              key={`cam_${facing}_${flash}`}
               ref={cameraRef}
               style={StyleSheet.absoluteFill}
               facing={facing}
@@ -547,7 +546,7 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: "absolute",
-    top: 40,
+    top: Platform.OS === "android" ? 52 : 40,
     left: 16,
     right: 16,
     flexDirection: "row",

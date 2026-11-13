@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   Alert,
+  Platform,
   useWindowDimensions,
 } from "react-native";
 import { ShoppingBag, Wrench, Star, Plus, ChevronRight } from "lucide-react-native";
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   },
   stickyHeader: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: Platform.OS === "android" ? 44 : 12,
     paddingBottom: 10,
     backgroundColor: "#0d1117",
     borderBottomWidth: 1,

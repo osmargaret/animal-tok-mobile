@@ -10,6 +10,7 @@ import {
   Dimensions,
   SafeAreaView,
   Alert,
+  Platform,
 } from "react-native";
 import {
   Search,
@@ -995,7 +996,7 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
   },
   topHeader: {
-    marginTop: 8,
+    marginTop: Platform.OS === "android" ? 38 : 8,
     marginBottom: 12,
   },
   pageTitle: {

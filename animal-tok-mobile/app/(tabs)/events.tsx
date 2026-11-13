@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Platform,
 } from "react-native";
 import { Calendar, MapPin, Users, Check, HeartHandshake, ArrowLeft } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     marginBottom: 20,
-    marginTop: 10,
+    marginTop: Platform.OS === "android" ? 36 : 10,
   },
   headerTitle: {
     color: "#ffffff",

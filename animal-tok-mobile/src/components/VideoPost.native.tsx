@@ -134,10 +134,19 @@ export default function VideoPost({
         }
       } else {
         try {
+          // Configure native audio session for video & music playback
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          }).catch(() => {});
+
           if (!nativeSoundRef.current) {
             const { sound } = await Audio.Sound.createAsync(
               { uri: post.audioUrl },
-              { shouldPlay: isActive && isPlaying && !isMuted, isLooping: true }
+              { shouldPlay: isActive && isPlaying && !isMuted, isLooping: true, volume: 1.0 }
             );
             if (isCancelled) {
               sound.unloadAsync().catch(() => {});

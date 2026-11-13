@@ -293,12 +293,13 @@ export default function ProfileScreen() {
         <View style={styles.topBar}>
           <Text style={styles.barTitle}>Profile</Text>
           <View style={styles.topBarActions}>
-            <TouchableOpacity style={styles.editTopBtn} onPress={() => router.push("/edit-profile")}>
+            <TouchableOpacity style={styles.editTopBtn} onPress={() => router.push("/edit-profile")} activeOpacity={0.8}>
               <Edit2 size={13} color="#06b6d4" />
               <Text style={styles.editTopBtnText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={handleLogout}>
-              <LogOut size={16} color="#ef4444" />
+            <TouchableOpacity style={styles.signOutBtn} onPress={handleLogout} activeOpacity={0.8}>
+              <LogOut size={13} color="#ef4444" />
+              <Text style={styles.signOutBtnText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -859,14 +860,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: Platform.OS === "android" ? 44 : 20,
     paddingBottom: 40,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingTop: 4,
   },
   barTitle: {
     color: "#ffffff",
@@ -891,6 +893,22 @@ const styles = StyleSheet.create({
   },
   editTopBtnText: {
     color: "#06b6d4",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  signOutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.35)",
+  },
+  signOutBtnText: {
+    color: "#ef4444",
     fontSize: 12,
     fontWeight: "bold",
   },
