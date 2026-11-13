@@ -56,7 +56,7 @@ const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24);
   const { activeProfile, user, switchProfile, switchToHandler, logout, pets } = useAuth();
   const [activeTab, setActiveTab] = useState<"grid" | "products" | "services" | "events">("grid");
 
@@ -381,7 +381,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       {/* Sticky Header Bar */}
-      <View style={[styles.stickyHeaderBar, { paddingTop: topSafeInset + 10 }]}>
+      <View style={[styles.stickyHeaderBar, { paddingTop: topSafeInset + 14 }]}>
         <Text style={styles.barTitle}>Profile</Text>
         <View style={styles.topBarActions}>
           <TouchableOpacity style={styles.editTopBtn} onPress={() => router.push("/edit-profile")} activeOpacity={0.8}>
@@ -869,7 +869,11 @@ export default function ProfileScreen() {
               {/* Modal Top Bar */}
               <View style={styles.postModalHeader}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Text style={{ fontSize: 20 }}>{activeProfile?.avatar || "🐾"}</Text>
+                  {activeProfile?.avatar && (activeProfile.avatar.startsWith("http") || activeProfile.avatar.startsWith("data:") || activeProfile.avatar.startsWith("/")) ? (
+                    <Image source={{ uri: activeProfile.avatar }} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="cover" />
+                  ) : (
+                    <Text style={{ fontSize: 20 }}>{activeProfile?.avatar || "🐾"}</Text>
+                  )}
                   <View>
                     <Text style={styles.postModalAuthor}>{selectedPost.displayName || activeProfile?.name}</Text>
                     <Text style={styles.postModalUsername}>{selectedPost.username || activeProfile?.username}</Text>

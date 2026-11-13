@@ -11,7 +11,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,6 +45,10 @@ export default function MessageViewScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const currentUserId = user?.id || "";
+
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24);
+  const bottomSafeInset = Math.max(insets.bottom, Platform.OS === "android" ? 14 : 10);
 
   const contactName = params.name || (params.id === "2" ? "Luna's Handler" : "Pet Handler");
   const contactAvatar = params.avatar || "🐾";
@@ -164,14 +170,14 @@ export default function MessageViewScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        {/* Contact Banner */}
-        <View style={styles.contactHeader}>
+        {/* Contact Banner with Android Status Bar clearance */}
+        <View style={[styles.contactHeader, { paddingTop: topSafeInset + 8 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ArrowLeft size={22} color="#ffffff" />
           </TouchableOpacity>
@@ -250,7 +256,11 @@ export default function MessageViewScreen() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyAvatar}>
-                  <Text style={{ fontSize: 32 }}>{contactAvatar}</Text>
+                  {contactAvatar && (contactAvatar.startsWith("http") || contactAvatar.startsWith("data:") || contactAvatar.startsWith("/")) ? (
+                    <Image source={{ uri: contactAvatar }} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="cover" />
+                  ) : (
+                    <Text style={{ fontSize: 32 }}>{contactAvatar || "🐾"}</Text>
+                  )}
                 </View>
                 <Text style={styles.emptyHeader}>Say hello to {contactName}!</Text>
                 <Text style={styles.emptySub}>
@@ -277,7 +287,7 @@ export default function MessageViewScreen() {
         )}
 
         {/* Input Bar */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: bottomSafeInset + 6 }]}>
           <TextInput
             style={styles.textInput}
             placeholder="Type a message..."
@@ -336,7 +346,7 @@ export default function MessageViewScreen() {
           }}
         />
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -37,7 +37,7 @@ export default function LiveCameraModal({
   embedded = false,
 }: LiveCameraModalProps) {
   const insets = useSafeAreaInsets();
-  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24);
   const bottomSafeInset = Math.max(insets.bottom, Platform.OS === "android" ? 28 : 20);
   const [permission, requestPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
@@ -381,7 +381,7 @@ export default function LiveCameraModal({
             )}
 
             {/* Top Bar Controls */}
-            <View style={[styles.topBar, { top: topSafeInset + 10 }]}>
+            <View style={[styles.topBar, { top: topSafeInset + 14 }]}>
               <TouchableOpacity style={styles.iconBtn} onPress={onClose}>
                 <X size={24} color="#ffffff" />
               </TouchableOpacity>
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#06b6d4",
+    backgroundColor: "#14b8a6",
   },
   recordingTimer: {
     color: "#ffffff",
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
   },
   modeTabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: "#06b6d4",
+    borderBottomColor: "#14b8a6",
   },
   modeTabText: {
     color: "#94a3b8",
@@ -758,34 +758,34 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   shutterOuterRingVideo: {
-    borderColor: "rgba(6, 182, 212, 0.55)",
+    borderColor: "rgba(20, 184, 166, 0.6)",
   },
   shutterOuterRingRecording: {
-    borderColor: "#06b6d4",
+    borderColor: "#14b8a6",
   },
   photoShutterCore: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#06b6d4",
-    borderWidth: 3,
-    borderColor: "#083344",
+    backgroundColor: "#14b8a6",
+    borderWidth: 3.5,
+    borderColor: "#042f2e",
   },
   videoShutterCore: {
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: "#06b6d4",
-    borderWidth: 3,
-    borderColor: "#083344",
+    backgroundColor: "#0d9488",
+    borderWidth: 4,
+    borderColor: "#022c22",
   },
   videoShutterCoreRecording: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#06b6d4",
-    borderWidth: 2,
-    borderColor: "#083344",
+    backgroundColor: "#14b8a6",
+    borderWidth: 3,
+    borderColor: "#022c22",
   },
   sideControlBtn: {
     alignItems: "center",

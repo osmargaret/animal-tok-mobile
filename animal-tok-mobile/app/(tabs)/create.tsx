@@ -817,41 +817,55 @@ export default function CreateScreen() {
     setIsPublishing(true);
 
     try {
-      // 1. Upload media to backend / Cloudinary
-      const cloudinaryUrl = await uploadMedia(
-        mediaUri,
-        "animaltok/posts",
-        isVideo ? "video" : "image"
-      );
-      const finalMediaUrl = cloudinaryUrl || mediaUri;
+      // 1. Upload media to backend / Cloudinary with 10-second safety timeout
+      let finalMediaUrl = mediaUri;
+      try {
+        const uploadPromise = uploadMedia(
+          mediaUri,
+          "animaltok/posts",
+          isVideo ? "video" : "image"
+        );
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000));
+        const cloudinaryUrl = await Promise.race([uploadPromise, timeoutPromise]);
+        if (cloudinaryUrl) {
+          finalMediaUrl = cloudinaryUrl;
+        }
+      } catch (uploadErr) {
+        console.warn("Media upload timeout or error, using local fallback:", uploadErr);
+      }
 
       // 2. Prepare post data
       const soundTitle = selectedSound ? `${selectedSound.title} - ${selectedSound.artist}` : undefined;
       const soundUrl = selectedSound ? selectedSound.previewUrl : undefined;
 
-      const serverPost = await api.createPost({
-        animalId: activeProfile?.id,
-        animalName: activeProfile?.name,
-        animalUsername: activeProfile?.username,
-        animalAvatar: activeProfile?.avatar,
-        caption: caption.trim(),
-        videoUrl: isVideo ? finalMediaUrl : undefined,
-        imageUrl: !isVideo ? finalMediaUrl : undefined,
-        tags: [
-          ...hashtags.split(" ").filter((t) => t.trim().length > 0),
-          `#${selectedPillar}`,
-        ],
-        audioUrl: soundUrl,
-        audioName: soundTitle,
-      });
+      let serverPost: any = null;
+      try {
+        serverPost = await api.createPost({
+          animalId: activeProfile?.id,
+          animalName: activeProfile?.name,
+          animalUsername: activeProfile?.username,
+          animalAvatar: activeProfile?.avatar,
+          caption: caption.trim(),
+          videoUrl: isVideo ? finalMediaUrl : undefined,
+          imageUrl: !isVideo ? finalMediaUrl : undefined,
+          tags: [
+            ...hashtags.split(" ").filter((t) => t.trim().length > 0),
+            `#${selectedPillar}`,
+          ],
+          audioUrl: soundUrl,
+          audioName: soundTitle,
+        });
+      } catch (e) {
+        console.warn("Failed to reach server createPost, persisting locally:", e);
+      }
 
       // 3. Optimistic update to feed & profile posts
       const newPostItem = {
-        id: serverPost?.id || Date.now(),
+        id: serverPost?.id || `p_${Date.now()}`,
         animalId: activeProfile?.id,
-        username: activeProfile?.username || "@pet",
-        displayName: activeProfile?.name || "Pet",
-        avatar: activeProfile?.avatar || "🐾",
+        username: activeProfile?.username || (user?.username ? `@${user.username.replace(/^@/, '')}` : "@pet"),
+        displayName: activeProfile?.name || user?.name || "Pet Parent",
+        avatar: activeProfile?.avatar || user?.avatar || "🐾",
         time: "Just now",
         caption: caption.trim(),
         hashtags: `${hashtags} #${selectedPillar}`,
@@ -865,7 +879,8 @@ export default function CreateScreen() {
         saves: 0,
         commentsList: [],
       };
-      // Remove any prior item with same id before unshifting
+
+      // Remove any prior item with same id before unshifting to the very top
       const existingIdx = feedPosts.findIndex(p => String(p.id) === String(newPostItem.id));
       if (existingIdx !== -1) feedPosts.splice(existingIdx, 1);
       feedPosts.unshift(newPostItem as any);
@@ -882,23 +897,23 @@ export default function CreateScreen() {
       }
 
       if (bgAudioRef.current) { bgAudioRef.current.pause(); bgAudioRef.current = null; }
-      setIsPublishing(false);
       setMediaUri(null);
       setSelectedSound(null);
       setCaption("");
 
-      // Immediately navigate back to feed and trigger auto-refresh to show new post
+      // Immediately navigate back to feed and trigger auto-refresh to show new post at index 0
       router.replace({
         pathname: "/(tabs)/",
-        params: { refresh: String(Date.now()) },
+        params: { refresh: String(Date.now()), focusPostId: String(newPostItem.id) },
       } as any);
     } catch (err: any) {
       console.error("Publish error:", err);
-      setIsPublishing(false);
       router.replace({
         pathname: "/(tabs)/",
         params: { refresh: String(Date.now()) },
       } as any);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -966,7 +981,11 @@ export default function CreateScreen() {
           style={styles.petSwitcherPill}
           onPress={() => setSwitcherVisible(true)}
         >
-          <Text style={{ fontSize: 16, marginRight: 4 }}>{activeProfile?.avatar || "🐾"}</Text>
+          {activeProfile?.avatar && (activeProfile.avatar.startsWith("http") || activeProfile.avatar.startsWith("data:") || activeProfile.avatar.startsWith("/")) ? (
+            <Image source={{ uri: activeProfile.avatar }} style={{ width: 22, height: 22, borderRadius: 11, marginRight: 6 }} resizeMode="cover" />
+          ) : (
+            <Text style={{ fontSize: 16, marginRight: 4 }}>{activeProfile?.avatar || "🐾"}</Text>
+          )}
           <Text style={styles.petSwitcherText} numberOfLines={1}>
             {activeProfile?.name || "Select Pet"}
           </Text>

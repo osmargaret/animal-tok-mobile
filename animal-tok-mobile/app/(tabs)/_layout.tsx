@@ -31,19 +31,25 @@ export default function TabLayout() {
         tabBarShowLabel: true,
         tabBarLabelPosition: "below-icon",
         tabBarStyle: {
-          backgroundColor: "#0d1117",
-          borderTopColor: "#1e293b",
+          backgroundColor: "#0b0f17",
+          borderTopColor: "rgba(45, 212, 191, 0.4)",
           borderTopWidth: 1.5,
           height: tabHeight,
           paddingBottom: tabPaddingBottom,
           paddingTop: 6,
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.4,
+          shadowRadius: 4,
         },
-        tabBarActiveTintColor: "#ffffff",
-        tabBarInactiveTintColor: "#94a3b8",
+        tabBarActiveTintColor: "#2dd4bf",
+        tabBarInactiveTintColor: "#cbd5e1",
         tabBarLabelStyle: {
-          fontSize: 10.5,
-          fontWeight: "700",
+          fontSize: 11,
+          fontWeight: "800",
           marginTop: 2,
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -51,14 +57,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Home color={color} size={22} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: "Explore",
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Search color={color} size={22} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
@@ -73,14 +79,14 @@ export default function TabLayout() {
         name="inbox"
         options={{
           title: "Inbox",
-          tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={22} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <User color={color} size={22} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
@@ -88,6 +94,7 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "Marketplace",
+          tabBarStyle: { display: "none" },
           tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size} />,
         }}
       />
@@ -96,6 +103,7 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "Animal Profile",
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
@@ -103,6 +111,7 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "Messages",
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
@@ -110,6 +119,7 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "Pet Events & Meetups",
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
@@ -117,6 +127,7 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "Product Details",
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
@@ -124,6 +135,7 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "Service Details",
+          tabBarStyle: { display: "none" },
         }}
       />
     </Tabs>

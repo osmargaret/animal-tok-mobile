@@ -9,6 +9,7 @@ import {
   Easing,
   useWindowDimensions,
   Platform,
+  Share,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Audio } from "expo-av";
@@ -263,6 +264,23 @@ export default function VideoPost({
     };
   }, [post?.id]);
 
+  // Check saved state from AsyncStorage on mount
+  useEffect(() => {
+    let isMounted = true;
+    AsyncStorage.getItem("animaltok_saved_posts").then((stored) => {
+      if (!isMounted || !stored) return;
+      try {
+        const list = JSON.parse(stored);
+        if (Array.isArray(list) && list.some((p: any) => String(p.id) === String(post.id))) {
+          setIsSaved(true);
+        }
+      } catch (e) {}
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [post?.id]);
+
   const handleLike = async () => {
     if (!user && onAuthPrompt) {
       onAuthPrompt();
@@ -288,10 +306,26 @@ export default function VideoPost({
   };
 
   const handleShare = async () => {
-    setSharesCount((prev) => prev + 1);
-    const res = await api.sharePost(post.id.toString());
-    if (res && (res.sharesCount !== undefined || res.shares !== undefined)) {
-      setSharesCount(res.sharesCount ?? res.shares);
+    try {
+      const shareUrl = post.videoUrl || post.imageUrl || "https://animaltok.app";
+      const shareMsg = `Check out ${post.displayName}'s pet post on Animandler: "${post.caption}" 🐾\n${shareUrl}`;
+
+      const result = await Share.share({
+        title: `${post.displayName} on Animandler`,
+        message: shareMsg,
+        url: shareUrl,
+      });
+
+      if (result.action === Share.sharedAction) {
+        setSharesCount((prev) => prev + 1);
+        api.sharePost(post.id.toString()).then((res) => {
+          if (res && (res.sharesCount !== undefined || res.shares !== undefined)) {
+            setSharesCount(res.sharesCount ?? res.shares);
+          }
+        });
+      }
+    } catch (e: any) {
+      console.warn("Share sheet error:", e);
     }
   };
 
@@ -470,23 +504,27 @@ export default function VideoPost({
         {/* Profile Avatar Button */}
         <TouchableOpacity style={styles.avatarButton} onPress={handleProfilePress} activeOpacity={0.8}>
           <View style={styles.avatarCircle}>
-            <Text style={{ fontSize: 20 }}>{post.avatar || "🐾"}</Text>
+            {post.avatar && (post.avatar.startsWith("http") || post.avatar.startsWith("data:") || post.avatar.startsWith("file:")) ? (
+              <Image source={{ uri: post.avatar }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+            ) : (
+              <Text style={{ fontSize: 20 }}>{post.avatar || "🐾"}</Text>
+            )}
           </View>
         </TouchableOpacity>
 
-        {/* Like Button - Bolder, teal green, filled (not outline alone), reduced size */}
+        {/* Like Button - Glowing vibrant teal green when liked (never red) */}
         <TouchableOpacity style={styles.actionItem} onPress={handleLike} activeOpacity={0.75}>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
               <Heart
                 size={23}
-                color={isLiked ? "#ef4444" : "#06b6d4"}
-                fill={isLiked ? "#ef4444" : "#06b6d4"}
+                color={isLiked ? "#10b981" : "#06b6d4"}
+                fill={isLiked ? "#10b981" : "#06b6d4"}
                 strokeWidth={2.6}
               />
             </View>
           </Animated.View>
-          <Text style={styles.actionText}>{likeCount}</Text>
+          <Text style={[styles.actionText, isLiked && { color: "#10b981", fontWeight: "700" }]}>{likeCount}</Text>
         </TouchableOpacity>
 
         {/* Comment Button - Bolder, teal green, filled (not outline alone), reduced size */}
@@ -502,7 +540,7 @@ export default function VideoPost({
           <Text style={styles.actionText}>{commentCount}</Text>
         </TouchableOpacity>
 
-        {/* Share Button - Bolder, teal green, filled (not outline alone), reduced size */}
+        {/* Share Button - Displays native system share sheet (WhatsApp, Email, Facebook, etc.) */}
         <TouchableOpacity style={styles.actionItem} onPress={handleShare} activeOpacity={0.75}>
           <View style={styles.actionIconCircle}>
             <Share2
@@ -520,12 +558,12 @@ export default function VideoPost({
           <View style={[styles.actionIconCircle, isSaved && styles.actionIconCircleSaved]}>
             <Bookmark
               size={21}
-              color={isSaved ? "#fbbf24" : "#06b6d4"}
-              fill={isSaved ? "#fbbf24" : "none"}
+              color={isSaved ? "#2dd4bf" : "#06b6d4"}
+              fill={isSaved ? "#2dd4bf" : "none"}
               strokeWidth={2.6}
             />
           </View>
-          <Text style={[styles.actionText, isSaved && { color: "#fbbf24", fontWeight: "700" }]}>{savesCount}</Text>
+          <Text style={[styles.actionText, isSaved && { color: "#2dd4bf", fontWeight: "700" }]}>{savesCount}</Text>
         </TouchableOpacity>
       </View>
 
@@ -653,12 +691,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   actionIconCircleLiked: {
-    borderColor: "rgba(239, 68, 68, 0.6)",
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderColor: "rgba(16, 185, 129, 0.75)",
+    backgroundColor: "rgba(16, 185, 129, 0.22)",
   },
   actionIconCircleSaved: {
-    borderColor: "rgba(251, 191, 36, 0.8)",
-    backgroundColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "rgba(45, 212, 191, 0.8)",
+    backgroundColor: "rgba(45, 212, 191, 0.22)",
   },
   actionText: {
     color: "#ffffff",
@@ -796,17 +834,17 @@ const styles = StyleSheet.create({
   prominentSpeakerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: "rgba(8, 51, 68, 0.88)",
-    borderWidth: 1.2,
+    borderWidth: 1,
     borderColor: "#06b6d4",
-    paddingHorizontal: 7,
-    paddingVertical: 3.5,
-    borderRadius: 12,
+    paddingHorizontal: 5.5,
+    paddingVertical: 2,
+    borderRadius: 9,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
+    shadowOpacity: 0.25,
+    shadowRadius: 1.5,
     elevation: 2,
   },
   prominentSpeakerBtnMuted: {
@@ -815,15 +853,15 @@ const styles = StyleSheet.create({
   },
   prominentSpeakerText: {
     color: "#06b6d4",
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: "800",
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   prominentSpeakerTextMuted: {
     color: "#94a3b8",
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: "700",
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   audioTickerWrap: {
     flex: 1,

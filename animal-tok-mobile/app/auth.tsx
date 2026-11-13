@@ -31,17 +31,27 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       Alert.alert("Missing Fields", "Please enter your email and password.");
       return;
+    }
+    if (mode === "signup") {
+      if (!name.trim()) {
+        Alert.alert("Missing Name", "Please enter your full name.");
+        return;
+      }
+      if (!username.trim()) {
+        Alert.alert("Missing Username", "Please enter your preferred @username.");
+        return;
+      }
     }
     setLoading(true);
     try {
       if (mode === "login") {
-        await login(email, password);
+        await login(email.trim(), password.trim());
         router.replace("/(tabs)/");
       } else {
-        await signup(name, email, username, accountType, clinicName, specialization);
+        await signup(name.trim(), email.trim(), username.trim(), accountType, clinicName, specialization);
         router.replace("/(tabs)/profile");
       }
     } catch (e: any) {

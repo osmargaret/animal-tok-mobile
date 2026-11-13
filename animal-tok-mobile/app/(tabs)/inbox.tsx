@@ -79,7 +79,7 @@ function getCleanAvatar(item: ThreadItem): string {
 export default function InboxScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24);
   const { user } = useAuth();
   const currentUserId = user?.id;
 
@@ -209,7 +209,7 @@ export default function InboxScreen() {
   return (
     <View style={styles.safeArea}>
       {/* Top Header */}
-      <View style={[styles.header, { paddingTop: topSafeInset + 10 }]}>
+      <View style={[styles.header, { paddingTop: topSafeInset + 14 }]}>
         <Text style={styles.headerTitle}>Direct Messages</Text>
       </View>
 

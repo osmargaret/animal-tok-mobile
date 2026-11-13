@@ -9,6 +9,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { X, Send } from "lucide-react-native";
 import type { FeedPost, CommentItem } from "@/data/feedData";
@@ -24,7 +25,7 @@ interface CommentsModalProps {
 export default function CommentsModal({ post, visible, onClose }: CommentsModalProps) {
   const [comments, setComments] = useState<CommentItem[]>(post?.commentsList || []);
   const [inputText, setInputText] = useState("");
-  const { activeProfile } = useAuth();
+  const { activeProfile, user } = useAuth();
 
   // Fetch real comments from backend when post changes or modal opens
   useEffect(() => {
@@ -71,9 +72,11 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
+    const userHandle = activeProfile?.username || user?.username || "@petlover";
+    const userAvatar = activeProfile?.avatar || user?.avatar || "🐾";
     const newComment: CommentItem = {
-      user: activeProfile?.username || "@you",
-      avatar: activeProfile?.avatar || "🐾",
+      user: userHandle.startsWith("@") ? userHandle : `@${userHandle}`,
+      avatar: userAvatar,
       text: inputText.trim(),
       time: "Just now",
     };
@@ -91,7 +94,7 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.sheetContainer}
         >
           {/* Sheet Header */}
@@ -110,7 +113,11 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
             renderItem={({ item }) => (
               <View style={styles.commentRow}>
                 <View style={styles.avatarCircle}>
-                  <Text style={{ fontSize: 16 }}>{item.avatar}</Text>
+                  {item.avatar && (item.avatar.startsWith("http") || item.avatar.startsWith("data:") || item.avatar.startsWith("file:")) ? (
+                    <Image source={{ uri: item.avatar }} style={{ width: "100%", height: "100%", borderRadius: 16 }} resizeMode="cover" />
+                  ) : (
+                    <Text style={{ fontSize: 16 }}>{item.avatar || "🐾"}</Text>
+                  )}
                 </View>
                 <View style={styles.commentBody}>
                   <View style={styles.nameRow}>

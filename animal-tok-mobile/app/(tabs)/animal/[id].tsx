@@ -137,6 +137,8 @@ export default function AnimalProfileScreen() {
           <View style={styles.avatarOverlay}>
             {animal.photos && animal.photos.length > 0 ? (
               <Image source={{ uri: animal.photos[0] }} style={styles.avatarPhoto} />
+            ) : animal.avatar && (animal.avatar.startsWith("http") || animal.avatar.startsWith("data:")) ? (
+              <Image source={{ uri: animal.avatar }} style={styles.avatarPhoto} />
             ) : (
               <Text style={{ fontSize: 40 }}>{animal.avatar || "🐾"}</Text>
             )}
