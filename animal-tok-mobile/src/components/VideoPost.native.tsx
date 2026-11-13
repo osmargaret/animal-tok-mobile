@@ -12,7 +12,8 @@ import {
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Audio } from "expo-av";
-import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Sparkles } from "lucide-react-native";
+import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Sparkles, Bookmark } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import type { FeedPost } from "@/data/feedData";
 import { api } from "@/services/api";
@@ -23,6 +24,7 @@ interface VideoPostProps {
   isActive: boolean;
   onCommentOpen?: () => void;
   onEventsOpen?: () => void;
+  onAuthPrompt?: () => void;
 }
 
 export default function VideoPost({
@@ -30,6 +32,7 @@ export default function VideoPost({
   isActive,
   onCommentOpen,
   onEventsOpen,
+  onAuthPrompt,
 }: VideoPostProps) {
   if (!post) return null;
 
@@ -40,6 +43,8 @@ export default function VideoPost({
   const [likeCount, setLikeCount] = useState(Number(post?.likes ?? (post as any)?.likesCount ?? 0));
   const [sharesCount, setSharesCount] = useState(Number(post?.saves ?? (post as any)?.sharesCount ?? 0));
   const [commentCount, setCommentCount] = useState(Number(post?.comments ?? (post as any)?.commentsCount ?? 0));
+  const [isSaved, setIsSaved] = useState(false);
+  const [savesCount, setSavesCount] = useState(Number(post?.saves ?? (post as any)?.savesCount ?? 0));
   const [isPlaying, setIsPlaying] = useState(isActive);
   const [isMuted, setIsMuted] = useState(false);
   const [showMuteToast, setShowMuteToast] = useState(false);
@@ -47,13 +52,28 @@ export default function VideoPost({
   const [showPlayPulse, setShowPlayPulse] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Sync real-time post stats when post changes
+  // Sync real-time post stats when post changes & check saved state
   useEffect(() => {
     if (post) {
       setLikeCount(Number(post?.likes ?? (post as any)?.likesCount ?? 0));
       setSharesCount(Number(post?.saves ?? (post as any)?.sharesCount ?? 0));
       setCommentCount(Number(post?.comments ?? (post as any)?.commentsCount ?? 0));
+      setSavesCount(Number(post?.saves ?? (post as any)?.savesCount ?? 0));
       setIsLiked(Boolean((post as any)?.isLiked));
+
+      // Check saved posts in AsyncStorage
+      const checkSaved = async () => {
+        try {
+          const stored = await AsyncStorage.getItem("animaltok_saved_posts");
+          if (stored) {
+            const list = JSON.parse(stored);
+            if (Array.isArray(list)) {
+              setIsSaved(list.some((p: any) => String(p.id) === String(post.id)));
+            }
+          }
+        } catch (e) {}
+      };
+      checkSaved();
     }
   }, [post?.id, post?.likes, post?.comments, post?.saves]);
 
@@ -270,6 +290,33 @@ export default function VideoPost({
     }
   };
 
+  const handleSave = async () => {
+    if (!user && onAuthPrompt) {
+      onAuthPrompt();
+      return;
+    }
+
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    setSavesCount((prev) => (nextSaved ? prev + 1 : Math.max(0, prev - 1)));
+
+    try {
+      const stored = await AsyncStorage.getItem("animaltok_saved_posts");
+      let list = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(list)) list = [];
+      if (nextSaved) {
+        if (!list.some((p: any) => String(p.id) === String(post.id))) {
+          list.unshift(post);
+        }
+      } else {
+        list = list.filter((p: any) => String(p.id) !== String(post.id));
+      }
+      await AsyncStorage.setItem("animaltok_saved_posts", JSON.stringify(list));
+    } catch (e) {
+      console.warn("Failed to persist saved post:", e);
+    }
+  };
+
   const handleProfilePress = () => {
     const animalId = post.animalId || (post as any)?.animal_id || post.username?.replace(/^@/, "") || "1";
     router.push(`/animal/${animalId}` as const);
@@ -462,6 +509,19 @@ export default function VideoPost({
           </View>
           <Text style={styles.actionText}>{sharesCount}</Text>
         </TouchableOpacity>
+
+        {/* Save / Bookmark Button */}
+        <TouchableOpacity style={styles.actionItem} onPress={handleSave} activeOpacity={0.75}>
+          <View style={[styles.actionIconCircle, isSaved && styles.actionIconCircleSaved]}>
+            <Bookmark
+              size={21}
+              color={isSaved ? "#fbbf24" : "#06b6d4"}
+              fill={isSaved ? "#fbbf24" : "none"}
+              strokeWidth={2.6}
+            />
+          </View>
+          <Text style={[styles.actionText, isSaved && { color: "#fbbf24", fontWeight: "700" }]}>{savesCount}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Bottom Info Section */}
@@ -484,7 +544,7 @@ export default function VideoPost({
         </Text>
         <Text style={styles.hashtags}>{post.hashtags}</Text>
 
-        {/* Audio ticker with prominent matching speaker button */}
+        {/* Audio ticker with compact matching speaker button */}
         <View style={styles.audioRowContainer}>
           <TouchableOpacity
             style={[styles.prominentSpeakerBtn, isMuted && styles.prominentSpeakerBtnMuted]}
@@ -494,12 +554,12 @@ export default function VideoPost({
           >
             {isMuted ? (
               <>
-                <VolumeX size={15} color="#94a3b8" strokeWidth={2.6} />
+                <VolumeX size={12} color="#94a3b8" strokeWidth={2.4} />
                 <Text style={styles.prominentSpeakerTextMuted}>MUTED</Text>
               </>
             ) : (
               <>
-                <Volume2 size={15} color="#06b6d4" strokeWidth={2.6} />
+                <Volume2 size={12} color="#06b6d4" strokeWidth={2.4} />
                 <Text style={styles.prominentSpeakerText}>SOUND</Text>
               </>
             )}
@@ -590,6 +650,10 @@ const styles = StyleSheet.create({
   actionIconCircleLiked: {
     borderColor: "rgba(239, 68, 68, 0.6)",
     backgroundColor: "rgba(239, 68, 68, 0.15)",
+  },
+  actionIconCircleSaved: {
+    borderColor: "rgba(251, 191, 36, 0.8)",
+    backgroundColor: "rgba(251, 191, 36, 0.2)",
   },
   actionText: {
     color: "#ffffff",
@@ -727,18 +791,18 @@ const styles = StyleSheet.create({
   prominentSpeakerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(13, 17, 23, 0.88)",
-    borderWidth: 1.8,
+    gap: 4,
+    backgroundColor: "rgba(8, 51, 68, 0.88)",
+    borderWidth: 1.2,
     borderColor: "#06b6d4",
-    paddingHorizontal: 11,
-    paddingVertical: 5.5,
-    borderRadius: 16,
+    paddingHorizontal: 7,
+    paddingVertical: 3.5,
+    borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   prominentSpeakerBtnMuted: {
     backgroundColor: "rgba(13, 17, 23, 0.75)",
@@ -746,15 +810,15 @@ const styles = StyleSheet.create({
   },
   prominentSpeakerText: {
     color: "#06b6d4",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 0.6,
+    fontSize: 9.5,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
   prominentSpeakerTextMuted: {
     color: "#94a3b8",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.6,
+    fontSize: 9.5,
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
   audioTickerWrap: {
     flex: 1,

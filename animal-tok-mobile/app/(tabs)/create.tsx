@@ -47,6 +47,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ProfileSwitcherModal from "@/components/ProfileSwitcherModal.native";
 import SoundPickerModal from "@/components/SoundPickerModal.native";
 import LiveCameraModal from "@/components/LiveCameraModal";
+import GuestAuthModal from "@/components/GuestAuthModal";
 import { feedPosts } from "@/data/feedData";
 import { api, uploadMedia } from "@/services/api";
 import { SoundItem } from "@/data/soundsData";
@@ -897,23 +898,16 @@ export default function CreateScreen() {
     }
   };
 
-  // If user has no pets yet, show onboarding invite
-  if (!pets || pets.length === 0) {
+  // If user is a guest, prompt them to sign up to post
+  if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.gateContainer}>
-          <Text style={{ fontSize: 60, marginBottom: 16 }}>🐾</Text>
-          <Text style={styles.gateTitle}>Add Your Pet First</Text>
-          <Text style={styles.gateSub}>
-            On Animandler, animals are the creators! Add your pet's profile to start recording live videos, picking trending sounds, and promoting events.
-          </Text>
-          <TouchableOpacity
-            style={styles.gateBtn}
-            onPress={() => router.push("/onboarding")}
-          >
-            <Text style={styles.gateBtnText}>+ Create Pet Profile</Text>
-          </TouchableOpacity>
-        </View>
+        <GuestAuthModal
+          visible={true}
+          onClose={() => router.replace("/(tabs)/")}
+          title="Create an Account to Post 🐾"
+          subtitle="Sign up for free to record live pet clips, pick trending sounds, and join the Animandler community!"
+        />
       </SafeAreaView>
     );
   }

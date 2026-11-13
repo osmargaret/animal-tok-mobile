@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Alert,
   Platform,
+  StatusBar,
 } from "react-native";
 import {
   Search,
@@ -480,15 +481,16 @@ export default function ExploreScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[0]}
         contentContainerStyle={styles.scrollContent}
         onScrollBeginDrag={() => setPetDropdownOpen(false)}
       >
-        
-        {/* Top Header */}
-        <View style={styles.topHeader}>
-          <Text style={styles.pageTitle}>Explore</Text>
-          <Text style={styles.pageSub}>Discover trending pets, live events & marketplace</Text>
-        </View>
+        <View style={styles.stickyHeaderContainer}>
+          {/* Top Header */}
+          <View style={styles.topHeader}>
+            <Text style={styles.pageTitle}>Explore</Text>
+            <Text style={styles.pageSub}>Discover trending pets, live events & marketplace</Text>
+          </View>
 
         {/* Search & Pet Filter Input Group */}
         <View style={styles.inputGroupWrapper}>
@@ -612,6 +614,7 @@ export default function ExploreScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+      </View>
 
         {/* Category Row (Tab-Specific Categories) */}
         <View style={styles.categorySection}>
@@ -1010,8 +1013,15 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 50,
   },
+  stickyHeaderContainer: {
+    backgroundColor: "#0d1117",
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e293b",
+    zIndex: 999,
+  },
   topHeader: {
-    marginTop: Platform.OS === "android" ? 38 : 8,
+    paddingTop: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 14) : 10,
     marginBottom: 12,
   },
   pageTitle: {

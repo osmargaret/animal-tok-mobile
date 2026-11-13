@@ -74,20 +74,14 @@ const PETS_KEY = "animaltok_pets";
 const ACTIVE_PROFILE_KEY = "animaltok_active_profile";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<MockUser | null>(MOCK_USER);
-  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>({
-    id: MOCK_USER.id,
-    name: MOCK_USER.name,
-    username: MOCK_USER.username,
-    avatar: MOCK_USER.avatar,
-    type: "handler",
-  });
+  const [user, setUser] = useState<MockUser | null>(null);
+  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(null);
   const [pets, setPets] = useState<ActiveProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Load persisted active profile, pets, and user from AsyncStorage
-        // Load persisted custom user posts into feedPosts
+    // Load persisted custom user posts into feedPosts
     AsyncStorage.getItem("animaltok_custom_posts").then((storedPosts) => {
       if (storedPosts) {
         try {
@@ -110,10 +104,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       AsyncStorage.getItem("animaltok_user"),
     ]).then(([storedProfile, storedPets, storedUser]) => {
       if (storedUser) {
-        try { setUser(JSON.parse(storedUser)); } catch (e) {}
-      }
-      if (storedProfile) {
-        try { setActiveProfile(JSON.parse(storedProfile)); } catch (e) {}
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          if (storedProfile) {
+            try { setActiveProfile(JSON.parse(storedProfile)); } catch (e) {}
+          } else {
+            setActiveProfile({
+              id: parsedUser.id,
+              name: parsedUser.name,
+              username: parsedUser.username,
+              avatar: parsedUser.avatar || "🐾",
+              type: "handler",
+              role: parsedUser.role,
+              clinicName: parsedUser.clinicName,
+            });
+          }
+        } catch (e) {}
       }
       if (storedPets) {
         try {

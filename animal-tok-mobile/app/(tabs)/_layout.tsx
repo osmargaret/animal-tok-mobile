@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, Search, Plus, MessageSquare, ShoppingBag, User } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -18,6 +19,10 @@ function TikTokCreateIcon() {
 
 export default function TabLayout() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const androidExtra = Platform.OS === "android" ? (insets.bottom > 0 ? insets.bottom : 8) : insets.bottom;
+  const tabHeight = Platform.OS === "android" ? 64 + androidExtra : 58 + insets.bottom;
+  const tabPaddingBottom = Platform.OS === "android" ? (androidExtra > 0 ? androidExtra + 4 : 10) : insets.bottom + 4;
 
   return (
     <Tabs
@@ -28,15 +33,17 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: "#0d1117",
           borderTopColor: "#1e293b",
-          height: 60,
-          paddingBottom: 6,
+          borderTopWidth: 1.5,
+          height: tabHeight,
+          paddingBottom: tabPaddingBottom,
           paddingTop: 6,
         },
         tabBarActiveTintColor: "#ffffff",
-        tabBarInactiveTintColor: "#64748b",
+        tabBarInactiveTintColor: "#94a3b8",
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "600",
+          fontSize: 10.5,
+          fontWeight: "700",
+          marginTop: 2,
         },
       }}
     >

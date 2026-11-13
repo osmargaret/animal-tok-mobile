@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { MessageSquare, ArrowLeft, Search, Sparkles, ChevronRight } from "lucide-react-native";
@@ -266,9 +268,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 14) : 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#1e293b",
+    backgroundColor: "#0d1117",
+    zIndex: 50,
   },
   headerLeft: {
     flexDirection: "row",

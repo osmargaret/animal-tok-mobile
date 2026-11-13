@@ -12,19 +12,20 @@ import {
   Image,
   ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { PawPrint, Mail, Lock, User as UserIcon, Sparkles, Stethoscope, Store, ShieldCheck, Building } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AuthScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const { login, signup } = useAuth();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup">(params.mode === "signup" ? "signup" : "login");
   const [accountType, setAccountType] = useState<"handler" | "vet" | "business">("handler");
-  const [email, setEmail] = useState("alex@example.com");
-  const [password, setPassword] = useState("password123");
-  const [name, setName] = useState("Alex Morgan");
-  const [username, setUsername] = useState("alex.morgan");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [clinicName, setClinicName] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [loading, setLoading] = useState(false);

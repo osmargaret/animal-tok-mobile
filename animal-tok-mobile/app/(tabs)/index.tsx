@@ -10,14 +10,16 @@ import {
   useWindowDimensions,
   RefreshControl,
   Platform,
+  StatusBar,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { Bell, ShieldCheck, PawPrint, MessageCircle } from "lucide-react-native";
+import { Bell, ShieldCheck, PawPrint, MessageCircle, X, UserPlus } from "lucide-react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import VideoPost from "@/components/VideoPost.native";
 import CommentsModal from "@/components/CommentsModal.native";
 import ProfileSwitcherModal from "@/components/ProfileSwitcherModal.native";
 import NotificationsModal from "@/components/NotificationsModal.native";
+import GuestAuthModal from "@/components/GuestAuthModal";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
@@ -37,7 +39,19 @@ export default function FeedScreen() {
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
   const [hasUnreadMessage, setHasUnreadMessage] = useState(false);
+  const [guestAuthVisible, setGuestAuthVisible] = useState(false);
+  const [show15SecBanner, setShow15SecBanner] = useState(false);
   const [feedVersion, setFeedVersion] = useState(0);
+
+  // 15-second guest banner prompt
+  useEffect(() => {
+    if (!user) {
+      const timer = setTimeout(() => {
+        setShow15SecBanner(true);
+      }, 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
   const [displayPosts, setDisplayPosts] = useState<FeedPost[]>(feedPosts);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(1);
@@ -307,14 +321,53 @@ export default function FeedScreen() {
                 post={item}
                 isActive={isScreenFocused && index === activeIndex}
                 onCommentOpen={() => {
+                  if (!user) {
+                    setGuestAuthVisible(true);
+                    return;
+                  }
                   setSelectedPost(item);
                   setCommentsVisible(true);
                 }}
+                onAuthPrompt={() => setGuestAuthVisible(true)}
               />
             </View>
           )}
         />
       )}
+
+      {/* 15-Second Floating Guest Toast Prompt */}
+      {show15SecBanner && !user && (
+        <View style={styles.floatingGuestToast}>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={styles.toastTitle}>Enjoying Animandler? 🎉</Text>
+            <Text style={styles.toastSubtitle} numberOfLines={2}>
+              Create an account to like, bookmark clips, and share your own pets!
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.toastJoinBtn}
+            onPress={() => {
+              setShow15SecBanner(false);
+              setGuestAuthVisible(true);
+            }}
+          >
+            <Text style={styles.toastJoinBtnText}>Join Free</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.toastCloseBtn}
+            onPress={() => setShow15SecBanner(false)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <X size={14} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Guest Authentication Modal */}
+      <GuestAuthModal
+        visible={guestAuthVisible}
+        onClose={() => setGuestAuthVisible(false)}
+      />
 
       {/* Comments Sheet */}
       <CommentsModal
@@ -345,7 +398,7 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 44 : 16,
+    top: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 14) : 48,
     left: 16,
     right: 16,
     zIndex: 100,
@@ -355,16 +408,19 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: "#ffffff",
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "900",
     letterSpacing: 0.8,
-    textShadowColor: "rgba(0, 0, 0, 0.9)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
   },
   logoContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(13, 17, 23, 0.72)",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
   },
   headerRight: {
     flexDirection: "row",
@@ -383,13 +439,60 @@ const styles = StyleSheet.create({
     borderColor: "#0d1117",
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(15, 23, 42, 0.75)",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(13, 17, 23, 0.72)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  floatingGuestToast: {
+    position: "absolute",
+    bottom: 24,
+    left: 16,
+    right: 16,
+    zIndex: 120,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(15, 23, 42, 0.94)",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: "#06b6d4",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  toastTitle: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  toastSubtitle: {
+    color: "#94a3b8",
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  toastJoinBtn: {
+    backgroundColor: "#06b6d4",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    marginRight: 6,
+  },
+  toastJoinBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  toastCloseBtn: {
+    padding: 4,
   },
 });
