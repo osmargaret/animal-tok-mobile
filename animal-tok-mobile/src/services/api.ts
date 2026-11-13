@@ -614,6 +614,22 @@ export const api = {
   },
 
   /**
+   * Delete post on backend API
+   */
+  deletePost: async (postId: string) => {
+    try {
+      const response = await fetch(`${BASE_URL}/feed/${encodeURIComponent(postId)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete post");
+      return await response.json();
+    } catch (e) {
+      console.warn("Failed to delete post on server", e);
+      return null;
+    }
+  },
+
+  /**
    * Fetch thread messages
    */
   getThreadMessages: async (threadId: string) => {

@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from "react-native";
 import {
   CameraView,
@@ -24,6 +25,7 @@ interface LiveCameraModalProps {
   initialMode?: "video" | "photo";
   onClose: () => void;
   onCapture: (uri: string, isVideo: boolean) => void;
+  embedded?: boolean;
 }
 
 export default function LiveCameraModal({
@@ -31,6 +33,7 @@ export default function LiveCameraModal({
   initialMode = "video",
   onClose,
   onCapture,
+  embedded = false,
 }: LiveCameraModalProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
@@ -120,9 +123,9 @@ export default function LiveCameraModal({
       if (cameraRef.current) {
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.85,
-          skipProcessing: Platform.OS === "android",
         });
         if (photo?.uri) {
+          setIsProcessing(false);
           onCapture(photo.uri, false);
           return;
         }
@@ -218,11 +221,15 @@ export default function LiveCameraModal({
           setIsRecording(false);
           setIsProcessing(false);
           onCapture(video.uri, true);
+        } else {
+          setIsRecording(false);
+          setIsProcessing(false);
         }
       }
     } catch (err: any) {
       console.warn("Native recording error:", err);
       setIsRecording(false);
+      setIsProcessing(false);
     }
   };
 
@@ -239,12 +246,14 @@ export default function LiveCameraModal({
     }
 
     setIsRecording(false);
+    setIsProcessing(true);
     try {
       if (cameraRef.current?.stopRecording) {
         cameraRef.current.stopRecording();
       }
     } catch (err) {
       console.warn("Stop recording error:", err);
+      setIsProcessing(false);
     }
   };
 
@@ -320,10 +329,11 @@ export default function LiveCameraModal({
 
   if (!visible) return null;
 
-  return (
-    <Modal visible={visible} animationType="none" transparent={false} onRequestClose={onClose}>
-      <SafeAreaView style={styles.container}>
-        {!permission?.granted ? (
+  const content = (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
+      <View style={styles.statusBarCover} pointerEvents="none" />
+      {!permission?.granted ? (
           <View style={styles.permissionBox}>
             <Text style={{ fontSize: 48, marginBottom: 16 }}>📷</Text>
             <Text style={styles.permissionTitle}>Camera Permission Required</Text>
@@ -494,7 +504,22 @@ export default function LiveCameraModal({
             </View>
           </View>
         )}
-      </SafeAreaView>
+      </View>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="none"
+      transparent={false}
+      statusBarTranslucent={true}
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 }
@@ -503,6 +528,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000000",
+    position: "relative",
+    zIndex: 9999,
   },
   permissionBox: {
     flex: 1,
@@ -544,9 +571,18 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 14,
   },
+  statusBarCover: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 6) : 44,
+    backgroundColor: "#000000",
+    zIndex: 90,
+  },
   topBar: {
     position: "absolute",
-    top: Platform.OS === "android" ? 52 : 40,
+    top: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 14) : 48,
     left: 16,
     right: 16,
     flexDirection: "row",
@@ -647,7 +683,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(239, 68, 68, 0.85)",
+    backgroundColor: "rgba(8, 51, 68, 0.9)",
+    borderWidth: 1.5,
+    borderColor: "#06b6d4",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
@@ -656,7 +694,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#06b6d4",
   },
   recordingTimer: {
     color: "#ffffff",
@@ -716,28 +754,34 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   shutterOuterRingVideo: {
-    borderColor: "rgba(239, 68, 68, 0.5)",
+    borderColor: "rgba(6, 182, 212, 0.55)",
   },
   shutterOuterRingRecording: {
-    borderColor: "#ef4444",
+    borderColor: "#06b6d4",
   },
   photoShutterCore: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#06b6d4",
+    borderWidth: 3,
+    borderColor: "#083344",
   },
   videoShutterCore: {
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: "#ef4444",
+    backgroundColor: "#06b6d4",
+    borderWidth: 3,
+    borderColor: "#083344",
   },
   videoShutterCoreRecording: {
     width: 32,
     height: 32,
-    borderRadius: 6,
-    backgroundColor: "#ef4444",
+    borderRadius: 8,
+    backgroundColor: "#06b6d4",
+    borderWidth: 2,
+    borderColor: "#083344",
   },
   sideControlBtn: {
     alignItems: "center",

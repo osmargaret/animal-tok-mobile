@@ -190,6 +190,11 @@ export default function FeedScreen() {
         }
       });
 
+      socket.on("post_deleted", ({ postId }: { postId: string }) => {
+        setDisplayPosts((prev) => prev.filter((p) => String(p.id) !== String(postId)));
+        setFeedVersion((v) => v + 1);
+      });
+
       socket.on("new_notification", () => {
         setHasUnreadNotification(true);
       });
@@ -202,6 +207,7 @@ export default function FeedScreen() {
     return () => {
       if (socket) {
         socket.off("post_created");
+        socket.off("post_deleted");
         socket.off("new_notification");
         socket.off("new_message_alert");
       }

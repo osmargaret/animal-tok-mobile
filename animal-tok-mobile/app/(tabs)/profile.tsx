@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  StatusBar,
 } from "react-native";
 import {
   ShieldCheck,
@@ -38,6 +39,7 @@ import {
   Check,
   Star,
   PlusCircle,
+  Trash2,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -240,11 +242,68 @@ export default function ProfileScreen() {
       } else {
         setUserServices([...marketServices]);
       }
+      const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
+      if (storedEvts) {
+        const customEvts = JSON.parse(storedEvts);
+        if (Array.isArray(customEvts)) {
+          setUserEvents(customEvts);
+        }
+      }
     } catch (e) {
       console.warn("Error refreshing user marketplace items:", e);
     }
 
     setLoading(false);
+  };
+
+  const handleDeletePost = (postId: string | number) => {
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to permanently take down this post? It will be removed from your profile and the feed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Post",
+          style: "destructive",
+          onPress: async () => {
+            const idStr = String(postId);
+            try {
+              // 1. Remove from in-memory feedPosts
+              const idx = feedPosts.findIndex((p) => String(p.id) === idStr);
+              if (idx !== -1) feedPosts.splice(idx, 1);
+
+              // 2. Remove from AsyncStorage custom posts
+              const stored = await AsyncStorage.getItem("animaltok_custom_posts");
+              if (stored) {
+                const list = JSON.parse(stored);
+                const filtered = list.filter((p: any) => String(p.id) !== idStr);
+                await AsyncStorage.setItem("animaltok_custom_posts", JSON.stringify(filtered));
+              }
+
+              // 3. Remove from profileStats.posts state
+              setProfileStats((prev: any) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  posts: (prev.posts || []).filter((p: any) => String(p.id) !== idStr),
+                };
+              });
+
+              // 4. Call server API
+              await api.deletePost(idStr);
+
+              // 5. Close modal
+              setSelectedPost(null);
+
+              Alert.alert("Post Deleted", "Your post has been taken down from your profile and the feed.");
+            } catch (err) {
+              console.warn("Failed to delete post:", err);
+              setSelectedPost(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -838,6 +897,16 @@ export default function ProfileScreen() {
                   </View>
                   <Text style={styles.postModalTimeText}>{selectedPost.time || "Recently posted"}</Text>
                 </View>
+
+                {/* Delete Post Button */}
+                <TouchableOpacity
+                  style={styles.postModalDeleteBtn}
+                  onPress={() => handleDeletePost(selectedPost.id)}
+                  activeOpacity={0.8}
+                >
+                  <Trash2 size={15} color="#ef4444" />
+                  <Text style={styles.postModalDeleteText}>Delete Post</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -860,7 +929,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 44 : 20,
+    paddingTop: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 16) : 20,
     paddingBottom: 40,
   },
   topBar: {
@@ -1603,5 +1672,23 @@ const styles = StyleSheet.create({
   hubEventMetaText: {
     color: "#94a3b8",
     fontSize: 11,
+  },
+  postModalDeleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.35)",
+  },
+  postModalDeleteText: {
+    color: "#ef4444",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { X, Calendar, MapPin, Sparkles, Camera, Image as ImageIcon, Check, ShieldCheck, DollarSign, Users } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, uploadMedia } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -110,13 +111,23 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
       };
 
       const created = await api.createEvent(payload);
+      const finalEvent = created || { id: `evt_${Date.now()}`, ...payload };
+      try {
+        const stored = await AsyncStorage.getItem("animaltok_custom_events");
+        const list = stored ? JSON.parse(stored) : [];
+        list.unshift(finalEvent);
+        await AsyncStorage.setItem("animaltok_custom_events", JSON.stringify(list));
+      } catch (e) {
+        console.warn("Failed to persist custom event:", e);
+      }
+
       Alert.alert(
         "Event Created! 🎉",
         isPaid
           ? `"${title}" has been published with Escrow Protection. Ticket funds will be secured in platform escrow.`
           : `"${title}" has been published to the Events Hub.`
       );
-      if (onEventCreated) onEventCreated(created || payload);
+      if (onEventCreated) onEventCreated(finalEvent);
       onClose();
 
       // Reset fields

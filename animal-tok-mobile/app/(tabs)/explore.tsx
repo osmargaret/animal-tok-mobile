@@ -260,6 +260,21 @@ export default function ExploreScreen() {
               });
             }
           }
+          const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
+          if (storedEvts) {
+            const custom = JSON.parse(storedEvts);
+            if (Array.isArray(custom)) {
+              setEventsList((prev) => {
+                const merged = [...prev];
+                custom.forEach((ce) => {
+                  if (!merged.some((e) => String(e.id) === String(ce.id))) {
+                    merged.unshift(ce);
+                  }
+                });
+                return merged;
+              });
+            }
+          }
           setRefreshKey((k) => k + 1);
         } catch (e) {
           console.warn("Marketplace sync warning:", e);

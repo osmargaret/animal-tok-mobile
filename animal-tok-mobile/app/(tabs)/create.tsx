@@ -128,6 +128,47 @@ const PILLAR_CATEGORIES = [
   { id: "events", label: "Events & Meetups", icon: Calendar },
 ];
 
+class VideoErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.warn("Video preview error caught by boundary:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: "#083344",
+              alignItems: "center",
+              justifyContent: "center",
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 36, marginBottom: 8 }}>🎬</Text>
+          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+            Video Ready for Editing
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function NativeVideoPreview({
   uri,
   playbackSpeed,
@@ -139,19 +180,22 @@ function NativeVideoPreview({
   isMuted: boolean;
   onDurationLoaded?: (dur: number) => void;
 }) {
-  const player = useVideoPlayer({ uri }, (p) => {
+  const [loadError, setLoadError] = useState(false);
+
+  const videoSource = uri ? { uri } : null;
+  const player = useVideoPlayer(videoSource, (p) => {
     p.loop = true;
     p.muted = isMuted;
-    p.play();
+    try {
+      p.play();
+    } catch (e) {}
   });
 
   useEffect(() => {
     if (player) {
       try {
         player.muted = isMuted;
-      } catch (e) {
-        console.warn("Set muted error:", e);
-      }
+      } catch (e) {}
     }
   }, [player, isMuted]);
 
@@ -159,9 +203,7 @@ function NativeVideoPreview({
     if (player) {
       try {
         player.playbackRate = playbackSpeed;
-      } catch (e) {
-        console.warn("Set playbackRate error:", e);
-      }
+      } catch (e) {}
     }
   }, [player, playbackSpeed]);
 
@@ -171,12 +213,21 @@ function NativeVideoPreview({
     }
   }, [player?.duration]);
 
+  if (loadError || !player) {
+    return (
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "#083344", alignItems: "center", justifyContent: "center" }]}>
+        <Text style={{ fontSize: 36, marginBottom: 8 }}>📹</Text>
+        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>Video Ready for Editing</Text>
+      </View>
+    );
+  }
+
   return (
     <VideoView
       player={player}
       style={StyleSheet.absoluteFillObject}
       contentFit="cover"
-      nativeControls={true}
+      nativeControls={false}
     />
   );
 }
@@ -275,12 +326,14 @@ function VideoPreviewPlayer({
   }
 
   return (
-    <NativeVideoPreview
-      uri={uri}
-      playbackSpeed={playbackSpeed}
-      isMuted={isMuted}
-      onDurationLoaded={onDurationLoaded}
-    />
+    <VideoErrorBoundary>
+      <NativeVideoPreview
+        uri={uri}
+        playbackSpeed={playbackSpeed}
+        isMuted={isMuted}
+        onDurationLoaded={onDurationLoaded}
+      />
+    </VideoErrorBoundary>
   );
 }
 
@@ -868,14 +921,15 @@ export default function CreateScreen() {
   // When entering Create without media, immediately render the Camera viewfinder (no flashing form)
   if (!mediaUri) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { backgroundColor: "#000000" }]}>
         <LiveCameraModal
-          visible={cameraModalVisible}
+          visible={true}
           initialMode={cameraMode}
           onClose={handleCloseCamera}
           onCapture={handleCapture}
+          embedded={true}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -1010,7 +1064,7 @@ export default function CreateScreen() {
 
                   <TouchableOpacity
                     style={styles.changeMediaBtn}
-                    onPress={() => setCameraModalVisible(true)}
+                    onPress={handleDeleteMedia}
                     activeOpacity={0.7}
                   >
                     <RefreshCw size={11} color="#ffffff" />
@@ -1233,19 +1287,19 @@ export default function CreateScreen() {
                         style={[
                           styles.floatingToolIconWrap,
                           isMuted && {
-                            backgroundColor: "rgba(239, 68, 68, 0.35)",
-                            borderColor: "#ef4444",
+                            backgroundColor: "rgba(6, 182, 212, 0.35)",
+                            borderColor: "#06b6d4",
                             borderWidth: 1,
                           },
                         ]}
                       >
                         {isMuted ? (
-                          <VolumeX size={14} color="#ef4444" />
+                          <VolumeX size={14} color="#06b6d4" />
                         ) : (
                           <Volume2 size={14} color="#ffffff" />
                         )}
                       </View>
-                      <Text style={[styles.floatingToolLabel, isMuted && { color: "#ef4444" }]}>
+                      <Text style={[styles.floatingToolLabel, isMuted && { color: "#06b6d4" }]}>
                         {isMuted ? "Muted" : "Mute"}
                       </Text>
                     </TouchableOpacity>
@@ -1368,14 +1422,6 @@ export default function CreateScreen() {
         onClose={() => setSoundModalVisible(false)}
         onSelectSound={(sound) => setSelectedSound(sound)}
         selectedSoundId={selectedSound?.id}
-      />
-
-      {/* Live In-App Camera Viewfinder Modal */}
-      <LiveCameraModal
-        visible={cameraModalVisible}
-        initialMode={cameraMode}
-        onClose={handleCloseCamera}
-        onCapture={handleCapture}
       />
 
       {/* Profile Switcher Modal */}
@@ -1573,7 +1619,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(239, 68, 68, 0.85)",
+    backgroundColor: "rgba(8, 51, 68, 0.9)",
+    borderWidth: 1,
+    borderColor: "#06b6d4",
     paddingHorizontal: 7,
     paddingVertical: 3.5,
     borderRadius: 10,
@@ -2211,8 +2259,8 @@ const styles = StyleSheet.create({
     borderColor: "#30363d",
   },
   muteToggleBtnActive: {
-    backgroundColor: "#ef4444",
-    borderColor: "#ef4444",
+    backgroundColor: "#06b6d4",
+    borderColor: "#083344",
   },
   muteToggleText: {
     color: "#ffffff",
