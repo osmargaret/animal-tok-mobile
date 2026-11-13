@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Animandler",
-    "slug": "animandler-mobile",
+    "slug": "animandler",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -66,6 +66,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a53bb548-35de-49a2-ac6c-b8ad2337dd35"
+      }
     }
   }
 }
