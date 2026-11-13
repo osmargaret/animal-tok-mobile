@@ -872,6 +872,7 @@ export default function CreateScreen() {
         displayName: activeProfile?.name || user?.name || "Pet Parent",
         avatar: activeProfile?.avatar || user?.avatar || "🐾",
         time: "Just now",
+        createdAt: serverPost?.createdAt || new Date().toISOString(),
         caption: caption.trim(),
         hashtags: `${hashtags} #${selectedPillar}`,
         videoUrl: isVideo ? finalMediaUrl : "",

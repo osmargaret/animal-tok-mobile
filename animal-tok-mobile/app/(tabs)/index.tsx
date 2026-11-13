@@ -25,6 +25,7 @@ import { feedPosts, type FeedPost } from "@/data/feedData";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { formatRelativeTime } from "@/utils/timeAgo";
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -93,7 +94,10 @@ export default function FeedScreen() {
         const idStr = String(p.id);
         if (!seen.has(idStr)) {
           seen.add(idStr);
-          merged.push(p);
+          merged.push({
+            ...p,
+            time: formatRelativeTime(p.createdAt || p.time, p.id),
+          });
         }
       }
 
@@ -101,7 +105,10 @@ export default function FeedScreen() {
         const idStr = String(sp.id);
         if (!seen.has(idStr)) {
           seen.add(idStr);
-          merged.push(sp);
+          merged.push({
+            ...sp,
+            time: formatRelativeTime(sp.createdAt || sp.time, sp.id),
+          });
         }
       }
 
@@ -185,7 +192,8 @@ export default function FeedScreen() {
           username: newPost.animalUsername || `@${(newPost.animalName || "pet").toLowerCase().replace(/\s+/g, "")}`,
           displayName: newPost.animalName || "Pet",
           avatar: newPost.animalAvatar || "🐾",
-          time: "Just now",
+          time: formatRelativeTime(newPost.createdAt, newPost.id),
+          createdAt: newPost.createdAt,
           caption: newPost.caption || "",
           hashtags: Array.isArray(newPost.tags) ? newPost.tags.map((t: string) => `#${t.replace(/^#/, "")}`).join(" ") : (newPost.tags || "#AnimalTok"),
           videoUrl: newPost.videoUrl || "",

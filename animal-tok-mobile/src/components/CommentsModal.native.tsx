@@ -15,6 +15,7 @@ import { X, Send } from "lucide-react-native";
 import type { FeedPost, CommentItem } from "@/data/feedData";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatRelativeTime } from "@/utils/timeAgo";
 
 interface CommentsModalProps {
   post: FeedPost | null;
@@ -132,7 +133,7 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
                 <View style={styles.commentBody}>
                   <View style={styles.nameRow}>
                     <Text style={styles.commentUser}>{item.user}</Text>
-                    <Text style={styles.commentTime}>{item.time}</Text>
+                    <Text style={styles.commentTime}>{formatRelativeTime(item.createdAt || item.time)}</Text>
                   </View>
                   <Text style={styles.commentText}>{item.text}</Text>
                 </View>

@@ -12,6 +12,7 @@ import {
 import { Bell, Calendar, Heart, UserPlus, MessageSquare, X, CheckCheck } from "lucide-react-native";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatRelativeTime } from "@/utils/timeAgo";
 
 interface NotificationItem {
   id: string;
@@ -119,7 +120,7 @@ export default function NotificationsModal({ visible, onClose }: NotificationsMo
                       <View style={{ flex: 1 }}>
                         <Text style={styles.itemTitle}>{item.title}</Text>
                         <Text style={styles.itemMsg}>{item.message}</Text>
-                        <Text style={styles.itemTime}>{item.timestamp}</Text>
+                        <Text style={styles.itemTime}>{formatRelativeTime(item.timestamp, item.id)}</Text>
                       </View>
                     </View>
                   ))

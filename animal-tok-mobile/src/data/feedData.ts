@@ -5,6 +5,7 @@ export interface FeedPost {
   displayName: string;
   avatar: string;
   time: string;
+  createdAt?: string;
   caption: string;
   hashtags: string;
   videoUrl: string;
@@ -23,6 +24,7 @@ export interface CommentItem {
   avatar: string;
   text: string;
   time: string;
+  createdAt?: string;
 }
 
 export const feedPosts: FeedPost[] = [
@@ -32,7 +34,8 @@ export const feedPosts: FeedPost[] = [
     username: "@bailey.thelab",
     displayName: "Bailey",
     avatar: "🐕",
-    time: "Just now",
+    time: "5m ago",
+    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     caption: "Golden hour sprint at the dog park! Autumn breeze and endless fetch 🍂🎾",
     hashtags: "#goldenretriever #doglife #playfulpet #daily",
     videoUrl: "https://res.cloudinary.com/lo1xfi5f/video/upload/v1794484176/animaltok/posts/dxqt6qs6d4zkiynkgd0f.webm",
@@ -51,7 +54,8 @@ export const feedPosts: FeedPost[] = [
     username: "@luna.cat",
     displayName: "Luna",
     avatar: "🐈",
-    time: "15m ago",
+    time: "25m ago",
+    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
     caption: "Found the perfect sunspot by the living room window ☀️ cozy nap time",
     hashtags: "#mainecoon #catlover #cozypets #daily",
     videoUrl: "",
@@ -70,7 +74,8 @@ export const feedPosts: FeedPost[] = [
     username: "@coco.parrot",
     displayName: "Coco",
     avatar: "🦜",
-    time: "45m ago",
+    time: "1h ago",
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
     caption: "Practicing morning whistles and saying 'Good morning Animandler!' 🦜🎶",
     hashtags: "#parrot #smartpet #whistlebeat #tricks",
     videoUrl: "",
@@ -89,7 +94,8 @@ export const feedPosts: FeedPost[] = [
     username: "@bella.lab",
     displayName: "Bella",
     avatar: "🐕",
-    time: "2h ago",
+    time: "3h ago",
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
     caption: "Agility practice complete! Ready for this weekend's local tournament 🏆🐾",
     hashtags: "#dogagility #sports #workingdog #fitpet",
     videoUrl: "https://res.cloudinary.com/lo1xfi5f/video/upload/v1794484176/animaltok/posts/dxqt6qs6d4zkiynkgd0f.webm",
@@ -108,7 +114,8 @@ export const feedPosts: FeedPost[] = [
     username: "@jasper.shepherd",
     displayName: "Jasper",
     avatar: "🐕‍🦺",
-    time: "3h ago",
+    time: "5h ago",
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
     caption: "Beach sprint zoomies with my handler! Best afternoon workout ever 🌊⚡️",
     hashtags: "#germanshepherd #beachrun #zoomies #sports",
     videoUrl: "",
@@ -127,7 +134,8 @@ export const feedPosts: FeedPost[] = [
     username: "@peanut.bunny",
     displayName: "Peanut",
     avatar: "🐰",
-    time: "5h ago",
+    time: "Yesterday",
+    createdAt: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
     caption: "Crunchy snack time! Fresh organic cilantro hits the spot 🌿🐰",
     hashtags: "#bunnylife #dwarfrabbit #cute #daily",
     videoUrl: "",

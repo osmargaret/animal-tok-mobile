@@ -19,6 +19,7 @@ import { useRouter } from "expo-router";
 import type { FeedPost } from "@/data/feedData";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatRelativeTime } from "@/utils/timeAgo";
 
 interface VideoPostProps {
   post: FeedPost;
@@ -579,7 +580,7 @@ export default function VideoPost({
         <TouchableOpacity style={styles.userHeader} onPress={handleProfilePress}>
           <Text style={styles.displayName}>{post.displayName}</Text>
           <Text style={styles.username}>@{post.username ? post.username.replace(/^@+/, '') : 'pet'}</Text>
-          <Text style={styles.timeTag}>• {post.time}</Text>
+          <Text style={styles.timeTag}>• {formatRelativeTime(post.createdAt || post.time, post.id)}</Text>
         </TouchableOpacity>
 
         <Text style={styles.caption} numberOfLines={2}>

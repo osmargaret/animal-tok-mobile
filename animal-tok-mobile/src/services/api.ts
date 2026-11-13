@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { io, Socket } from "socket.io-client";
+import { formatRelativeTime } from "@/utils/timeAgo";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 
 export function getBaseUrl(): string {
@@ -496,7 +497,8 @@ export const api = {
         user: c.user || "@guest",
         avatar: c.avatar || "🐾",
         text: c.text || "",
-        time: c.createdAt ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
+        time: formatRelativeTime(c.createdAt, c.id),
+        createdAt: c.createdAt,
       }));
     } catch (e) {
       console.warn("Failed to fetch comments", e);
@@ -568,7 +570,8 @@ export const api = {
         username: p.animalUsername || `@${(p.animalName || 'pet').toLowerCase().replace(/\s+/g, '')}`,
         displayName: p.animalName || "Pet",
         avatar: p.animalAvatar || "🐾",
-        time: p.createdAt ? new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
+        time: formatRelativeTime(p.createdAt, p.id),
+        createdAt: p.createdAt,
         caption: p.caption || "",
         hashtags: Array.isArray(p.tags) ? p.tags.map((t: string) => `#${t.replace(/^#/, '')}`).join(' ') : (p.tags || "#AnimalTok"),
         videoUrl: p.videoUrl || "",

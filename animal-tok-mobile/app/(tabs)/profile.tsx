@@ -49,6 +49,7 @@ import { marketProducts, marketServices, ProductItem, ServiceItem } from "@/data
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
+import { formatRelativeTime } from "@/utils/timeAgo";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
@@ -93,7 +94,10 @@ export default function ProfileScreen() {
         if (Array.isArray(custom)) {
           custom.forEach((p) => {
             if (!allPosts.some((existing) => String(existing.id) === String(p.id))) {
-              allPosts.unshift(p);
+              allPosts.unshift({
+                ...p,
+                time: formatRelativeTime(p.createdAt || p.time, p.id),
+              });
             }
           });
         }
@@ -106,7 +110,10 @@ export default function ProfileScreen() {
       if (serverPosts && Array.isArray(serverPosts)) {
         serverPosts.forEach((p) => {
           if (!allPosts.some((existing) => String(existing.id) === String(p.id))) {
-            allPosts.push(p);
+            allPosts.push({
+              ...p,
+              time: formatRelativeTime(p.createdAt || p.time, p.id),
+            });
           }
         });
       }
@@ -932,7 +939,7 @@ export default function ProfileScreen() {
                     <Heart size={14} color="#ef4444" />
                     <Text style={styles.postModalStatText}>{formatNumber(selectedPost.likes || 0)} Likes</Text>
                   </View>
-                  <Text style={styles.postModalTimeText}>{selectedPost.time || "Recently posted"}</Text>
+                  <Text style={styles.postModalTimeText}>{formatRelativeTime(selectedPost.createdAt || selectedPost.time, selectedPost.id)}</Text>
                 </View>
 
                 {/* Delete Post Button */}

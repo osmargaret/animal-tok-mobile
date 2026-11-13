@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, ArrowLeft, Search, Sparkles, ChevronRight } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import { formatRelativeTime } from "@/utils/timeAgo";
 
 interface ThreadItem {
   threadId: string;
@@ -290,7 +291,7 @@ export default function InboxScreen() {
                       {cleanName}
                     </Text>
                     <Text style={styles.timestamp}>
-                      {item.lastMessage.timestamp}
+                      {formatRelativeTime(item.lastMessage.timestamp)}
                     </Text>
                   </View>
                   <View style={styles.bottomRow}>
