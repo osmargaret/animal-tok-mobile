@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Star, ShoppingCart, CreditCard, ChevronLeft, MessageCircle } from 'lucide-react-native';
+import { Star, ShoppingCart, ShoppingBag, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import CheckoutModal from '@/components/CheckoutModal.native';
+import { BuyProductModal } from '@/components/BuyProductModal';
 
 export default function ProductDetailsModal() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
-  const [checkoutVisible, setCheckoutVisible] = useState(false);
+  const [orderModalVisible, setOrderModalVisible] = useState(false);
 
   // Parse params
   const { id, name, price, rating, seller, image, category } = params as Record<string, string>;
 
-  const handleBuy = () => {
+  const handleOrder = () => {
     if (!user) {
       router.push({ pathname: "/auth", params: { mode: "signup" } });
       return;
     }
-    setCheckoutVisible(true);
+    setOrderModalVisible(true);
   };
 
   const handleChatSeller = () => {
@@ -114,26 +114,25 @@ export default function ProductDetailsModal() {
           <Text style={styles.cartBtnText}>Chat Seller</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.buyBtn} onPress={handleBuy}>
-          <CreditCard size={20} color="#ffffff" />
-          <Text style={styles.buyBtnText}>Buy Now</Text>
+        <TouchableOpacity style={styles.buyBtn} onPress={handleOrder}>
+          <ShoppingBag size={20} color="#ffffff" />
+          <Text style={styles.buyBtnText}>Order Product</Text>
         </TouchableOpacity>
       </View>
 
-      <CheckoutModal
-        visible={checkoutVisible}
-        onClose={() => setCheckoutVisible(false)}
-        item={{
+      <BuyProductModal
+        visible={orderModalVisible}
+        onClose={() => setOrderModalVisible(false)}
+        product={{
           id: id || "prod_1",
           name: name || "Pet Product",
           price: price || "$19.99",
-          sellerOrProvider: seller || "Verified Seller",
-          image,
-          type: "product",
-          category,
+          rating: rating || "5.0",
+          seller: seller || "Verified Seller",
+          image: image || "",
+          category: category || "General",
         }}
-        userEmail={user?.email}
-        userName={user?.name}
+        user={user}
       />
     </SafeAreaView>
   );

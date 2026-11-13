@@ -57,8 +57,8 @@ export interface ServiceAppointment {
 const DEFAULT_APPOINTMENTS: ServiceAppointment[] = [
   {
     id: "APP-UP-01",
-    serviceId: "srv_1",
-    serviceName: "Professional Pet Service",
+    serviceId: "s1",
+    serviceName: "Mobile Spa & Grooming",
     clientName: "Jessica Hayes",
     clientPhone: "+1 (512) 555-0188",
     clientEmail: "jessica.h@example.com",
@@ -71,9 +71,39 @@ const DEFAULT_APPOINTMENTS: ServiceAppointment[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    id: "APP-UP-02",
+    serviceId: "s1",
+    serviceName: "Mobile Spa & Grooming",
+    clientName: "Sarah Connor",
+    clientPhone: "+1 (512) 555-0144",
+    clientEmail: "sarah.c@example.com",
+    petName: "Bella",
+    petBreed: "Shih Tzu",
+    petNotes: "Full grooming and coat detangling.",
+    appointmentDate: "Friday • 2:00 PM – 3:30 PM",
+    mode: "onsite",
+    status: "upcoming",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "APP-UP-03",
+    serviceId: "s2",
+    serviceName: "Positive Puppy Training 101",
+    clientName: "Marcus Vance",
+    clientPhone: "+1 (512) 555-0199",
+    clientEmail: "marcus.v@example.com",
+    petName: "Cooper",
+    petBreed: "Labrador",
+    petNotes: "Initial consultation for recall and leash pulling.",
+    appointmentDate: "Saturday • 11:00 AM – 12:00 PM",
+    mode: "virtual",
+    status: "upcoming",
+    createdAt: new Date().toISOString(),
+  },
+  {
     id: "APP-PAST-02",
-    serviceId: "srv_1",
-    serviceName: "Professional Pet Service",
+    serviceId: "s1",
+    serviceName: "Mobile Spa & Grooming",
     clientName: "David Miller",
     clientPhone: "+1 (512) 555-0177",
     clientEmail: "david.m@example.com",
@@ -199,9 +229,17 @@ export default function ServiceDetailsScreen() {
     });
   };
 
-  // Split appointments into Upcoming and Past
-  const upcomingAppointments = appointments.filter((a) => !isAppointmentPassed(a));
-  const pastAppointments = appointments.filter((a) => isAppointmentPassed(a));
+  // Filter appointments for this service and split into Upcoming and Past
+  const serviceAppointmentsList = appointments.filter((a) => {
+    if (!a.serviceId && !a.serviceName) return true;
+    return (
+      a.serviceId === id ||
+      a.serviceName === name ||
+      (id === "s1" && (a.serviceId === "srv_1" || a.serviceId === "s1"))
+    );
+  });
+  const upcomingAppointments = serviceAppointmentsList.filter((a) => !isAppointmentPassed(a));
+  const pastAppointments = serviceAppointmentsList.filter((a) => isAppointmentPassed(a));
   const displayedAppointments = appointmentTab === "upcoming" ? upcomingAppointments : pastAppointments;
 
   return (
@@ -211,7 +249,11 @@ export default function ServiceDetailsScreen() {
         {/* Banner Image */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.replace("/(tabs)/profile")}
+            activeOpacity={0.8}
+          >
             <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
           <View style={styles.ratingBadge}>

@@ -79,12 +79,6 @@ export default function AttendEventModal({
   const [confirmed, setConfirmed] = useState(false);
   const [regId, setRegId] = useState("");
 
-  // Paystack state for paid events
-  const [paystackRef, setPaystackRef] = useState("");
-  const [paystackUrl, setPaystackUrl] = useState("");
-  const [awaitingVerification, setAwaitingVerification] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-
   useEffect(() => {
     if (user) {
       if (user.name) setFullName(user.name);
@@ -92,9 +86,7 @@ export default function AttendEventModal({
     }
   }, [user]);
 
-  const totalAmount = (unitPrice * guestsCount).toFixed(2);
-
-  const handleFreeRegister = async () => {
+  const handleRegister = async () => {
     if (!fullName.trim()) {
       Alert.alert("Name Required", "Please enter your full name to register.");
       return;
@@ -141,99 +133,8 @@ export default function AttendEventModal({
     }
   };
 
-  const handlePaidPaystackInit = async () => {
-    if (!fullName.trim()) {
-      Alert.alert("Name Required", "Please enter your full name.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await api.initializePaystackPayment({
-        email: email || "alex@example.com",
-        amount: parseFloat(totalAmount),
-        metadata: {
-          itemId: event.id,
-          itemName: event.title,
-          itemType: "event",
-          seller: event.organizerName || "Event Host",
-          customerName: fullName,
-          phone,
-          guestsCount,
-          petInfo,
-        },
-      });
-
-      if (res && res.status && res.data?.authorization_url) {
-        const { authorization_url, reference } = res.data;
-        setPaystackRef(reference);
-        setPaystackUrl(authorization_url);
-        setAwaitingVerification(true);
-        setLoading(false);
-
-        if (Platform.OS === "web" && typeof window !== "undefined") {
-          window.open(authorization_url, "_blank");
-        } else {
-          await Linking.openURL(authorization_url);
-        }
-      } else {
-        // Fallback simulated success
-        const fallbackId = `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
-        setRegId(fallbackId);
-        setLoading(false);
-        setConfirmed(true);
-        onSuccess(event.id);
-      }
-    } catch (err) {
-      console.error("Paystack event ticket error:", err);
-      setLoading(false);
-      Alert.alert("Payment Error", "Unable to launch checkout. Please try again.");
-    }
-  };
-
-  const handleVerifyPayment = async () => {
-    if (!paystackRef) return;
-    setVerifying(true);
-    try {
-      const verifyRes = await api.verifyPaystackPayment(paystackRef);
-      setVerifying(false);
-
-      const isSuccess = verifyRes && verifyRes.status && verifyRes.data?.status === "success";
-      if (isSuccess || Platform.OS === "web") {
-        setRegId(paystackRef);
-        setAwaitingVerification(false);
-        setConfirmed(true);
-        onSuccess(event.id);
-      } else {
-        Alert.alert(
-          "Payment Status",
-          "If you completed the payment in Paystack, click Confirm Ticket to finalize.",
-          [
-            { text: "Wait / Try Again", style: "cancel" },
-            {
-              text: "Confirm Ticket",
-              onPress: () => {
-                setRegId(paystackRef);
-                setAwaitingVerification(false);
-                setConfirmed(true);
-                onSuccess(event.id);
-              },
-            },
-          ]
-        );
-      }
-    } catch (e) {
-      setVerifying(false);
-      setRegId(paystackRef);
-      setAwaitingVerification(false);
-      setConfirmed(true);
-      onSuccess(event.id);
-    }
-  };
-
   const handleClose = () => {
     setConfirmed(false);
-    setAwaitingVerification(false);
     onClose();
   };
 
@@ -299,70 +200,6 @@ export default function AttendEventModal({
                 <Text style={styles.doneBtnText}>Done</Text>
               </TouchableOpacity>
             </ScrollView>
-          ) : awaitingVerification ? (
-            /* Awaiting Paystack Screen */
-            <View style={styles.awaitingContainer}>
-              <View style={styles.awaitingIconCircle}>
-                <ActivityIndicator size="large" color="#06b6d4" />
-              </View>
-              <Text style={styles.awaitingTitle}>Awaiting Payment</Text>
-              <Text style={styles.awaitingSub}>
-                A secure checkout tab has been opened. Complete your ticket payment and tap Verify below.
-              </Text>
-
-              <View style={styles.refCard}>
-                <View style={styles.refRow}>
-                  <Text style={styles.refLabel}>Event</Text>
-                  <Text style={styles.refValue} numberOfLines={1}>{event.title}</Text>
-                </View>
-                <View style={styles.refRow}>
-                  <Text style={styles.refLabel}>Amount Due</Text>
-                  <Text style={[styles.refValue, { color: "#06b6d4", fontWeight: "800" }]}>${totalAmount}</Text>
-                </View>
-                <View style={styles.refRow}>
-                  <Text style={styles.refLabel}>Reference</Text>
-                  <Text style={[styles.refValue, { fontSize: 11, color: "#94a3b8" }]}>{paystackRef || "Processing..."}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.verifyActionBtn, verifying && { opacity: 0.6 }]}
-                onPress={handleVerifyPayment}
-                disabled={verifying}
-              >
-                {verifying ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <CheckCircle size={18} color="#ffffff" />
-                    <Text style={styles.verifyActionText}>I've Paid — Confirm Ticket</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              {paystackUrl ? (
-                <TouchableOpacity
-                  style={styles.reopenLinkBtn}
-                  onPress={() => {
-                    if (Platform.OS === "web" && typeof window !== "undefined") {
-                      window.open(paystackUrl, "_blank");
-                    } else {
-                      Linking.openURL(paystackUrl);
-                    }
-                  }}
-                >
-                  <ExternalLink size={15} color="#06b6d4" />
-                  <Text style={styles.reopenLinkText}>Re-open Payment Window</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity
-                style={styles.cancelVerifyBtn}
-                onPress={() => setAwaitingVerification(false)}
-              >
-                <Text style={styles.cancelVerifyText}>← Back to Registration Form</Text>
-              </TouchableOpacity>
-            </View>
           ) : (
             /* Attendance Form */
             <ScrollView
@@ -392,8 +229,8 @@ export default function AttendEventModal({
                   </View>
                   <View style={styles.priceRow}>
                     <Text style={styles.priceLabel}>Admission:</Text>
-                    <Text style={[styles.priceValue, isPaid ? { color: "#06b6d4" } : { color: "#10b981" }]}>
-                      {isPaid ? `${event.ticketPrice} per ticket` : "Free"}
+                    <Text style={[styles.priceValue, { color: "#10b981" }]}>
+                      Free Entry
                     </Text>
                   </View>
                 </View>
@@ -501,25 +338,10 @@ export default function AttendEventModal({
                 </View>
               </View>
 
-              {/* Price Summary for Paid Events */}
-              {isPaid ? (
-                <View style={styles.summaryCard}>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Ticket Price ({guestsCount} × ${unitPrice.toFixed(2)})</Text>
-                    <Text style={styles.summaryValue}>${totalAmount}</Text>
-                  </View>
-                  <View style={styles.divider} />
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalValue}>${totalAmount}</Text>
-                  </View>
-                </View>
-              ) : null}
-
               {/* Submit Button */}
               <TouchableOpacity
                 style={[styles.submitBtn, loading && { opacity: 0.6 }]}
-                onPress={isPaid ? handlePaidPaystackInit : handleFreeRegister}
+                onPress={handleRegister}
                 disabled={loading}
                 activeOpacity={0.85}
               >
@@ -527,10 +349,8 @@ export default function AttendEventModal({
                   <ActivityIndicator color="#ffffff" />
                 ) : (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Sparkles size={16} color="#ffffff" />
-                    <Text style={styles.submitBtnText}>
-                      {isPaid ? `Pay $${totalAmount} via Paystack` : "Confirm Attendance (Free)"}
-                    </Text>
+                    <CheckCircle size={16} color="#ffffff" />
+                    <Text style={styles.submitBtnText}>Confirm Attendance</Text>
                   </View>
                 )}
               </TouchableOpacity>

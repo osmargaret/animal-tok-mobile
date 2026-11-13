@@ -23,6 +23,7 @@ import {
   Heart,
   Calendar,
   ShoppingBag,
+  Store,
   MapPin,
   Users,
   Check,
@@ -44,7 +45,6 @@ import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import HostEventModal from "@/components/HostEventModal";
-import CheckoutModal from "@/components/CheckoutModal.native";
 import AttendEventModal from "@/components/AttendEventModal";
 import GuestAuthModal from "@/components/GuestAuthModal";
 import { BuyProductModal } from "@/components/BuyProductModal";
@@ -240,7 +240,6 @@ export default function ExploreScreen() {
   const [eventsList, setEventsList] = useState<ExploreEvent[]>(EXPLORE_EVENTS);
   const [hostModalVisible, setHostModalVisible] = useState(false);
   const [selectedAttendEvent, setSelectedAttendEvent] = useState<ExploreEvent | null>(null);
-  const [selectedCheckoutEvent, setSelectedCheckoutEvent] = useState<ExploreEvent | null>(null);
   const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -551,129 +550,129 @@ export default function ExploreScreen() {
             <Text style={styles.pageSub}>Discover trending pets, live events & marketplace</Text>
           </View>
 
-        {/* Search & Pet Filter Input Group */}
-        <View style={styles.inputGroupWrapper}>
-          <View style={styles.inputGroupContainer}>
-            {/* Left: Search Bar */}
-            <View style={styles.searchLeftBox}>
-              <Search size={17} color="#94a3b8" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={
-                  activeTab === "trending"
-                    ? "Search videos, tags, pets..."
-                    : activeTab === "events"
-                    ? "Search mating, agility, events..."
-                    : "Search products, grooming..."
-                }
-                placeholderTextColor="#64748b"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onFocus={() => setPetDropdownOpen(false)}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery("")}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <X size={15} color="#94a3b8" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Input Group Divider */}
-            <View style={styles.inputGroupDivider} />
-
-            {/* Right: Pet Filter Dropdown Trigger */}
+          {/* 3 Main Tabs: Trending | Events | Marketplace */}
+          <View style={styles.tabsRow}>
             <TouchableOpacity
-              style={[styles.dropdownTrigger, petDropdownOpen && styles.dropdownTriggerActive]}
-              onPress={() => setPetDropdownOpen(!petDropdownOpen)}
-              activeOpacity={0.7}
+              style={[styles.tabButton, activeTab === "trending" && styles.tabButtonActive]}
+              onPress={() => {
+                setPetDropdownOpen(false);
+                handleTabChange("trending");
+              }}
             >
-              <Text style={styles.dropdownTriggerIcon}>{currentPet.icon}</Text>
-              <Text style={styles.dropdownTriggerText} numberOfLines={1}>
-                {currentPet.label}
+              <Flame size={16} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
+              <Text style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}>
+                Trending
               </Text>
-              <ChevronDown
-                size={14}
-                color={selectedPetFilter !== "all" ? "#06b6d4" : "#94a3b8"}
-                style={petDropdownOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
-              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "events" && styles.tabButtonActive]}
+              onPress={() => {
+                setPetDropdownOpen(false);
+                handleTabChange("events");
+              }}
+            >
+              <Calendar size={16} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
+              <Text style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}>
+                Events
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "marketplace" && styles.tabButtonActive]}
+              onPress={() => {
+                setPetDropdownOpen(false);
+                handleTabChange("marketplace");
+              }}
+            >
+              <Store size={16} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
+              <Text style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}>
+                Marketplace
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Floating Dropdown Menu Options */}
-          {petDropdownOpen && (
-            <View style={styles.dropdownMenu}>
-              <View style={styles.dropdownHeader}>
-                <Text style={styles.dropdownHeaderText}>Select Pet Species</Text>
-              </View>
-              {PET_FILTERS.map((pet) => {
-                const isSelected = selectedPetFilter === pet.id;
-                return (
+          {/* Search & Pet Filter Input Group */}
+          <View style={styles.inputGroupWrapper}>
+            <View style={styles.inputGroupContainer}>
+              {/* Left: Search Bar */}
+              <View style={styles.searchLeftBox}>
+                <Search size={17} color="#94a3b8" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder={
+                    activeTab === "trending"
+                      ? "Search videos, tags, pets..."
+                      : activeTab === "events"
+                      ? "Search mating, agility, events..."
+                      : "Search products, grooming..."
+                  }
+                  placeholderTextColor="#64748b"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onFocus={() => setPetDropdownOpen(false)}
+                />
+                {searchQuery.length > 0 && (
                   <TouchableOpacity
-                    key={pet.id}
-                    style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                    onPress={() => {
-                      setSelectedPetFilter(pet.id);
-                      setPetDropdownOpen(false);
-                    }}
-                    activeOpacity={0.7}
+                    onPress={() => setSearchQuery("")}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Text style={styles.dropdownItemIcon}>{pet.icon}</Text>
-                    <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
-                      {pet.label}
-                    </Text>
-                    {isSelected && <Check size={14} color="#06b6d4" />}
+                    <X size={15} color="#94a3b8" />
                   </TouchableOpacity>
-                );
-              })}
+                )}
+              </View>
+
+              {/* Input Group Divider */}
+              <View style={styles.inputGroupDivider} />
+
+              {/* Right: Pet Filter Dropdown Trigger */}
+              <TouchableOpacity
+                style={[styles.dropdownTrigger, petDropdownOpen && styles.dropdownTriggerActive]}
+                onPress={() => setPetDropdownOpen(!petDropdownOpen)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dropdownTriggerIcon}>{currentPet.icon}</Text>
+                <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+                  {currentPet.label}
+                </Text>
+                <ChevronDown
+                  size={14}
+                  color={selectedPetFilter !== "all" ? "#06b6d4" : "#94a3b8"}
+                  style={petDropdownOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
+                />
+              </TouchableOpacity>
             </View>
-          )}
+
+            {/* Floating Dropdown Menu Options */}
+            {petDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                <View style={styles.dropdownHeader}>
+                  <Text style={styles.dropdownHeaderText}>Select Pet Species</Text>
+                </View>
+                {PET_FILTERS.map((pet) => {
+                  const isSelected = selectedPetFilter === pet.id;
+                  return (
+                    <TouchableOpacity
+                      key={pet.id}
+                      style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                      onPress={() => {
+                        setSelectedPetFilter(pet.id);
+                        setPetDropdownOpen(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.dropdownItemIcon}>{pet.icon}</Text>
+                      <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
+                        {pet.label}
+                      </Text>
+                      {isSelected && <Check size={14} color="#06b6d4" />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         </View>
-
-        {/* 3 Main Tabs: Trending | Events | Marketplace */}
-        <View style={styles.tabsRow}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === "trending" && styles.tabButtonActive]}
-            onPress={() => {
-              setPetDropdownOpen(false);
-              handleTabChange("trending");
-            }}
-          >
-            <Flame size={16} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
-            <Text style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}>
-              Trending
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === "events" && styles.tabButtonActive]}
-            onPress={() => {
-              setPetDropdownOpen(false);
-              handleTabChange("events");
-            }}
-          >
-            <Calendar size={16} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
-            <Text style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}>
-              Events
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === "marketplace" && styles.tabButtonActive]}
-            onPress={() => {
-              setPetDropdownOpen(false);
-              handleTabChange("marketplace");
-            }}
-          >
-            <ShoppingBag size={16} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
-            <Text style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}>
-              Marketplace
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
         {/* Category Row (Tab-Specific Categories) */}
         <View style={styles.categorySection}>

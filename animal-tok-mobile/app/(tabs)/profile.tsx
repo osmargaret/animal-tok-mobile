@@ -41,6 +41,7 @@ import {
   Star,
   PlusCircle,
   Trash2,
+  CalendarDays,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,7 +50,6 @@ import { marketProducts, marketServices, ProductItem, ServiceItem } from "@/data
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
-import ServiceBookingsListModal from "@/components/ServiceBookingsListModal";
 import { formatRelativeTime } from "@/utils/timeAgo";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -72,7 +72,7 @@ export default function ProfileScreen() {
   const [userServices, setUserServices] = useState<ServiceItem[]>(marketServices);
   const [userEvents, setUserEvents] = useState<any[]>([]);
   const [hostEventModalVisible, setHostEventModalVisible] = useState(false);
-  const [serviceBookingsModalVisible, setServiceBookingsModalVisible] = useState(false);
+  const [serviceAppointments, setServiceAppointments] = useState<any[]>([]);
   const [orderCount, setOrderCount] = useState(0);
 
   const isAnimal = activeProfile?.type === "animal";
@@ -343,9 +343,48 @@ export default function ProfileScreen() {
     fetchStats();
   }, [activeProfile, user]);
 
+  const loadServiceAppointments = async () => {
+    try {
+      const stored = await AsyncStorage.getItem("animaltok_service_bookings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setServiceAppointments(parsed);
+          return;
+        }
+      }
+      const defaults = [
+        { id: "APP-UP-01", serviceId: "s1", serviceName: "Mobile Spa & Grooming", status: "upcoming", appointmentDate: "Tomorrow • 10:00 AM – 11:30 AM" },
+        { id: "APP-UP-02", serviceId: "s1", serviceName: "Mobile Spa & Grooming", status: "upcoming", appointmentDate: "Friday • 2:00 PM – 3:30 PM" },
+        { id: "APP-UP-03", serviceId: "s2", serviceName: "Positive Puppy Training 101", status: "upcoming", appointmentDate: "Saturday • 11:00 AM – 12:00 PM" },
+        { id: "APP-PAST-02", serviceId: "s1", serviceName: "Mobile Spa & Grooming", status: "past", appointmentDate: "Yesterday • 2:00 PM – 3:30 PM" },
+      ];
+      setServiceAppointments(defaults);
+      await AsyncStorage.setItem("animaltok_service_bookings", JSON.stringify(defaults));
+    } catch {
+      setServiceAppointments([]);
+    }
+  };
+
+  const getUpcomingCountForService = (serviceId: string, serviceName: string) => {
+    return serviceAppointments.filter((a: any) => {
+      const match =
+        a.serviceId === serviceId ||
+        a.serviceName === serviceName ||
+        (serviceId === "s1" && (a.serviceId === "srv_1" || a.serviceId === "s1"));
+      if (!match) return false;
+      const status = (a.status || "").toLowerCase();
+      if (status === "past" || status === "completed" || status === "cancelled") return false;
+      const dateStr = (a.appointmentDate || "").toLowerCase();
+      if (dateStr.includes("yesterday") || dateStr.includes("last week")) return false;
+      return true;
+    }).length;
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       fetchStats();
+      loadServiceAppointments();
       // Load order count from AsyncStorage
       AsyncStorage.getItem("animaltok_product_orders").then((raw) => {
         try {
@@ -824,13 +863,6 @@ export default function ProfileScreen() {
                   </View>
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <TouchableOpacity
-                      style={[styles.tabActionBtn, { backgroundColor: "#3b82f6" }]}
-                      onPress={() => setServiceBookingsModalVisible(true)}
-                    >
-                      <Users size={14} color="#ffffff" />
-                      <Text style={styles.tabActionBtnText}>Client Bookings</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
                       style={[styles.tabActionBtn, isVet && { backgroundColor: "#10b981" }]}
                       onPress={() => router.push({ pathname: "/add-product", params: { type: "service" } })}
                     >
@@ -875,6 +907,9 @@ export default function ProfileScreen() {
                           <Text style={styles.hubServiceTitle}>{srv.name}</Text>
                           <Text style={styles.hubServiceProvider}>By {srv.provider}</Text>
                           <Text style={styles.hubServicePrice}>{srv.price}</Text>
+                          <Text style={styles.hubServiceAppointments}>
+                            {getUpcomingCountForService(srv.id, srv.name)} upcoming appointments
+                          </Text>
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -1113,11 +1148,6 @@ export default function ProfileScreen() {
         visible={hostEventModalVisible}
         onClose={() => setHostEventModalVisible(false)}
         onEventCreated={(newEvent) => setUserEvents((prev) => [newEvent, ...prev])}
-      />
-      {/* Service Bookings Modal */}
-      <ServiceBookingsListModal
-        visible={serviceBookingsModalVisible}
-        onClose={() => setServiceBookingsModalVisible(false)}
       />
     </View>
   );
@@ -1853,6 +1883,12 @@ const styles = StyleSheet.create({
     color: "#10b981",
     fontSize: 13,
     fontWeight: "800",
+  },
+  hubServiceAppointments: {
+    color: "#06b6d4",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 4,
   },
   hubEventsList: {
     gap: 10,

@@ -19,7 +19,6 @@ import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles }
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
-import CheckoutModal from "@/components/CheckoutModal.native";
 
 // Local storage key per thread for offline persistence
 const threadKey = (id: string) => `animaltok_thread_${id}`;
@@ -61,7 +60,6 @@ export default function MessageViewScreen() {
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState(params.initialMessage || "");
-  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -335,46 +333,6 @@ export default function MessageViewScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-
-      {/* In-Chat Direct Checkout & Paystack Booking */}
-      {params.itemTitle ? (
-        <CheckoutModal
-          visible={checkoutModalVisible}
-          onClose={() => setCheckoutModalVisible(false)}
-          item={{
-            id: threadId,
-            name: params.itemTitle,
-            price: params.itemPrice || "$29.99",
-            sellerOrProvider: contactName,
-            image: params.itemImage,
-            type: (params.itemType === "service" ? "service" : "product") as any,
-          }}
-          userEmail={user?.email}
-          userName={user?.name}
-          onSuccess={(orderId) => {
-            // Post an automatic confirmation message into the chat!
-            const confirmText = `🎉 Order Confirmed! (Ref #${orderId}) for "${params.itemTitle}" (${params.itemPrice}). Payment processed successfully via Paystack.`;
-            setInput("");
-            api.sendMessage(
-              threadId,
-              confirmText,
-              currentUserId,
-              recipientId,
-              user?.name || "Buyer",
-              user?.avatar || "👤"
-            );
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `order_${Date.now()}`,
-                sender: "me",
-                text: confirmText,
-                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              },
-            ]);
-          }}
-        />
-      ) : null}
     </View>
   );
 }

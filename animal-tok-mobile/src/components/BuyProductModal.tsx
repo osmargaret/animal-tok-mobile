@@ -104,9 +104,6 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [confirmedOrderId, setConfirmedOrderId] = useState("");
-  const [awaitingPaystack, setAwaitingPaystack] = useState(false);
-  const [paystackUrl, setPaystackUrl] = useState("");
-  const [paystackRef, setPaystackRef] = useState("");
 
   useEffect(() => {
     if (product) {
@@ -116,7 +113,6 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
       setQuantity(1);
       setFulfillment(product.fulfillment === "pickup" ? "pickup" : "delivery");
       setOrderComplete(false);
-      setAwaitingPaystack(false);
       setSubmitting(false);
     }
   }, [product]);
@@ -138,9 +134,6 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
   const resetForm = () => {
     setSubmitting(false);
     setOrderComplete(false);
-    setAwaitingPaystack(false);
-    setPaystackUrl("");
-    setPaystackRef("");
     onClose();
   };
 
@@ -190,39 +183,6 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
     };
 
     try {
-      // 1. Initialize Paystack Transaction via API
-      try {
-        const initRes = await api.initializePaystackPayment({
-          email: buyerEmail.trim() || "customer@animaltok.com",
-          amount: Math.round(parseFloat(totalAmount) * 100),
-          metadata: {
-            orderId,
-            productId: product.id,
-            productName: product.name,
-            fulfillment,
-            buyerName,
-            buyerPhone,
-          },
-        });
-
-        if (initRes && initRes.data?.authorization_url) {
-          setPaystackRef(initRes.data.reference || orderId);
-          setPaystackUrl(initRes.data.authorization_url);
-          setAwaitingPaystack(true);
-          setSubmitting(false);
-
-          if (Platform.OS === "web" && typeof window !== "undefined") {
-            window.open(initRes.data.authorization_url, "_blank");
-          } else {
-            Linking.openURL(initRes.data.authorization_url);
-          }
-          return;
-        }
-      } catch (paystackErr) {
-        console.warn("Paystack init fell back to instant completion:", paystackErr);
-      }
-
-      // Fallback / instant completion
       await finishOrder(orderData);
     } catch (err: any) {
       alertMsg("Order Failed", err?.message || "Could not complete order. Please try again.");
@@ -301,7 +261,6 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
     setConfirmedOrderId(orderData.id);
     setOrderComplete(true);
     setSubmitting(false);
-    setAwaitingPaystack(false);
 
     if (onSuccess) onSuccess(orderData);
   };
@@ -398,68 +357,6 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
                   <Text style={styles.finishBtnText}>Done</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          ) : awaitingPaystack ? (
-            /* Awaiting Paystack Screen */
-            <View style={styles.awaitingBox}>
-              <ActivityIndicator size="large" color="#06b6d4" />
-              <Text style={styles.awaitingTitle}>Awaiting Paystack Payment</Text>
-              <Text style={styles.awaitingSub}>
-                A secure Paystack window was opened. After you complete payment, tap the button below to confirm.
-              </Text>
-              <View style={styles.refInfoBox}>
-                <Text style={styles.refLabel}>Total: ${totalAmount}</Text>
-                <Text style={styles.refCode}>Ref: {paystackRef}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.verifyBtn}
-                onPress={() =>
-                  finishOrder({
-                    id: paystackRef || `ORD-${Date.now().toString(36).toUpperCase()}`,
-                    productId: product.id,
-                    productName: product.name,
-                    seller: product.seller,
-                    sellerId: product.sellerId,
-                    image: product.image,
-                    type: selectedType,
-                    size: selectedSize,
-                    color: selectedColor,
-                    quantity,
-                    fulfillment,
-                    deliveryAddress,
-                    pickupLocation: product.pickupAddress || "Official Pet Hub",
-                    pickupTime: customPickupTime || pickupSlot,
-                    buyerName,
-                    buyerPhone,
-                    buyerEmail,
-                    total: totalAmount,
-                    status: "confirmed",
-                    createdAt: new Date().toISOString(),
-                  })
-                }
-              >
-                <Text style={styles.verifyBtnText}>I've Paid — Confirm Order</Text>
-              </TouchableOpacity>
-
-              {paystackUrl ? (
-                <TouchableOpacity
-                  style={styles.reopenBtn}
-                  onPress={() => {
-                    if (Platform.OS === "web" && typeof window !== "undefined") {
-                      window.open(paystackUrl, "_blank");
-                    } else {
-                      Linking.openURL(paystackUrl);
-                    }
-                  }}
-                >
-                  <ExternalLink size={14} color="#06b6d4" />
-                  <Text style={styles.reopenText}>Re-open Paystack</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity onPress={() => setAwaitingPaystack(false)} style={{ marginTop: 12 }}>
-                <Text style={{ color: "#94a3b8", fontSize: 13 }}>Cancel</Text>
-              </TouchableOpacity>
             </View>
           ) : (
             /* Main Form */
@@ -737,12 +634,12 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryRow}>
-                  <Text style={styles.totalLabel}>Total Due:</Text>
+                  <Text style={styles.totalLabel}>Order Total:</Text>
                   <Text style={styles.totalVal}>${totalAmount}</Text>
                 </View>
               </View>
 
-              {/* Pay Button */}
+              {/* Order Button */}
               <TouchableOpacity
                 style={[styles.payBtn, submitting && styles.payBtnDisabled]}
                 onPress={handlePay}
@@ -753,8 +650,8 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <>
-                    <ShieldCheck size={18} color="#ffffff" />
-                    <Text style={styles.payBtnText}>Pay ${totalAmount} via Paystack</Text>
+                    <CheckCircle size={18} color="#ffffff" />
+                    <Text style={styles.payBtnText}>Confirm Order</Text>
                   </>
                 )}
               </TouchableOpacity>
