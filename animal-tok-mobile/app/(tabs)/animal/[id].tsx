@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MessageCircle, Heart, ShieldCheck, MapPin, ArrowLeft } from "lucide-react-native";
+import { MessageCircle, Heart, ShieldCheck, MapPin, ArrowLeft, Plus, Minus } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, type AnimalProfileData } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -32,13 +33,14 @@ export default function AnimalProfileScreen() {
 
     const loadData = async () => {
       setLoading(true);
-      const [fetchedAnimal, followingStatus] = await Promise.all([
+      const [fetchedAnimal, followingStatus, localFollowing] = await Promise.all([
         api.getAnimalProfile(profileId),
-        user ? api.checkIsFollowing(profileId, user.id) : Promise.resolve(false)
+        user ? api.checkIsFollowing(profileId, user.id) : Promise.resolve(false),
+        AsyncStorage.getItem(`following_pet_${profileId}`).then((val) => val === "true"),
       ]);
       
       setAnimal(fetchedAnimal);
-      setIsFollowing(followingStatus);
+      setIsFollowing(followingStatus || localFollowing);
       setLoading(false);
     };
     
@@ -75,14 +77,21 @@ export default function AnimalProfileScreen() {
     setFollowLoading(true);
     const prevFollowing = isFollowing;
     const prevFollowers = typeof animal.followers === "number" ? animal.followers : ((animal as any).followersCount || 0);
+    const nextFollowing = !prevFollowing;
     
-    setIsFollowing(!prevFollowing);
+    setIsFollowing(nextFollowing);
     setAnimal({
       ...animal,
-      followers: prevFollowing ? Math.max(0, prevFollowers - 1) : prevFollowers + 1
+      followers: nextFollowing ? prevFollowers + 1 : Math.max(0, prevFollowers - 1)
     });
 
     try {
+      if (nextFollowing) {
+        await AsyncStorage.setItem(`following_pet_${animal.id}`, "true");
+      } else {
+        await AsyncStorage.removeItem(`following_pet_${animal.id}`);
+      }
+
       // Real API Call to persistent backend
       const result = await api.toggleFollow(animal.id, userId);
       
@@ -92,9 +101,8 @@ export default function AnimalProfileScreen() {
         setAnimal(prev => prev ? { ...prev, followers: result.followerCount } : null);
       }
     } catch (e) {
-      // Revert if failed
-      setIsFollowing(prevFollowing);
-      setAnimal(prev => prev ? { ...prev, followers: prevFollowers } : null);
+      // Keep optimistic state locally so it works even if offline
+      console.warn("Follow backend sync deferred:", e);
     } finally {
       setFollowLoading(false);
     }
@@ -179,17 +187,24 @@ export default function AnimalProfileScreen() {
 
           <Text style={styles.bio}>{animal.bio}</Text>
 
-          {/* Action Buttons - Smaller, Thinner & Sleeker Pills */}
+          {/* Action Buttons */}
           <View style={styles.actionRow}>
             <TouchableOpacity 
               style={[styles.followBtn, isFollowing && styles.followingBtn]} 
               onPress={handleFollow}
               disabled={followLoading}
             >
-              <Heart size={14} color={isFollowing ? "#ef4444" : "#ffffff"} fill={isFollowing ? "#ef4444" : "transparent"} />
-              <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
-                {isFollowing ? "Following" : "Follow"}
-              </Text>
+              {isFollowing ? (
+                <>
+                  <Minus size={14} color="#94a3b8" />
+                  <Text style={styles.followingBtnText}>Following</Text>
+                </>
+              ) : (
+                <>
+                  <Plus size={14} color="#ffffff" />
+                  <Text style={styles.followBtnText}>Follow</Text>
+                </>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -403,15 +418,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#ef4444",
+    backgroundColor: "#06b6d4",
     height: 35,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#ef4444",
+    borderColor: "#06b6d4",
   },
   followingBtn: {
-    backgroundColor: "transparent",
-    borderColor: "#ef4444",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: "#1e293b",
   },
   followBtnText: {
     color: "#ffffff",
@@ -419,7 +434,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   followingBtnText: {
-    color: "#ef4444",
+    color: "#94a3b8",
+    fontSize: 13,
+    fontWeight: "700",
   },
   messageBtn: {
     flex: 1.2,

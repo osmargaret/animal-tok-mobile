@@ -49,6 +49,7 @@ import { marketProducts, marketServices, ProductItem, ServiceItem } from "@/data
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
+import ServiceBookingsListModal from "@/components/ServiceBookingsListModal";
 import { formatRelativeTime } from "@/utils/timeAgo";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -59,7 +60,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24);
   const { activeProfile, user, switchProfile, switchToHandler, logout, pets } = useAuth();
-  const [activeTab, setActiveTab] = useState<"grid" | "products" | "services" | "events">("grid");
+  const [activeTab, setActiveTab] = useState<"grid" | "products" | "services" | "events" | "saved">("grid");
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [profileStats, setProfileStats] = useState<any>(null);
@@ -70,6 +72,7 @@ export default function ProfileScreen() {
   const [userServices, setUserServices] = useState<ServiceItem[]>(marketServices);
   const [userEvents, setUserEvents] = useState<any[]>([]);
   const [hostEventModalVisible, setHostEventModalVisible] = useState(false);
+  const [serviceBookingsModalVisible, setServiceBookingsModalVisible] = useState(false);
   const [orderCount, setOrderCount] = useState(0);
 
   const isAnimal = activeProfile?.type === "animal";
@@ -272,53 +275,57 @@ export default function ProfileScreen() {
   };
 
   const handleDeletePost = (postId: string | number) => {
-    Alert.alert(
-      "Delete Post",
-      "Are you sure you want to permanently take down this post? It will be removed from your profile and the feed.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete Post",
-          style: "destructive",
-          onPress: async () => {
-            const idStr = String(postId);
-            try {
-              // 1. Remove from in-memory feedPosts
-              const idx = feedPosts.findIndex((p) => String(p.id) === idStr);
-              if (idx !== -1) feedPosts.splice(idx, 1);
+    const doDelete = async () => {
+      const idStr = String(postId);
+      try {
+        // Immediate real-time UI removal
+        setSelectedPost(null);
 
-              // 2. Remove from AsyncStorage custom posts
-              const stored = await AsyncStorage.getItem("animaltok_custom_posts");
-              if (stored) {
-                const list = JSON.parse(stored);
-                const filtered = list.filter((p: any) => String(p.id) !== idStr);
-                await AsyncStorage.setItem("animaltok_custom_posts", JSON.stringify(filtered));
-              }
+        // 1. Remove from in-memory feedPosts
+        const idx = feedPosts.findIndex((p) => String(p.id) === idStr);
+        if (idx !== -1) feedPosts.splice(idx, 1);
 
-              // 3. Remove from profileStats.posts state
-              setProfileStats((prev: any) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
-                  posts: (prev.posts || []).filter((p: any) => String(p.id) !== idStr),
-                };
-              });
+        // 2. Remove from AsyncStorage custom posts
+        const stored = await AsyncStorage.getItem("animaltok_custom_posts");
+        if (stored) {
+          const list = JSON.parse(stored);
+          const filtered = list.filter((p: any) => String(p.id) !== idStr);
+          await AsyncStorage.setItem("animaltok_custom_posts", JSON.stringify(filtered));
+        }
 
-              // 4. Call server API
-              await api.deletePost(idStr);
+        // 3. Remove from profileStats state immediately
+        setProfileStats((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            posts: (prev.posts || []).filter((p: any) => String(p.id) !== idStr),
+          };
+        });
 
-              // 5. Close modal
-              setSelectedPost(null);
+        // 4. Call server API in background
+        await api.deletePost(idStr);
 
-              Alert.alert("Post Deleted", "Your post has been taken down from your profile and the feed.");
-            } catch (err) {
-              console.warn("Failed to delete post:", err);
-              setSelectedPost(null);
-            }
-          },
-        },
-      ]
-    );
+        // 5. Trigger refresh of stats
+        fetchStats();
+      } catch (err) {
+        console.warn("Failed to delete post:", err);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.confirm("Are you sure you want to permanently delete this post?")) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        "Delete Post",
+        "Are you sure you want to permanently take down this post? It will be removed from your profile and the feed.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete Post", style: "destructive", onPress: doDelete },
+        ]
+      );
+    }
   };
 
   useEffect(() => {
@@ -335,6 +342,15 @@ export default function ProfileScreen() {
           setOrderCount(Array.isArray(list) ? list.length : 0);
         } catch {
           setOrderCount(0);
+        }
+      });
+      // Load saved posts from AsyncStorage
+      AsyncStorage.getItem("animaltok_saved_posts").then((raw) => {
+        try {
+          const list = raw ? JSON.parse(raw) : [];
+          setSavedPosts(Array.isArray(list) ? list : []);
+        } catch {
+          setSavedPosts([]);
         }
       });
     }, [activeProfile, user])
@@ -653,6 +669,19 @@ export default function ProfileScreen() {
                   Events <Text style={styles.tabCount}>({userEvents.length})</Text>
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.gridTabBtn, activeTab === "saved" && styles.gridTabActive]}
+                onPress={() => setActiveTab("saved")}
+              >
+                <Bookmark size={11} color={activeTab === "saved" ? "#06b6d4" : "#64748b"} />
+                <Text
+                  style={[styles.gridTabLabel, activeTab === "saved" && styles.gridTabLabelActive]}
+                  numberOfLines={1}
+                >
+                  Saved <Text style={styles.tabCount}>({savedPosts.length})</Text>
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* TAB 1: POSTS & VIDEOS */}
@@ -782,15 +811,24 @@ export default function ProfileScreen() {
                     </Text>
                     <Text style={styles.tabSectionSub}>Bookable services for pet parents</Text>
                   </View>
-                  <TouchableOpacity
-                    style={[styles.tabActionBtn, isVet && { backgroundColor: "#10b981" }]}
-                    onPress={() => router.push({ pathname: "/add-product", params: { type: "service" } })}
-                  >
-                    <Plus size={14} color="#ffffff" />
-                    <Text style={styles.tabActionBtnText}>
-                      {isVet ? "Add Vet Service" : "Add Service"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.tabActionBtn, { backgroundColor: "#3b82f6" }]}
+                      onPress={() => setServiceBookingsModalVisible(true)}
+                    >
+                      <Users size={14} color="#ffffff" />
+                      <Text style={styles.tabActionBtnText}>Client Bookings</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tabActionBtn, isVet && { backgroundColor: "#10b981" }]}
+                      onPress={() => router.push({ pathname: "/add-product", params: { type: "service" } })}
+                    >
+                      <Plus size={14} color="#ffffff" />
+                      <Text style={styles.tabActionBtnText}>
+                        {isVet ? "Add Vet Service" : "Add Service"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {userServices.length > 0 ? (
@@ -884,6 +922,65 @@ export default function ProfileScreen() {
                 )}
               </View>
             )}
+
+            {/* TAB 5: SAVED VIDEOS & POSTS */}
+            {activeTab === "saved" && (
+              savedPosts.length > 0 ? (
+                <View style={styles.grid}>
+                  {savedPosts.map((post: any, idx: number) => {
+                    const isVid = !!(
+                      post.videoUrl ||
+                      (post.posterUrl && post.posterUrl.match(/\.(mp4|mov|webm)$/i))
+                    );
+                    const mediaUri =
+                      post.imageUrl || post.posterUrl || post.videoUrl || (typeof post === "string" ? post : "");
+
+                    return (
+                      <TouchableOpacity
+                        key={post.id || idx}
+                        style={styles.gridItem}
+                        activeOpacity={0.85}
+                        onPress={() => setSelectedPost(post)}
+                      >
+                        <Image source={{ uri: mediaUri }} style={styles.gridImg} resizeMode="cover" />
+
+                        {isVid && (
+                          <View style={styles.gridVideoBadge}>
+                            <Play size={10} color="#ffffff" fill="#ffffff" />
+                            <Text style={styles.gridVideoBadgeText}>
+                              {post.likes ? formatNumber(post.likes) : "Clip"}
+                            </Text>
+                          </View>
+                        )}
+
+                        {post.caption ? (
+                          <View style={styles.gridCaptionOverlay}>
+                            <Text style={styles.gridCaptionText} numberOfLines={1}>
+                              {post.caption}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.emptyHubBox}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🔖</Text>
+                  <Text style={styles.emptyHubTitle}>No Saved Posts Yet</Text>
+                  <Text style={styles.emptyHubSub}>
+                    Bookmark clips and videos from the feed to watch them anytime.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.createPostBtn}
+                    onPress={() => router.push("/(tabs)")}
+                  >
+                    <Play size={14} color="#ffffff" />
+                    <Text style={styles.createPostBtnText}>Explore Feed</Text>
+                  </TouchableOpacity>
+                </View>
+              )
+            )}
           </>
         )}
       </ScrollView>
@@ -906,9 +1003,19 @@ export default function ProfileScreen() {
                     <Text style={styles.postModalUsername}>{selectedPost.username || activeProfile?.username}</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.postModalCloseBtn} onPress={() => setSelectedPost(null)}>
-                  <X size={18} color="#ffffff" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <TouchableOpacity
+                    style={styles.postModalTopDeleteBtn}
+                    onPress={() => handleDeletePost(selectedPost.id)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Trash2 size={18} color="#94a3b8" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.postModalCloseBtn} onPress={() => setSelectedPost(null)}>
+                    <X size={18} color="#ffffff" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Media Container */}
@@ -961,16 +1068,6 @@ export default function ProfileScreen() {
                   </View>
                   <Text style={styles.postModalTimeText}>{formatRelativeTime(selectedPost.createdAt || selectedPost.time, selectedPost.id)}</Text>
                 </View>
-
-                {/* Delete Post Button */}
-                <TouchableOpacity
-                  style={styles.postModalDeleteBtn}
-                  onPress={() => handleDeletePost(selectedPost.id)}
-                  activeOpacity={0.8}
-                >
-                  <Trash2 size={15} color="#ef4444" />
-                  <Text style={styles.postModalDeleteText}>Delete Post</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -981,6 +1078,11 @@ export default function ProfileScreen() {
         visible={hostEventModalVisible}
         onClose={() => setHostEventModalVisible(false)}
         onEventCreated={(newEvent) => setUserEvents((prev) => [newEvent, ...prev])}
+      />
+      {/* Service Bookings Modal */}
+      <ServiceBookingsListModal
+        visible={serviceBookingsModalVisible}
+        onClose={() => setServiceBookingsModalVisible(false)}
       />
     </View>
   );
@@ -1083,7 +1185,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#0d1117",
-    marginBottom: -26,
+    marginBottom: 6,
   },
   cardCoverImg: {
     width: "100%",
@@ -1110,11 +1212,11 @@ const styles = StyleSheet.create({
   },
   avatarAndStatsRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "space-between",
     gap: 12,
     paddingHorizontal: 8,
-    marginTop: 8,
+    marginTop: -32,
     marginBottom: 4,
   },
   avatarWrap: {
@@ -1150,7 +1252,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 8,
-    backgroundColor: "rgba(13, 17, 23, 0.5)",
+    backgroundColor: "#0d1117",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(30, 41, 59, 0.7)",
@@ -1493,6 +1595,10 @@ const styles = StyleSheet.create({
   postModalUsername: {
     color: "#94a3b8",
     fontSize: 11,
+  },
+  postModalTopDeleteBtn: {
+    padding: 6,
+    borderRadius: 8,
   },
   postModalCloseBtn: {
     padding: 6,

@@ -47,6 +47,9 @@ import HostEventModal from "@/components/HostEventModal";
 import CheckoutModal from "@/components/CheckoutModal.native";
 import AttendEventModal from "@/components/AttendEventModal";
 import GuestAuthModal from "@/components/GuestAuthModal";
+import { BuyProductModal } from "@/components/BuyProductModal";
+import BookServiceModal from "@/components/BookServiceModal";
+import { MarketDetailModal } from "@/components/MarketDetailModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -352,27 +355,38 @@ export default function ExploreScreen() {
     );
   };
 
+  // Detail & Action Modals
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
+  const [detailModalType, setDetailModalType] = useState<"product" | "service">("product");
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+
+  const [buyProductModalVisible, setBuyProductModalVisible] = useState(false);
+  const [selectedProductForBuy, setSelectedProductForBuy] = useState<ProductItem | null>(null);
+
+  const [bookServiceModalVisible, setBookServiceModalVisible] = useState(false);
+  const [selectedServiceForBook, setSelectedServiceForBook] = useState<ServiceItem | null>(null);
+
+  const handleOpenProductDetail = (item: ProductItem) => {
+    setSelectedDetailItem(item);
+    setDetailModalType("product");
+    setDetailModalVisible(true);
+  };
+
+  const handleOpenServiceDetail = (item: ServiceItem) => {
+    setSelectedDetailItem(item);
+    setDetailModalType("service");
+    setDetailModalVisible(true);
+  };
+
   const handleBuyProduct = (item: ProductItem) => {
     if (!user) {
       setGuestAuthTitle("Buy Pet Products 🛍️");
-      setGuestAuthSubtitle("Create an account or sign in to message sellers, purchase items, and track orders.");
+      setGuestAuthSubtitle("Create an account or sign in to purchase items and track orders.");
       setGuestAuthVisible(true);
       return;
     }
-    const threadId = `trade_${(item.seller || "seller").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
-    router.push({
-      pathname: "/(tabs)/message/[id]",
-      params: {
-        id: threadId,
-        name: item.seller || "Pet Shop Seller",
-        avatar: item.image || "🛍️",
-        itemTitle: item.name,
-        itemPrice: item.price,
-        itemType: "product",
-        itemImage: item.image,
-        initialMessage: `Hi! I would like to buy "${item.name}" (${item.price}). Is it available?`,
-      },
-    });
+    setSelectedProductForBuy(item);
+    setBuyProductModalVisible(true);
   };
 
   const handleBookService = (item: ServiceItem) => {
@@ -382,20 +396,8 @@ export default function ExploreScreen() {
       setGuestAuthVisible(true);
       return;
     }
-    const threadId = `booking_${(item.provider || "provider").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
-    router.push({
-      pathname: "/(tabs)/message/[id]",
-      params: {
-        id: threadId,
-        name: item.provider || "Service Provider",
-        avatar: item.image || "👨‍⚕️",
-        itemTitle: item.name,
-        itemPrice: item.price,
-        itemType: "service",
-        itemImage: item.image,
-        initialMessage: `Hello! I would like to book your "${item.name}" service (${item.price}). When is your earliest opening?`,
-      },
-    });
+    setSelectedServiceForBook(item);
+    setBookServiceModalVisible(true);
   };
 
   // Filtered Trending Posts
@@ -985,30 +987,36 @@ export default function ExploreScreen() {
 
                 <View style={styles.productsGrid}>
                   {filteredProducts.map((prod) => (
-                    <View key={prod.id} style={styles.productCard}>
+                    <TouchableOpacity
+                      key={prod.id}
+                      style={styles.productCard}
+                      onPress={() => handleOpenProductDetail(prod)}
+                      activeOpacity={0.85}
+                    >
                       <Image source={{ uri: prod.image }} style={styles.productImage} />
                       <View style={styles.productBody}>
                         <Text style={styles.productTag}>{prod.category}</Text>
                         <Text style={styles.productName} numberOfLines={1}>{prod.name}</Text>
                         <Text style={styles.productSeller} numberOfLines={1}>by {prod.seller}</Text>
 
+                        {/* Price hidden from card until clicked */}
                         <View style={styles.productPriceRow}>
-                          <Text style={styles.productPrice}>{prod.price}</Text>
                           <View style={styles.ratingBox}>
                             <Star size={11} color="#f59e0b" fill="#f59e0b" />
                             <Text style={styles.ratingText}>{prod.rating}</Text>
                           </View>
+                          <Text style={styles.tapDetailsText}>Tap for Details</Text>
                         </View>
 
                         <TouchableOpacity
                           style={styles.buyButton}
-                          onPress={() => handleBuyProduct(prod)}
+                          onPress={() => handleOpenProductDetail(prod)}
                         >
                           <ShoppingBag size={13} color="#ffffff" />
-                          <Text style={styles.buyButtonText}>Buy Now</Text>
+                          <Text style={styles.buyButtonText}>View & Buy</Text>
                         </TouchableOpacity>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -1027,29 +1035,35 @@ export default function ExploreScreen() {
 
                 <View style={styles.servicesList}>
                   {filteredServices.map((srv) => (
-                    <View key={srv.id} style={styles.serviceCard}>
+                    <TouchableOpacity
+                      key={srv.id}
+                      style={styles.serviceCard}
+                      onPress={() => handleOpenServiceDetail(srv)}
+                      activeOpacity={0.85}
+                    >
                       <Image source={{ uri: srv.image }} style={styles.serviceImage} />
                       <View style={styles.serviceBody}>
                         <Text style={styles.serviceName}>{srv.name}</Text>
                         <Text style={styles.serviceProvider}>Provider: {srv.provider}</Text>
 
+                        {/* Price hidden from card until clicked */}
                         <View style={styles.servicePriceRow}>
-                          <Text style={styles.servicePrice}>{srv.price}</Text>
                           <View style={styles.ratingBox}>
                             <Star size={11} color="#f59e0b" fill="#f59e0b" />
                             <Text style={styles.ratingText}>{srv.rating}</Text>
                           </View>
+                          <Text style={styles.tapDetailsText}>Tap for Details</Text>
                         </View>
 
                         <TouchableOpacity
                           style={styles.bookButton}
-                          onPress={() => handleBookService(srv)}
+                          onPress={() => handleOpenServiceDetail(srv)}
                         >
                           <Calendar size={13} color="#ffffff" />
-                          <Text style={styles.bookButtonText}>Book Service</Text>
+                          <Text style={styles.bookButtonText}>View & Book</Text>
                         </TouchableOpacity>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -1119,6 +1133,37 @@ export default function ExploreScreen() {
           }}
         />
       )}
+
+      {/* Market Detail Modal */}
+      <MarketDetailModal
+        visible={detailModalVisible}
+        item={selectedDetailItem}
+        type={detailModalType}
+        onClose={() => setDetailModalVisible(false)}
+        onAction={() => {
+          if (detailModalType === "product") {
+            handleBuyProduct(selectedDetailItem);
+          } else {
+            handleBookService(selectedDetailItem);
+          }
+        }}
+      />
+
+      {/* Buy Product Modal */}
+      <BuyProductModal
+        visible={buyProductModalVisible}
+        product={selectedProductForBuy}
+        onClose={() => setBuyProductModalVisible(false)}
+        user={user}
+      />
+
+      {/* Book Service Modal */}
+      <BookServiceModal
+        visible={bookServiceModalVisible}
+        service={selectedServiceForBook}
+        onClose={() => setBookServiceModalVisible(false)}
+        user={user}
+      />
 
       {/* Guest Auth Modal */}
       <GuestAuthModal
@@ -1705,6 +1750,11 @@ const styles = StyleSheet.create({
     color: "#10b981",
     fontSize: 14,
     fontWeight: "800",
+  },
+  tapDetailsText: {
+    color: "#06b6d4",
+    fontSize: 11,
+    fontWeight: "600",
   },
   ratingBox: {
     flexDirection: "row",
