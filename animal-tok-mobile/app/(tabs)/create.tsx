@@ -41,6 +41,9 @@ import {
   VolumeX,
   Plus,
   Trash2,
+  Bookmark,
+  UserPlus,
+  LogIn,
 } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -917,17 +920,69 @@ export default function CreateScreen() {
     }
   };
 
-  // If user is a guest, prompt them to sign up to post
+  // If user is a guest, prompt them inline to sign up to post (no sticky system dialog)
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <GuestAuthModal
-          visible={true}
-          onClose={() => router.replace("/(tabs)/")}
-          title="Create an Account to Post 🐾"
-          subtitle="Sign up for free to record live pet clips, pick trending sounds, and join the Animandler community!"
-        />
-      </SafeAreaView>
+      <View style={[styles.container, { backgroundColor: "#0b0f17", justifyContent: "center", alignItems: "center", paddingHorizontal: 16 }]}>
+        <View style={styles.guestInlineCard}>
+          <TouchableOpacity
+            style={styles.guestInlineCloseBtn}
+            onPress={() => router.replace("/(tabs)/")}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <X size={18} color="#94a3b8" />
+          </TouchableOpacity>
+
+          <View style={styles.guestInlineBadge}>
+            <Text style={{ fontSize: 36 }}>🐾</Text>
+          </View>
+
+          <Text style={styles.guestInlineTitle}>Create an Account to Post 🐾</Text>
+          <Text style={styles.guestInlineSub}>
+            Sign up for free to record live pet clips, pick trending sounds, and join the Animandler community!
+          </Text>
+
+          <View style={styles.guestInlineFeaturesRow}>
+            <View style={styles.guestInlineFeatureItem}>
+              <Heart size={14} color="#10b981" />
+              <Text style={styles.guestInlineFeatureText}>Like & Comment</Text>
+            </View>
+            <View style={styles.guestInlineFeatureItem}>
+              <Bookmark size={14} color="#fbbf24" />
+              <Text style={styles.guestInlineFeatureText}>Save Clips</Text>
+            </View>
+            <View style={styles.guestInlineFeatureItem}>
+              <Sparkles size={14} color="#2dd4bf" />
+              <Text style={styles.guestInlineFeatureText}>Post Pets</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.guestInlinePrimaryBtn}
+            onPress={() => router.push({ pathname: "/auth", params: { mode: "signup" } })}
+            activeOpacity={0.85}
+          >
+            <UserPlus size={16} color="#ffffff" />
+            <Text style={styles.guestInlinePrimaryText}>Create Free Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guestInlineSecondaryBtn}
+            onPress={() => router.push({ pathname: "/auth", params: { mode: "login" } })}
+            activeOpacity={0.85}
+          >
+            <LogIn size={15} color="#2dd4bf" />
+            <Text style={styles.guestInlineSecondaryText}>Sign In with Existing Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guestInlineCancelBtn}
+            onPress={() => router.replace("/(tabs)/")}
+          >
+            <Text style={styles.guestInlineCancelText}>Continue Browsing</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
@@ -2458,5 +2513,123 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  guestInlineCard: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#161d2b",
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: "rgba(45, 212, 191, 0.35)",
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    alignItems: "center",
+    position: "relative",
+  },
+  guestInlineCloseBtn: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  guestInlineBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(45, 212, 191, 0.12)",
+    borderWidth: 2,
+    borderColor: "rgba(45, 212, 191, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  guestInlineTitle: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  guestInlineSub: {
+    color: "#94a3b8",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  guestInlineFeaturesRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 22,
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  guestInlineFeatureItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  guestInlineFeatureText: {
+    color: "#e2e8f0",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  guestInlinePrimaryBtn: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#06b6d4",
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginBottom: 10,
+    shadowColor: "#06b6d4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestInlinePrimaryText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  guestInlineSecondaryBtn: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(45, 212, 191, 0.1)",
+    borderWidth: 1.2,
+    borderColor: "rgba(45, 212, 191, 0.4)",
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginBottom: 14,
+  },
+  guestInlineSecondaryText: {
+    color: "#2dd4bf",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guestInlineCancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  guestInlineCancelText: {
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

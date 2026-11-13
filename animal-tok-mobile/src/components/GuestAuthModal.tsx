@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Image,
 } from "react-native";
 import { X, Sparkles, Heart, Bookmark, ShieldCheck, UserPlus, LogIn } from "lucide-react-native";
@@ -24,25 +25,42 @@ export default function GuestAuthModal({
   subtitle = "Create a free account to like, comment, bookmark your favorite clips, and share your own pet videos!",
 }: GuestAuthModalProps) {
   const router = useRouter();
+  const [showModal, setShowModal] = useState(visible);
 
-  if (!visible) return null;
+  useEffect(() => {
+    setShowModal(visible);
+  }, [visible]);
+
+  const handleClose = () => {
+    setShowModal(false);
+    onClose();
+  };
 
   const handleSignup = () => {
+    setShowModal(false);
     onClose();
     router.push({ pathname: "/auth", params: { mode: "signup" } });
   };
 
   const handleLogin = () => {
+    setShowModal(false);
     onClose();
     router.push({ pathname: "/auth", params: { mode: "login" } });
   };
 
+  if (!visible || !showModal) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={showModal} transparent animationType="fade" onRequestClose={handleClose}>
       <View style={styles.overlay}>
+        {/* Full-screen backdrop tap to dismiss */}
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={StyleSheet.absoluteFillObject} />
+        </TouchableWithoutFeedback>
+
         <View style={styles.sheetCard}>
           {/* Close button */}
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity style={styles.closeBtn} onPress={handleClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <X size={18} color="#94a3b8" />
           </TouchableOpacity>
 
@@ -57,7 +75,7 @@ export default function GuestAuthModal({
           {/* Feature Highlights */}
           <View style={styles.featuresRow}>
             <View style={styles.featureItem}>
-              <Heart size={14} color="#06b6d4" />
+              <Heart size={14} color="#10b981" />
               <Text style={styles.featureText}>Like & Comment</Text>
             </View>
             <View style={styles.featureItem}>
@@ -65,7 +83,7 @@ export default function GuestAuthModal({
               <Text style={styles.featureText}>Save Clips</Text>
             </View>
             <View style={styles.featureItem}>
-              <Sparkles size={14} color="#10b981" />
+              <Sparkles size={14} color="#2dd4bf" />
               <Text style={styles.featureText}>Post Pets</Text>
             </View>
           </View>
@@ -77,11 +95,11 @@ export default function GuestAuthModal({
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleLogin} activeOpacity={0.85}>
-            <LogIn size={15} color="#06b6d4" />
+            <LogIn size={15} color="#2dd4bf" />
             <Text style={styles.secondaryBtnText}>Sign In with Existing Account</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
             <Text style={styles.cancelText}>Continue Browsing</Text>
           </TouchableOpacity>
         </View>
