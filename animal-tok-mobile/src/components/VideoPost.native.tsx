@@ -435,11 +435,11 @@ export default function VideoPost({
   return (
     <View style={[styles.container, { width: '100%', height: '100%' }]}>
       {/* Background Video / Image Player with pointerEvents="none" */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]} pointerEvents="none">
         {isVideo && player ? (
           <VideoView
             player={player}
-            style={StyleSheet.absoluteFillObject}
+            style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
             contentFit="cover"
             nativeControls={false}
             allowsFullscreen={false}
@@ -447,7 +447,7 @@ export default function VideoPost({
         ) : (
           <Image
             source={{ uri: post.imageUrl || post.posterUrl || "https://images.unsplash.com/photo-1543466835-00a7907e9de1" }}
-            style={StyleSheet.absoluteFillObject}
+            style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
             resizeMode="cover"
           />
         )}
@@ -578,7 +578,7 @@ export default function VideoPost({
 
         <TouchableOpacity style={styles.userHeader} onPress={handleProfilePress}>
           <Text style={styles.displayName}>{post.displayName}</Text>
-          <Text style={styles.username}>{post.username}</Text>
+          <Text style={styles.username}>@{post.username ? post.username.replace(/^@+/, '') : 'pet'}</Text>
           <Text style={styles.timeTag}>• {post.time}</Text>
         </TouchableOpacity>
 
@@ -632,8 +632,10 @@ export default function VideoPost({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: "#0d1117",
     position: "relative",
+    overflow: "hidden",
   },
   video: {
     ...StyleSheet.absoluteFillObject,

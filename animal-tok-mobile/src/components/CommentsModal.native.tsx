@@ -74,8 +74,9 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
     if (!inputText.trim()) return;
     const userHandle = activeProfile?.username || user?.username || "@petlover";
     const userAvatar = activeProfile?.avatar || user?.avatar || "🐾";
+    const cleanHandle = userHandle.replace(/^@+/, "");
     const newComment: CommentItem = {
-      user: userHandle.startsWith("@") ? userHandle : `@${userHandle}`,
+      user: `@${cleanHandle}`,
       avatar: userAvatar,
       text: inputText.trim(),
       time: "Just now",
@@ -83,10 +84,19 @@ export default function CommentsModal({ post, visible, onClose }: CommentsModalP
     
     // Optimistic UI update
     setComments((prev) => [newComment, ...prev]);
+    if (post) {
+      if (!post.commentsList) post.commentsList = [];
+      post.commentsList.unshift(newComment);
+      if (typeof post.comments === "number") post.comments += 1;
+    }
     setInputText("");
 
     // Backend call
-    await api.commentPost(post.id.toString(), newComment);
+    try {
+      await api.commentPost(post.id.toString(), newComment);
+    } catch (e) {
+      console.warn("Comment send error:", e);
+    }
   };
 
   return (

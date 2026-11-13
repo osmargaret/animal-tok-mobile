@@ -866,7 +866,9 @@ export default function CreateScreen() {
       const newPostItem = {
         id: serverPost?.id || `p_${Date.now()}`,
         animalId: activeProfile?.id,
-        username: activeProfile?.username || (user?.username ? `@${user.username.replace(/^@/, '')}` : "@pet"),
+        username: activeProfile?.username
+          ? `@${activeProfile.username.replace(/^@+/, '')}`
+          : (user?.username ? `@${user.username.replace(/^@+/, '')}` : "@pet"),
         displayName: activeProfile?.name || user?.name || "Pet Parent",
         avatar: activeProfile?.avatar || user?.avatar || "🐾",
         time: "Just now",
