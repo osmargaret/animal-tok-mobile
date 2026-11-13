@@ -906,40 +906,4 @@ export const api = {
       return null;
     }
   },
-
-  /**
-   * Initialize Paystack payment session
-   */
-  initializePaystackPayment: async (data: {
-    email: string;
-    amount: number;
-    currency?: string;
-    metadata?: Record<string, any>;
-    callback_url?: string;
-  }): Promise<{ status: boolean; message: string; data?: { authorization_url: string; access_code: string; reference: string } } | null> => {
-    try {
-      const response = await fetch(`${BASE_URL}/payments/initialize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      return await response.json();
-    } catch (e) {
-      console.error("Failed to initialize Paystack payment:", e);
-      return null;
-    }
-  },
-
-  /**
-   * Verify Paystack payment reference
-   */
-  verifyPaystackPayment: async (reference: string): Promise<any> => {
-    try {
-      const response = await fetch(`${BASE_URL}/payments/verify/${encodeURIComponent(reference)}`);
-      return await response.json();
-    } catch (e) {
-      console.error("Failed to verify Paystack payment:", e);
-      return null;
-    }
-  }
 };

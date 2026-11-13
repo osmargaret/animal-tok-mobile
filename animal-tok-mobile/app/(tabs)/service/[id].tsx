@@ -54,69 +54,6 @@ export interface ServiceAppointment {
   createdAt?: string;
 }
 
-const DEFAULT_APPOINTMENTS: ServiceAppointment[] = [
-  {
-    id: "APP-UP-01",
-    serviceId: "s1",
-    serviceName: "Mobile Spa & Grooming",
-    clientName: "Jessica Hayes",
-    clientPhone: "+1 (512) 555-0188",
-    clientEmail: "jessica.h@example.com",
-    petName: "Milo",
-    petBreed: "Goldendoodle",
-    petNotes: "Friendly pup, sensitive skin. Prefers oatmeal wash.",
-    appointmentDate: "Tomorrow • 10:00 AM – 11:30 AM",
-    mode: "onsite",
-    status: "upcoming",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "APP-UP-02",
-    serviceId: "s1",
-    serviceName: "Mobile Spa & Grooming",
-    clientName: "Sarah Connor",
-    clientPhone: "+1 (512) 555-0144",
-    clientEmail: "sarah.c@example.com",
-    petName: "Bella",
-    petBreed: "Shih Tzu",
-    petNotes: "Full grooming and coat detangling.",
-    appointmentDate: "Friday • 2:00 PM – 3:30 PM",
-    mode: "onsite",
-    status: "upcoming",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "APP-UP-03",
-    serviceId: "s2",
-    serviceName: "Positive Puppy Training 101",
-    clientName: "Marcus Vance",
-    clientPhone: "+1 (512) 555-0199",
-    clientEmail: "marcus.v@example.com",
-    petName: "Cooper",
-    petBreed: "Labrador",
-    petNotes: "Initial consultation for recall and leash pulling.",
-    appointmentDate: "Saturday • 11:00 AM – 12:00 PM",
-    mode: "virtual",
-    status: "upcoming",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "APP-PAST-02",
-    serviceId: "s1",
-    serviceName: "Mobile Spa & Grooming",
-    clientName: "David Miller",
-    clientPhone: "+1 (512) 555-0177",
-    clientEmail: "david.m@example.com",
-    petName: "Rocky",
-    petBreed: "French Bulldog",
-    petNotes: "Completed nail trimming and ear hygiene check.",
-    appointmentDate: "Yesterday • 2:00 PM – 3:30 PM",
-    mode: "onsite",
-    status: "past",
-    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-];
-
 function isAppointmentPassed(app: ServiceAppointment): boolean {
   if (app.status === "past" || app.status === "completed" || app.status === "cancelled") {
     return true;
@@ -174,13 +111,12 @@ export default function ServiceDetailsScreen() {
     try {
       const stored = await AsyncStorage.getItem("animaltok_service_bookings");
       let list: ServiceAppointment[] = stored ? JSON.parse(stored) : [];
-      if (!Array.isArray(list) || list.length === 0) {
-        list = DEFAULT_APPOINTMENTS;
-        await AsyncStorage.setItem("animaltok_service_bookings", JSON.stringify(DEFAULT_APPOINTMENTS));
+      if (!Array.isArray(list)) {
+        list = [];
       }
       setAppointments(list);
     } catch {
-      setAppointments(DEFAULT_APPOINTMENTS);
+      setAppointments([]);
     } finally {
       setLoadingAppointments(false);
     }

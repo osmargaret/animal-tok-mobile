@@ -16,23 +16,7 @@ interface Notification {
   profileId?: string; // which profile this notification belongs to
 }
 
-const allNotifications: Notification[] = [
-  // Bella's notifications
-  { id: 1, type: "like", title: "Bella got a like!", message: "🐈 @luna.cat liked Bella's photo", time: "2m ago", read: false, avatar: "🐈", profileId: "bella" },
-  { id: 2, type: "comment", title: "New comment", message: "🦜 @coco.parrot commented: 'So cute!'", time: "15m ago", read: false, avatar: "🦜", profileId: "bella" },
-  { id: 3, type: "follow", title: "New follower", message: "@dog.lover started following Bella", time: "1h ago", read: false, avatar: "🐕", profileId: "bella" },
-  { id: 4, type: "event", title: "Event reminder", message: "Dog Park Meetup starts in 2 hours", time: "2h ago", read: true, avatar: "📅", profileId: "bella" },
-  // Whiskers' notifications
-  { id: 5, type: "like", title: "Whiskers got likes!", message: "3 people liked Whiskers' box photo", time: "30m ago", read: false, avatar: "🐱", profileId: "whiskers" },
-  { id: 6, type: "follow", title: "New follower", message: "@catfan started following Whiskers", time: "3h ago", read: true, avatar: "🐱", profileId: "whiskers" },
-  // Spirit's notifications
-  { id: 7, type: "like", title: "Spirit got likes!", message: "5 people liked Spirit's new video", time: "4h ago", read: true, avatar: "🐴", profileId: "spirit" },
-  { id: 8, type: "comment", title: "New comment", message: "@horse.fan replied to your comment", time: "5h ago", read: true, avatar: "💬", profileId: "spirit" },
-  { id: 9, type: "event", title: "Event created", message: "Your 'Horse Show' event is live!", time: "2d ago", read: true, avatar: "🎪", profileId: "spirit" },
-  // Handler notifications
-  { id: 10, type: "order", title: "Order update", message: "Your Premium Dog Food has shipped!", time: "3h ago", read: true, avatar: "📦", profileId: "handler" },
-  { id: 11, type: "system", title: "Welcome!", message: "Complete your profile to get more followers", time: "1d ago", read: true, avatar: "🐾", profileId: "handler" },
-];
+const allNotifications: Notification[] = [];
 
 const iconMap = {
   like: <Heart className="w-4 h-4 text-red-400" />,

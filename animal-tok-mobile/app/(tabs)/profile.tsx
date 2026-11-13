@@ -347,19 +347,12 @@ export default function ProfileScreen() {
       const stored = await AsyncStorage.getItem("animaltok_service_bookings");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setServiceAppointments(parsed);
           return;
         }
       }
-      const defaults = [
-        { id: "APP-UP-01", serviceId: "s1", serviceName: "Mobile Spa & Grooming", status: "upcoming", appointmentDate: "Tomorrow • 10:00 AM – 11:30 AM" },
-        { id: "APP-UP-02", serviceId: "s1", serviceName: "Mobile Spa & Grooming", status: "upcoming", appointmentDate: "Friday • 2:00 PM – 3:30 PM" },
-        { id: "APP-UP-03", serviceId: "s2", serviceName: "Positive Puppy Training 101", status: "upcoming", appointmentDate: "Saturday • 11:00 AM – 12:00 PM" },
-        { id: "APP-PAST-02", serviceId: "s1", serviceName: "Mobile Spa & Grooming", status: "past", appointmentDate: "Yesterday • 2:00 PM – 3:30 PM" },
-      ];
-      setServiceAppointments(defaults);
-      await AsyncStorage.setItem("animaltok_service_bookings", JSON.stringify(defaults));
+      setServiceAppointments([]);
     } catch {
       setServiceAppointments([]);
     }
