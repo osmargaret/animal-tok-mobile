@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd animal-tok-mobile && npm install && npx expo export -p web",
+  "outputDirectory": "animal-tok-mobile/dist"
+}
