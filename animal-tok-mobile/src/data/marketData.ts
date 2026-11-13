@@ -6,6 +6,14 @@ export interface ProductItem {
   seller: string;
   image: string;
   category: string;
+  description?: string;
+  sellerId?: string;
+  inStock?: boolean;
+  types?: string[]; // e.g. ["Standard", "Organic", "Grain-Free"]
+  sizes?: string[]; // e.g. ["300g", "1kg", "5kg", "300kg"]
+  colors?: string[]; // e.g. ["Blue", "Black", "Natural", "Red"]
+  fulfillment?: "delivery" | "pickup" | "both";
+  pickupAddress?: string;
 }
 
 export interface ServiceItem {
@@ -15,6 +23,13 @@ export interface ServiceItem {
   rating: string;
   provider: string;
   image: string;
+  category?: string;
+  description?: string;
+  availability?: string; // e.g. "Monday to Friday, 9:00 AM – 10:00 PM"
+  locationName?: string;
+  locationAddress?: string;
+  mode?: "onsite" | "virtual" | "both";
+  providerId?: string;
 }
 
 export const marketProducts: ProductItem[] = [
@@ -60,17 +75,29 @@ export const marketServices: ServiceItem[] = [
   {
     id: "s1",
     name: "Mobile Spa & Grooming",
-    price: "From $50",
+    price: "$50.00",
     rating: "5.0",
     provider: "Bark & Shine Spa",
     image: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&fit=crop",
+    category: "Grooming",
+    description: "Complete full-body luxury bath, shedding blow-out, paw massage, nail trimming, and ear cleaning in our sanitized mobile van.",
+    availability: "Monday to Friday, 9:00 AM – 8:00 PM",
+    locationName: "Bark & Shine Mobile Station",
+    locationAddress: "1204 Zilker Park Blvd, Austin, TX",
+    mode: "onsite",
   },
   {
     id: "s2",
     name: "Positive Puppy Training 101",
-    price: "From $80/hr",
+    price: "$80.00",
     rating: "4.9",
     provider: "Canine Academy",
     image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&fit=crop",
+    category: "Training",
+    description: "Private one-on-one positive reinforcement obedience session covering leash walking, recall, crate training, and impulse control.",
+    availability: "Monday to Saturday, 10:00 AM – 6:00 PM",
+    locationName: "Canine Academy Center",
+    locationAddress: "742 Evergreen Terrace, Austin, TX",
+    mode: "both",
   },
 ];

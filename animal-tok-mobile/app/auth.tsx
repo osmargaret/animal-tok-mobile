@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { PawPrint, Mail, Lock, User as UserIcon, Sparkles, Stethoscope, Store, ShieldCheck, Building } from "lucide-react-native";
+import { PawPrint, Mail, Lock, User as UserIcon, Sparkles } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AuthScreen() {
@@ -21,13 +21,9 @@ export default function AuthScreen() {
   const params = useLocalSearchParams<{ mode?: string }>();
   const { login, signup } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(params.mode === "signup" ? "signup" : "login");
-  const [accountType, setAccountType] = useState<"handler" | "vet" | "business">("handler");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [clinicName, setClinicName] = useState("");
-  const [specialization, setSpecialization] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -40,10 +36,6 @@ export default function AuthScreen() {
         Alert.alert("Missing Name", "Please enter your full name.");
         return;
       }
-      if (!username.trim()) {
-        Alert.alert("Missing Username", "Please enter your preferred @username.");
-        return;
-      }
     }
     setLoading(true);
     try {
@@ -51,7 +43,13 @@ export default function AuthScreen() {
         await login(email.trim(), password.trim());
         router.replace("/(tabs)/");
       } else {
-        await signup(name.trim(), email.trim(), username.trim(), accountType, clinicName, specialization);
+        // Automatically create username from full name
+        const cleanBase = name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+        const autoUsername = cleanBase
+          ? `@${cleanBase}`
+          : `@user${Math.floor(1000 + Math.random() * 9000)}`;
+
+        await signup(name.trim(), email.trim(), autoUsername, "handler");
         router.replace("/(tabs)/profile");
       }
     } catch (e: any) {
@@ -104,107 +102,16 @@ export default function AuthScreen() {
           {/* Form Inputs */}
           <View style={styles.formGroup}>
             {mode === "signup" && (
-              <>
-                {/* Account Persona Selector */}
-                <Text style={styles.personaLabel}>I am signing up as:</Text>
-                <View style={styles.personaRow}>
-                  <TouchableOpacity
-                    style={[styles.personaPill, accountType === "handler" && styles.personaPillActive]}
-                    onPress={() => setAccountType("handler")}
-                  >
-                    <PawPrint size={13} color={accountType === "handler" ? "#06b6d4" : "#94a3b8"} />
-                    <Text style={[styles.personaText, accountType === "handler" && styles.personaTextActive]}>
-                      Handler
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.personaPill, accountType === "vet" && styles.personaPillActive]}
-                    onPress={() => setAccountType("vet")}
-                  >
-                    <Stethoscope size={13} color={accountType === "vet" ? "#06b6d4" : "#94a3b8"} />
-                    <Text style={[styles.personaText, accountType === "vet" && styles.personaTextActive]}>
-                      Veterinarian
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.personaPill, accountType === "business" && styles.personaPillActive]}
-                    onPress={() => setAccountType("business")}
-                  >
-                    <Store size={13} color={accountType === "business" ? "#06b6d4" : "#94a3b8"} />
-                    <Text style={[styles.personaText, accountType === "business" && styles.personaTextActive]}>
-                      Business
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <UserIcon size={16} color="#64748b" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={
-                      accountType === "vet"
-                        ? "Dr. Full Name (e.g. Dr. Emily Chen)"
-                        : accountType === "business"
-                        ? "Business Representative Name"
-                        : "Full Name (e.g. Alex Morgan)"
-                    }
-                    placeholderTextColor="#64748b"
-                    value={name}
-                    onChangeText={setName}
-                  />
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <UserIcon size={16} color="#64748b" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Username (e.g. alex.morgan)"
-                    placeholderTextColor="#64748b"
-                    value={username}
-                    onChangeText={setUsername}
-                  />
-                </View>
-
-                {accountType === "vet" && (
-                  <>
-                    <View style={styles.inputWrapper}>
-                      <Building size={16} color="#64748b" />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Clinic / Hospital Name"
-                        placeholderTextColor="#64748b"
-                        value={clinicName}
-                        onChangeText={setClinicName}
-                      />
-                    </View>
-                    <View style={styles.inputWrapper}>
-                      <Stethoscope size={16} color="#64748b" />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Specialization (e.g. Surgery, Small Pets)"
-                        placeholderTextColor="#64748b"
-                        value={specialization}
-                        onChangeText={setSpecialization}
-                      />
-                    </View>
-                  </>
-                )}
-
-                {accountType === "business" && (
-                  <View style={styles.inputWrapper}>
-                    <Building size={16} color="#64748b" />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Business / Brand Name (e.g. Pawsome Treats)"
-                      placeholderTextColor="#64748b"
-                      value={clinicName}
-                      onChangeText={setClinicName}
-                    />
-                  </View>
-                )}
-              </>
+              <View style={styles.inputWrapper}>
+                <UserIcon size={16} color="#64748b" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name (e.g. Alex Morgan)"
+                  placeholderTextColor="#64748b"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
             )}
 
             <View style={styles.inputWrapper}>

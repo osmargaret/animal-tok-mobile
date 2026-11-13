@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { X, Check, Camera, Image as ImageIcon, Sparkles, MapPin, Tag, DollarSign, FileText } from "lucide-react-native";
+import { X, Check, Camera, Image as ImageIcon, Sparkles, MapPin, Tag, DollarSign, FileText, Calendar, Clock, Building, Video as VideoIcon, Layers, Box, Palette, Truck } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
@@ -35,6 +35,15 @@ export default function AddProductScreen() {
   const [category, setCategory] = useState(queryType === "service" ? "Grooming" : "Accessories");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("Austin, TX");
+  const [availability, setAvailability] = useState("Monday to Friday, 9:00 AM – 10:00 PM");
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [mode, setMode] = useState<"onsite" | "virtual" | "both">("onsite");
+  const [productTypes, setProductTypes] = useState("Standard, Organic");
+  const [productSizes, setProductSizes] = useState("300g, 1kg, 5kg, 300kg");
+  const [productColors, setProductColors] = useState("Blue, Black, Brown, Natural");
+  const [fulfillment, setFulfillment] = useState<"delivery" | "pickup" | "both">("both");
+  const [pickupAddress, setPickupAddress] = useState("");
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -138,6 +147,10 @@ export default function AddProductScreen() {
       const cleanNumeric = price.replace(/[^0-9.]/g, "") || "10";
       const displayPrice = price.trim().startsWith("$") ? price.trim() : `$${price.trim()}`;
 
+      const parsedTypes = productTypes.split(",").map((s) => s.trim()).filter(Boolean);
+      const parsedSizes = productSizes.split(",").map((s) => s.trim()).filter(Boolean);
+      const parsedColors = productColors.split(",").map((s) => s.trim()).filter(Boolean);
+
       // 2. POST to Backend
       const endpoint = type === "product" ? "/marketplace/products" : "/marketplace/services";
       const sellerDisplayName =
@@ -155,6 +168,11 @@ export default function AddProductScreen() {
               image: finalImage,
               description: description.trim() || "Premium pet quality item.",
               sellerId: user?.id || "u_1",
+              types: parsedTypes,
+              sizes: parsedSizes,
+              colors: parsedColors,
+              fulfillment,
+              pickupAddress: pickupAddress.trim(),
             }
           : {
               title: name.trim(),
@@ -163,7 +181,11 @@ export default function AddProductScreen() {
               image: finalImage,
               description: description.trim() || "Professional pet service.",
               providerId: user?.id || "u_1",
-              location: location.trim() || "Austin, TX",
+              location: locationAddress.trim() || locationName.trim() || location.trim() || "Austin, TX",
+              locationName: locationName.trim(),
+              locationAddress: locationAddress.trim(),
+              availability: availability.trim(),
+              mode,
             };
 
       try {
@@ -190,6 +212,12 @@ export default function AddProductScreen() {
           seller: sellerDisplayName,
           image: finalImage,
           category: category.trim(),
+          description: description.trim(),
+          types: parsedTypes.length > 0 ? parsedTypes : ["Standard"],
+          sizes: parsedSizes.length > 0 ? parsedSizes : ["Standard"],
+          colors: parsedColors.length > 0 ? parsedColors : ["Original"],
+          fulfillment,
+          pickupAddress: pickupAddress.trim(),
         };
         marketProducts.unshift(newProduct);
 
@@ -206,6 +234,13 @@ export default function AddProductScreen() {
           rating: "5.0",
           provider: sellerDisplayName,
           image: finalImage,
+          category: category.trim(),
+          description: description.trim(),
+          availability: availability.trim(),
+          locationName: locationName.trim(),
+          locationAddress: locationAddress.trim() || location.trim(),
+          mode,
+          providerId: user?.id || "u_1",
         };
         marketServices.unshift(newService);
 
@@ -367,21 +402,193 @@ export default function AddProductScreen() {
             </ScrollView>
           </View>
 
-          {/* Service Location (only for services) */}
-          {type === "service" && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Service Location / Area</Text>
-              <View style={styles.inputWrapper}>
-                <MapPin size={16} color="#64748b" />
-                <TextInput
-                  style={styles.input}
-                  value={location}
-                  onChangeText={setLocation}
-                  placeholder="e.g., Austin, TX & surrounding areas"
-                  placeholderTextColor="#64748b"
-                />
+          {/* Product Specific Inputs: Types, Sizes, Colours, Fulfillment */}
+          {type === "product" && (
+            <>
+              {/* Product Types / Variants */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Types / Variants (comma-separated)</Text>
+                <View style={styles.inputWrapper}>
+                  <Layers size={16} color="#64748b" />
+                  <TextInput
+                    style={styles.input}
+                    value={productTypes}
+                    onChangeText={setProductTypes}
+                    placeholder="e.g. Standard, Organic, Grain-Free"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
               </View>
-            </View>
+
+              {/* Product Sizes */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Sizes (comma-separated)</Text>
+                <View style={styles.inputWrapper}>
+                  <Box size={16} color="#64748b" />
+                  <TextInput
+                    style={styles.input}
+                    value={productSizes}
+                    onChangeText={setProductSizes}
+                    placeholder="e.g. 300g, 1kg, 5kg, 300kg"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+              </View>
+
+              {/* Product Colours */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Colours (comma-separated)</Text>
+                <View style={styles.inputWrapper}>
+                  <Palette size={16} color="#64748b" />
+                  <TextInput
+                    style={styles.input}
+                    value={productColors}
+                    onChangeText={setProductColors}
+                    placeholder="e.g. Blue, Black, Brown, Natural"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+              </View>
+
+              {/* Fulfillment Options */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Fulfillment Availability</Text>
+                <View style={styles.modeRow}>
+                  <TouchableOpacity
+                    style={[styles.modePill, fulfillment === "delivery" && styles.modePillActive]}
+                    onPress={() => setFulfillment("delivery")}
+                  >
+                    <Truck size={14} color={fulfillment === "delivery" ? "#06b6d4" : "#94a3b8"} />
+                    <Text style={[styles.modeText, fulfillment === "delivery" && styles.modeTextActive]}>
+                      Delivery Only
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modePill, fulfillment === "pickup" && styles.modePillActive]}
+                    onPress={() => setFulfillment("pickup")}
+                  >
+                    <MapPin size={14} color={fulfillment === "pickup" ? "#06b6d4" : "#94a3b8"} />
+                    <Text style={[styles.modeText, fulfillment === "pickup" && styles.modeTextActive]}>
+                      Pick up Only
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modePill, fulfillment === "both" && styles.modePillActive]}
+                    onPress={() => setFulfillment("both")}
+                  >
+                    <Sparkles size={14} color={fulfillment === "both" ? "#06b6d4" : "#94a3b8"} />
+                    <Text style={[styles.modeText, fulfillment === "both" && styles.modeTextActive]}>
+                      Both
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Pickup Address (if pickup or both) */}
+              {(fulfillment === "pickup" || fulfillment === "both") && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Pick up Location / Store Address</Text>
+                  <View style={styles.inputWrapper}>
+                    <MapPin size={16} color="#64748b" />
+                    <TextInput
+                      style={styles.input}
+                      value={pickupAddress}
+                      onChangeText={setPickupAddress}
+                      placeholder="e.g. 104 Pet Plaza, Downtown Austin"
+                      placeholderTextColor="#64748b"
+                    />
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Service Details: Availability, Location & Mode (only for services) */}
+          {type === "service" && (
+            <>
+              {/* Mode Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Service Mode</Text>
+                <View style={styles.modeRow}>
+                  <TouchableOpacity
+                    style={[styles.modePill, mode === "onsite" && styles.modePillActive]}
+                    onPress={() => setMode("onsite")}
+                  >
+                    <Building size={14} color={mode === "onsite" ? "#06b6d4" : "#94a3b8"} />
+                    <Text style={[styles.modeText, mode === "onsite" && styles.modeTextActive]}>
+                      Onsite / In-person
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modePill, mode === "virtual" && styles.modePillActive]}
+                    onPress={() => setMode("virtual")}
+                  >
+                    <VideoIcon size={14} color={mode === "virtual" ? "#06b6d4" : "#94a3b8"} />
+                    <Text style={[styles.modeText, mode === "virtual" && styles.modeTextActive]}>
+                      Virtual / Online
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modePill, mode === "both" && styles.modePillActive]}
+                    onPress={() => setMode("both")}
+                  >
+                    <Sparkles size={14} color={mode === "both" ? "#06b6d4" : "#94a3b8"} />
+                    <Text style={[styles.modeText, mode === "both" && styles.modeTextActive]}>
+                      Both
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Availability Days & Hours */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Availability (Days & Hours)</Text>
+                <View style={styles.inputWrapper}>
+                  <Clock size={16} color="#64748b" />
+                  <TextInput
+                    style={styles.input}
+                    value={availability}
+                    onChangeText={setAvailability}
+                    placeholder="e.g. Monday to Friday, 9:00 AM – 10:00 PM"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+              </View>
+
+              {/* Location Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Location / Facility Name</Text>
+                <View style={styles.inputWrapper}>
+                  <Building size={16} color="#64748b" />
+                  <TextInput
+                    style={styles.input}
+                    value={locationName}
+                    onChangeText={setLocationName}
+                    placeholder="e.g. Austin Canine Center or Mobile Van"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+              </View>
+
+              {/* Location Address */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Address / Area</Text>
+                <View style={styles.inputWrapper}>
+                  <MapPin size={16} color="#64748b" />
+                  <TextInput
+                    style={styles.input}
+                    value={locationAddress}
+                    onChangeText={setLocationAddress}
+                    placeholder="e.g. 1204 Zilker Park Blvd, Austin, TX"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+              </View>
+            </>
           )}
 
           {/* Description */}
@@ -553,6 +760,36 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   chipTextActive: {
+    color: "#06b6d4",
+    fontWeight: "700",
+  },
+  modeRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  modePill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: "#161b22",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+  },
+  modePillActive: {
+    backgroundColor: "rgba(6, 182, 212, 0.15)",
+    borderColor: "#06b6d4",
+  },
+  modeText: {
+    color: "#94a3b8",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  modeTextActive: {
     color: "#06b6d4",
     fontWeight: "700",
   },

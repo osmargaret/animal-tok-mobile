@@ -70,6 +70,7 @@ export default function ProfileScreen() {
   const [userServices, setUserServices] = useState<ServiceItem[]>(marketServices);
   const [userEvents, setUserEvents] = useState<any[]>([]);
   const [hostEventModalVisible, setHostEventModalVisible] = useState(false);
+  const [orderCount, setOrderCount] = useState(0);
 
   const isAnimal = activeProfile?.type === "animal";
   const isVet = user?.role === "vet" || user?.accountType === "vet";
@@ -327,6 +328,15 @@ export default function ProfileScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchStats();
+      // Load order count from AsyncStorage
+      AsyncStorage.getItem("animaltok_product_orders").then((raw) => {
+        try {
+          const list = raw ? JSON.parse(raw) : [];
+          setOrderCount(Array.isArray(list) ? list.length : 0);
+        } catch {
+          setOrderCount(0);
+        }
+      });
     }, [activeProfile, user])
   );
 
@@ -707,10 +717,20 @@ export default function ProfileScreen() {
             {activeTab === "products" && (
               <View style={styles.tabSectionBox}>
                 <View style={styles.tabSectionHeaderRow}>
-                  <View>
-                    <Text style={styles.tabSectionTitle}>My Listed Products</Text>
-                    <Text style={styles.tabSectionSub}>Items shown in the global Marketplace</Text>
-                  </View>
+                  {/* Teal orders link */}
+                  <TouchableOpacity
+                    onPress={() => router.push("/orders")}
+                    activeOpacity={0.75}
+                    style={styles.ordersLink}
+                  >
+                    <ShoppingBag size={14} color="#06b6d4" />
+                    <Text style={styles.ordersLinkText}>
+                      {orderCount === 0
+                        ? "0 orders · tap to view"
+                        : `${orderCount} order${orderCount !== 1 ? "s" : ""} · tap to view`}
+                    </Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={styles.tabActionBtn}
                     onPress={() => router.push("/add-product")}
@@ -1541,6 +1561,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
+  },
+  ordersLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  ordersLinkText: {
+    color: "#06b6d4",
+    fontSize: 13,
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
   tabSectionTitle: {
     color: "#ffffff",
