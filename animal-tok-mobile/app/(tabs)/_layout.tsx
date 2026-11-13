@@ -20,9 +20,9 @@ function TikTokCreateIcon() {
 export default function TabLayout() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const androidExtra = Platform.OS === "android" ? (insets.bottom > 0 ? insets.bottom : 8) : insets.bottom;
+  const androidExtra = Platform.OS === "android" ? Math.max(insets.bottom, 26) : (insets.bottom > 0 ? insets.bottom : 8);
   const tabHeight = Platform.OS === "android" ? 64 + androidExtra : 58 + insets.bottom;
-  const tabPaddingBottom = Platform.OS === "android" ? (androidExtra > 0 ? androidExtra + 4 : 10) : insets.bottom + 4;
+  const tabPaddingBottom = Platform.OS === "android" ? androidExtra + 4 : (insets.bottom > 0 ? insets.bottom + 4 : 8);
 
   return (
     <Tabs

@@ -14,6 +14,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ShieldCheck,
   PawPrint,
@@ -54,6 +55,8 @@ const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
   const { activeProfile, user, switchProfile, switchToHandler, logout, pets } = useAuth();
   const [activeTab, setActiveTab] = useState<"grid" | "products" | "services" | "events">("grid");
 
@@ -349,7 +352,7 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topSafeInset + 16 }]}>
         <View style={styles.guestProfileBox}>
           <Text style={{ fontSize: 60, marginBottom: 16 }}>🐾</Text>
           <Text style={styles.guestTitle}>Your Pet Journey Starts Here</Text>
@@ -369,16 +372,16 @@ export default function ProfileScreen() {
             <Text style={styles.guestSecondaryBtnText}>Sign In</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const currentPosts = profileStats?.posts || [];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Sticky Header Bar */}
-      <View style={styles.stickyHeaderBar}>
+      <View style={[styles.stickyHeaderBar, { paddingTop: topSafeInset + 10 }]}>
         <Text style={styles.barTitle}>Profile</Text>
         <View style={styles.topBarActions}>
           <TouchableOpacity style={styles.editTopBtn} onPress={() => router.push("/edit-profile")} activeOpacity={0.8}>
@@ -948,7 +951,7 @@ export default function ProfileScreen() {
         onClose={() => setHostEventModalVisible(false)}
         onEventCreated={(newEvent) => setUserEvents((prev) => [newEvent, ...prev])}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

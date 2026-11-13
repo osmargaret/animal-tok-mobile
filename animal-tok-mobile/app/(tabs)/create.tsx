@@ -12,7 +12,9 @@ import {
   ActivityIndicator,
   Platform,
   PanResponder,
+  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
   Camera,
@@ -637,6 +639,8 @@ function DraggableTrimScrubber({
 
 export default function CreateScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
   const { activeProfile, switchProfile, pets, user } = useAuth();
 
   const [caption, setCaption] = useState("");
@@ -928,9 +932,9 @@ export default function CreateScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Top Bar: Cancel | Add Sound | Pet Switcher */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: topSafeInset + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.topBarIconBtn}>
           <X size={22} color="#ffffff" />
         </TouchableOpacity>
@@ -1423,7 +1427,7 @@ export default function CreateScreen() {
         visible={switcherVisible}
         onClose={() => setSwitcherVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

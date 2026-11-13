@@ -14,6 +14,7 @@ import {
   StatusBar,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, ArrowLeft, Search, Sparkles, ChevronRight } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
@@ -77,6 +78,8 @@ function getCleanAvatar(item: ThreadItem): string {
 
 export default function InboxScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
   const { user } = useAuth();
   const currentUserId = user?.id || "u_3";
 
@@ -156,9 +159,9 @@ export default function InboxScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       {/* Top Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: topSafeInset + 10 }]}>
         <Text style={styles.headerTitle}>Direct Messages</Text>
       </View>
 
@@ -254,7 +257,7 @@ export default function InboxScreen() {
           }}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

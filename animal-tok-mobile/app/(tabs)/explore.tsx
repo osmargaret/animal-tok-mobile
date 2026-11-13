@@ -13,6 +13,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Search,
   TrendingUp,
@@ -220,6 +221,8 @@ const TRENDING_HASHTAGS = [
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
   const { activeProfile } = useAuth();
 
   // Selected state
@@ -478,14 +481,14 @@ export default function ExploreScreen() {
       : MARKET_CATEGORIES;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
         contentContainerStyle={styles.scrollContent}
         onScrollBeginDrag={() => setPetDropdownOpen(false)}
       >
-        <View style={styles.stickyHeaderContainer}>
+        <View style={[styles.stickyHeaderContainer, { paddingTop: topSafeInset + 10 }]}>
           {/* Top Header */}
           <View style={styles.topHeader}>
             <Text style={styles.pageTitle}>Explore</Text>
@@ -1000,7 +1003,7 @@ export default function ExploreScreen() {
           }}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1021,7 +1024,7 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   topHeader: {
-    paddingTop: Platform.OS === "android" ? ((StatusBar.currentHeight || 44) + 14) : 10,
+    paddingTop: 0,
     marginBottom: 12,
   },
   pageTitle: {

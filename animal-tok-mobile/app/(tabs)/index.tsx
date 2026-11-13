@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 import { Bell, ShieldCheck, PawPrint, MessageCircle, X, UserPlus } from "lucide-react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -26,6 +27,8 @@ import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function FeedScreen() {
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
   const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const { refresh } = useLocalSearchParams<{ refresh?: string }>();
@@ -270,7 +273,7 @@ export default function FeedScreen() {
       onLayout={(e) => setFeedHeight(e.nativeEvent.layout.height)}
     >
       {/* Floating Header */}
-      <View style={styles.topHeader}>
+      <View style={[styles.topHeader, { top: topSafeInset + 10 }]}>
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>
             Anim<Text style={{ color: "#06b6d4" }}>andler</Text>

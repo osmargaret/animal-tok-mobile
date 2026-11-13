@@ -18,6 +18,7 @@ import {
   CameraType,
 } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, RefreshCw, Zap, ZapOff, Image as ImageIcon, Timer as TimerIcon } from "lucide-react-native";
 
 interface LiveCameraModalProps {
@@ -35,6 +36,9 @@ export default function LiveCameraModal({
   onCapture,
   embedded = false,
 }: LiveCameraModalProps) {
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
+  const bottomSafeInset = Math.max(insets.bottom, Platform.OS === "android" ? 28 : 20);
   const [permission, requestPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
 
@@ -377,7 +381,7 @@ export default function LiveCameraModal({
             )}
 
             {/* Top Bar Controls */}
-            <SafeAreaView style={styles.topBar}>
+            <View style={[styles.topBar, { top: topSafeInset + 10 }]}>
               <TouchableOpacity style={styles.iconBtn} onPress={onClose}>
                 <X size={24} color="#ffffff" />
               </TouchableOpacity>
@@ -423,10 +427,10 @@ export default function LiveCameraModal({
                   <RefreshCw size={22} color={facing === "front" ? "#06b6d4" : "#ffffff"} />
                 </TouchableOpacity>
               </View>
-            </SafeAreaView>
+            </View>
 
             {/* Bottom Controls */}
-            <View style={styles.bottomSection}>
+            <View style={[styles.bottomSection, { bottom: bottomSafeInset + 14 }]}>
               {/* Mode Switcher Tabs */}
               <View style={styles.modeTabsRow}>
                 <TouchableOpacity
