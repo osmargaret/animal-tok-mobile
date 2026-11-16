@@ -515,19 +515,19 @@ export default function VideoPost({
           </View>
         </TouchableOpacity>
 
-        {/* Like Button - Glowing vibrant teal green when liked (never red) */}
+        {/* Like Button - Vibrant crimson red when liked */}
         <TouchableOpacity style={styles.actionItem} onPress={handleLike} activeOpacity={0.75}>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
               <Heart
                 size={23}
-                color={isLiked ? "#10b981" : "#06b6d4"}
-                fill={isLiked ? "#10b981" : "#06b6d4"}
-                strokeWidth={2.6}
+                color={isLiked ? "#ff2b54" : "#ffffff"}
+                fill={isLiked ? "#ff2b54" : "none"}
+                strokeWidth={2.4}
               />
             </View>
           </Animated.View>
-          <Text style={[styles.actionText, isLiked && { color: "#10b981", fontWeight: "700" }]}>{likeCount}</Text>
+          <Text style={[styles.actionText, isLiked && { color: "#ff2b54", fontWeight: "800" }]}>{likeCount}</Text>
         </TouchableOpacity>
 
         {/* Comment Button - Bolder, teal green, filled (not outline alone), reduced size */}
@@ -703,8 +703,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   actionIconCircleLiked: {
-    borderColor: "rgba(16, 185, 129, 0.75)",
-    backgroundColor: "rgba(16, 185, 129, 0.22)",
+    borderColor: "rgba(255, 43, 84, 0.85)",
+    backgroundColor: "rgba(255, 43, 84, 0.22)",
   },
   actionIconCircleSaved: {
     borderColor: "rgba(45, 212, 191, 0.8)",
