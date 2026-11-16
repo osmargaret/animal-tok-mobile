@@ -644,12 +644,54 @@ export const api = {
         likes: p.likesCount || 0,
         comments: p.commentsCount || 0,
         saves: p.sharesCount || 0,
-        commentsList: []
+        commentsList: [],
+        // Sponsored Ad properties
+        isAd: Boolean(p.isAd),
+        adType: p.adType || (p.videoUrl ? 'video' : p.audioUrl ? 'audio' : 'image'),
+        title: p.title,
+        advertiserName: p.advertiserName || p.animalName,
+        advertiserAvatar: normalizeMediaUrl(p.advertiserAvatar || p.animalAvatar) || p.advertiserAvatar,
+        sponsorBadge: p.sponsorBadge || 'Sponsored',
+        ctaText: p.ctaText || 'Learn More',
+        ctaUrl: p.ctaUrl,
+        category: p.category,
+        mediaUrl: normalizeMediaUrl(p.mediaUrl) || p.mediaUrl
       }));
     } catch (e) {
       console.warn("Backend feed fetch failed, using fallback mock", e);
       return page === 1 ? feedPosts : [];
     }
+  },
+
+  /**
+   * Record ad view / impression
+   */
+  recordAdImpression: async (adId: string) => {
+    try {
+      await fetch(`${BASE_URL}/ads/${adId}/impression`, { method: "POST" });
+    } catch (e) {}
+  },
+
+  /**
+   * Record ad click
+   */
+  recordAdClick: async (adId: string) => {
+    try {
+      await fetch(`${BASE_URL}/ads/${adId}/click`, { method: "POST" });
+    } catch (e) {}
+  },
+
+  /**
+   * Fetch sounds catalog including artist promoted sounds
+   */
+  getSoundsCatalog: async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/sounds`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return null;
   },
 
   /**

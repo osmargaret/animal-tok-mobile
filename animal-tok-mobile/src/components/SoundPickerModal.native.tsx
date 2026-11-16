@@ -15,6 +15,7 @@ import {
 import { X, Search, Play, Pause, Check, Music, Sparkles, Flame, DollarSign } from "lucide-react-native";
 import { Audio } from "expo-av";
 import { SUGGESTED_SOUNDS, SoundItem } from "@/data/soundsData";
+import { api } from "@/services/api";
 
 interface SoundPickerModalProps {
   visible: boolean;
@@ -34,7 +35,25 @@ export default function SoundPickerModal({
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [soundObject, setSoundObject] = useState<Audio.Sound | null>(null);
   const [loadingAudio, setLoadingAudio] = useState(false);
+  const [soundsList, setSoundsList] = useState<SoundItem[]>(SUGGESTED_SOUNDS);
   const webAudioRef = useRef<any>(null);
+
+  // Fetch live sounds catalog (promoted artist songs) on open
+  useEffect(() => {
+    if (visible) {
+      api.getSoundsCatalog().then((remoteSounds: any) => {
+        if (Array.isArray(remoteSounds) && remoteSounds.length > 0) {
+          const merged: SoundItem[] = [...remoteSounds];
+          for (const s of SUGGESTED_SOUNDS) {
+            if (!merged.some((m) => m.id === s.id)) {
+              merged.push(s);
+            }
+          }
+          setSoundsList(merged);
+        }
+      }).catch(() => {});
+    }
+  }, [visible]);
 
   // Stop audio playback when modal closes
   useEffect(() => {
@@ -103,7 +122,7 @@ export default function SoundPickerModal({
 
   const categories = ["All", "🔥 Trending", "⭐ Promoted", "🏆 Sports", "🐾 Relaxing", "😂 Funny"];
 
-  const filteredSounds = SUGGESTED_SOUNDS.filter((s) => {
+  const filteredSounds = soundsList.filter((s) => {
     const matchesSearch =
       s.title.toLowerCase().includes(search.toLowerCase()) ||
       s.artist.toLowerCase().includes(search.toLowerCase());
@@ -111,7 +130,7 @@ export default function SoundPickerModal({
     if (!matchesSearch) return false;
     if (selectedCategory === "All") return true;
     if (selectedCategory === "🔥 Trending" && s.category === "Trending") return true;
-    if (selectedCategory === "⭐ Promoted" && s.isPromoted) return true;
+    if (selectedCategory === "⭐ Promoted" && (s.isPromoted || s.category === "Promoted")) return true;
     if (selectedCategory === "🏆 Sports" && s.category === "Sports") return true;
     if (selectedCategory === "🐾 Relaxing" && s.category === "Relaxing") return true;
     if (selectedCategory === "😂 Funny" && s.category === "Funny") return true;
@@ -205,10 +224,12 @@ export default function SoundPickerModal({
                     <Text style={styles.soundTitle} numberOfLines={1}>
                       {item.title}
                     </Text>
-                    {item.isPromoted && (
+                    {(item.isPromoted || item.category === "Promoted") && (
                       <View style={styles.promotedTag}>
-                        <DollarSign size={10} color="#f59e0b" />
-                        <Text style={styles.promotedTagText}>PROMOTED</Text>
+                        <Sparkles size={10} color="#f59e0b" />
+                        <Text style={styles.promotedTagText}>
+                          {item.sponsorBadge ? item.sponsorBadge.toUpperCase() : "PROMOTED"}
+                        </Text>
                       </View>
                     )}
                   </View>

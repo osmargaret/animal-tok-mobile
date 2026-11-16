@@ -17,6 +17,7 @@ import { FlashList } from "@shopify/flash-list";
 import { Bell, ShieldCheck, PawPrint, MessageCircle, X, UserPlus } from "lucide-react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import VideoPost from "@/components/VideoPost.native";
+import VerticalAdCard from "@/components/VerticalAdCard.native";
 import CommentsModal from "@/components/CommentsModal.native";
 import ProfileSwitcherModal from "@/components/ProfileSwitcherModal.native";
 import NotificationsModal from "@/components/NotificationsModal.native";
@@ -339,19 +340,26 @@ export default function FeedScreen() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index }) => (
             <View style={{ height: feedHeight }}>
-              <VideoPost
-                post={item}
-                isActive={isScreenFocused && index === activeIndex}
-                onCommentOpen={() => {
-                  if (!user) {
-                    setGuestAuthVisible(true);
-                    return;
-                  }
-                  setSelectedPost(item);
-                  setCommentsVisible(true);
-                }}
-                onAuthPrompt={() => setGuestAuthVisible(true)}
-              />
+              {item.isAd ? (
+                <VerticalAdCard
+                  post={item}
+                  isActive={isScreenFocused && index === activeIndex}
+                />
+              ) : (
+                <VideoPost
+                  post={item}
+                  isActive={isScreenFocused && index === activeIndex}
+                  onCommentOpen={() => {
+                    if (!user) {
+                      setGuestAuthVisible(true);
+                      return;
+                    }
+                    setSelectedPost(item);
+                    setCommentsVisible(true);
+                  }}
+                  onAuthPrompt={() => setGuestAuthVisible(true)}
+                />
+              )}
             </View>
           )}
         />

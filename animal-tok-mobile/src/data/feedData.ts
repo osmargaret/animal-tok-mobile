@@ -17,6 +17,17 @@ export interface FeedPost {
   comments: number;
   saves: number;
   commentsList: CommentItem[];
+  // Sponsored Ad / Promoted Content Fields
+  isAd?: boolean;
+  adType?: 'video' | 'image' | 'audio';
+  title?: string;
+  advertiserName?: string;
+  advertiserAvatar?: string;
+  sponsorBadge?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  category?: string;
+  mediaUrl?: string;
 }
 
 export interface CommentItem {
@@ -148,4 +159,52 @@ export const feedPosts: FeedPost[] = [
     saves: 0,
     commentsList: [],
   },
+  {
+    id: "ad_emergency_vet_1",
+    isAd: true,
+    adType: "video",
+    advertiserName: "Austin Pet Emergency Hospital",
+    advertiserAvatar: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=150&auto=format&fit=crop&q=80",
+    sponsorBadge: "Verified Hospital Partner",
+    category: "Emergency Vet Care",
+    time: "Sponsored",
+    username: "@austin.pethospital",
+    displayName: "Austin Pet Emergency Hospital",
+    avatar: "🏥",
+    caption: "24/7 Emergency trauma, intensive ICU, digital radiography & life-saving pet surgery. Certified veterinary specialists always on duty.",
+    hashtags: "#AnimalHospital #EmergencyVet #AnimandlerPartner",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    posterUrl: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=800&auto=format&fit=crop&q=80",
+    ctaText: "Call Emergency Vet 📞",
+    ctaUrl: "tel:+15125550199",
+    likes: 1420,
+    comments: 184,
+    saves: 52,
+    commentsList: [],
+  },
+  {
+    id: "ad_wellness_vet_2",
+    isAd: true,
+    adType: "image",
+    advertiserName: "Paws & Whiskers Animal Clinic",
+    advertiserAvatar: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=150&auto=format&fit=crop&q=80",
+    sponsorBadge: "Featured Vet Clinic",
+    category: "Preventive Care",
+    time: "Sponsored",
+    username: "@pawsandwhiskers.vet",
+    displayName: "Paws & Whiskers Clinic",
+    avatar: "🩺",
+    caption: "Keep your furry family member thriving! Comprehensive physical checkups, core vaccinations, dental cleanings & nutrition planning. $25 off first visit!",
+    hashtags: "#PetWellness #VetCheckup #PuppyVaccines",
+    videoUrl: "",
+    posterUrl: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=800&auto=format&fit=crop&q=80",
+    ctaText: "Book Appointment 🩺",
+    ctaUrl: "https://animandler.app",
+    likes: 980,
+    comments: 122,
+    saves: 41,
+    commentsList: [],
+  }
 ];
