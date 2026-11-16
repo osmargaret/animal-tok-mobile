@@ -13,6 +13,8 @@ import { Calendar, MapPin, Users, Check, HeartHandshake, ArrowLeft } from "lucid
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import GuestAuthModal from "@/components/GuestAuthModal";
 
 const FALLBACK_EVENTS = [
   {
@@ -46,8 +48,12 @@ const FALLBACK_EVENTS = [
 
 export default function EventsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [eventsList, setEventsList] = useState(FALLBACK_EVENTS);
   const [rsvps, setRsvps] = useState<Record<string, boolean>>({});
+  const [guestAuthVisible, setGuestAuthVisible] = useState(false);
+  const [guestAuthTitle, setGuestAuthTitle] = useState("View Pet Event 🎪");
+  const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
 
   const loadEvents = React.useCallback(async () => {
     try {
@@ -89,6 +95,25 @@ export default function EventsScreen() {
       loadEvents();
     }, [loadEvents])
   );
+
+  const handleEventPress = (item: any) => {
+    if (!user) {
+      setGuestAuthTitle("View Pet Event 🎪");
+      setGuestAuthSubtitle("Create a free account to view full event details, see attendees, and RSVP!");
+      setGuestAuthVisible(true);
+      return;
+    }
+  };
+
+  const handleRsvpPress = (id: string, title: string) => {
+    if (!user) {
+      setGuestAuthTitle("RSVP for Pet Event 🎪");
+      setGuestAuthSubtitle("Create a free account to join this event and connect with pet parents!");
+      setGuestAuthVisible(true);
+      return;
+    }
+    toggleRsvp(id, title);
+  };
 
   const toggleRsvp = async (id: string, title: string) => {
     const isAttending = !!rsvps[id];
@@ -134,7 +159,12 @@ export default function EventsScreen() {
           {eventsList.map((item) => {
             const isAttending = !!rsvps[item.id];
             return (
-              <View key={item.id} style={styles.eventCard}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.eventCard}
+                activeOpacity={0.9}
+                onPress={() => handleEventPress(item)}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.categoryBadge}>
                     <Text style={styles.categoryText}>{item.category}</Text>
@@ -163,18 +193,26 @@ export default function EventsScreen() {
 
                 <TouchableOpacity
                   style={[styles.rsvpBtn, isAttending && styles.rsvpBtnActive]}
-                  onPress={() => toggleRsvp(item.id, item.title)}
+                  onPress={() => handleRsvpPress(item.id, item.title)}
                 >
                   {isAttending ? <Check size={16} color="#ffffff" /> : <HeartHandshake size={16} color="#ffffff" />}
                   <Text style={styles.rsvpBtnText}>
                     {isAttending ? "I'm Attending ✓" : "RSVP / Join Event"}
                   </Text>
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>
       </ScrollView>
+
+      {/* Guest Authentication Modal */}
+      <GuestAuthModal
+        visible={guestAuthVisible}
+        onClose={() => setGuestAuthVisible(false)}
+        title={guestAuthTitle}
+        subtitle={guestAuthSubtitle}
+      />
     </SafeAreaView>
   );
 }

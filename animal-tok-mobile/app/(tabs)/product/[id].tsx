@@ -4,19 +4,25 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Star, ShoppingCart, ShoppingBag, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { BuyProductModal } from '@/components/BuyProductModal';
+import GuestAuthModal from '@/components/GuestAuthModal';
 
 export default function ProductDetailsModal() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
   const [orderModalVisible, setOrderModalVisible] = useState(false);
+  const [guestAuthVisible, setGuestAuthVisible] = useState(false);
+  const [guestAuthTitle, setGuestAuthTitle] = useState("Join Animandler 🐾");
+  const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
 
   // Parse params
   const { id, name, price, rating, seller, image, category } = params as Record<string, string>;
 
   const handleOrder = () => {
     if (!user) {
-      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      setGuestAuthTitle("Buy Pet Product 🛍️");
+      setGuestAuthSubtitle("Create a free account to purchase this item and track delivery updates!");
+      setGuestAuthVisible(true);
       return;
     }
     setOrderModalVisible(true);
@@ -24,7 +30,9 @@ export default function ProductDetailsModal() {
 
   const handleChatSeller = () => {
     if (!user) {
-      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      setGuestAuthTitle("Chat with Seller 💬");
+      setGuestAuthSubtitle("Create a free account to chat directly with verified pet sellers and stores!");
+      setGuestAuthVisible(true);
       return;
     }
     const threadId = `trade_${(seller || "seller").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
@@ -45,7 +53,9 @@ export default function ProductDetailsModal() {
 
   const handleAddToCart = () => {
     if (!user) {
-      router.push({ pathname: "/auth", params: { mode: "signup" } });
+      setGuestAuthTitle("Add to Cart 🛒");
+      setGuestAuthSubtitle("Create a free account to save items to your cart and checkout easily!");
+      setGuestAuthVisible(true);
       return;
     }
     Alert.alert("Added to Cart 🛒", `${name} has been added to your cart.`);
@@ -133,6 +143,13 @@ export default function ProductDetailsModal() {
           category: category || "General",
         }}
         user={user}
+      />
+
+      <GuestAuthModal
+        visible={guestAuthVisible}
+        onClose={() => setGuestAuthVisible(false)}
+        title={guestAuthTitle}
+        subtitle={guestAuthSubtitle}
       />
     </SafeAreaView>
   );

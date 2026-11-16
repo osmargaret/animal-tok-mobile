@@ -16,6 +16,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import GuestAuthModal from "@/components/GuestAuthModal";
 
 export default function MarketplaceScreen() {
   const [activeTab, setActiveTab] = useState<"products" | "services">("products");
@@ -24,6 +25,29 @@ export default function MarketplaceScreen() {
   
   const router = useRouter();
   const { user } = useAuth();
+  const [guestAuthVisible, setGuestAuthVisible] = useState(false);
+  const [guestAuthTitle, setGuestAuthTitle] = useState("Join Animandler 🐾");
+  const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
+
+  const handleProductPress = (item: ProductItem) => {
+    if (!user) {
+      setGuestAuthTitle("View Pet Product 🛍️");
+      setGuestAuthSubtitle("Create a free account to view full product details, prices, seller ratings, and order pet essentials!");
+      setGuestAuthVisible(true);
+      return;
+    }
+    router.push({ pathname: '/product/[id]', params: item as any });
+  };
+
+  const handleServicePress = (serv: ServiceItem) => {
+    if (!user) {
+      setGuestAuthTitle("View Pet Care Service 🩺");
+      setGuestAuthSubtitle("Create a free account to view certified provider details, rates, reviews, and book appointments!");
+      setGuestAuthVisible(true);
+      return;
+    }
+    router.push({ pathname: '/service/[id]', params: serv as any });
+  };
   
   const { width: windowWidth } = useWindowDimensions();
   const containerWidth = Math.min(windowWidth, 480);
@@ -97,7 +121,7 @@ export default function MarketplaceScreen() {
               <TouchableOpacity 
                 key={item.id} 
                 style={[styles.card, { width: cardWidth }]} 
-                onPress={() => router.push({ pathname: '/product/[id]', params: item as any })}
+                onPress={() => handleProductPress(item)}
                 activeOpacity={0.8}
               >
                 <Image source={{ uri: item.image }} style={styles.cardImg} />
@@ -128,7 +152,7 @@ export default function MarketplaceScreen() {
               <TouchableOpacity 
                 key={serv.id} 
                 style={styles.serviceCard}
-                onPress={() => router.push({ pathname: '/service/[id]', params: serv as any })}
+                onPress={() => handleServicePress(serv)}
                 activeOpacity={0.8}
               >
                 <Image source={{ uri: serv.image }} style={styles.serviceImg} />
@@ -153,6 +177,14 @@ export default function MarketplaceScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Guest Authentication Modal */}
+      <GuestAuthModal
+        visible={guestAuthVisible}
+        onClose={() => setGuestAuthVisible(false)}
+        title={guestAuthTitle}
+        subtitle={guestAuthSubtitle}
+      />
     </SafeAreaView>
   );
 }

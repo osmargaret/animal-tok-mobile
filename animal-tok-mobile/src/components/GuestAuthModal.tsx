@@ -8,7 +8,7 @@ import {
   TouchableWithoutFeedback,
   Image,
 } from "react-native";
-import { X, Sparkles, Heart, Bookmark, ShieldCheck, UserPlus, LogIn } from "lucide-react-native";
+import { X, Sparkles, Heart, Bookmark, ShieldCheck, UserPlus, LogIn, Gamepad2, Calendar, ShoppingBag } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 interface GuestAuthModalProps {
@@ -22,7 +22,7 @@ export default function GuestAuthModal({
   visible,
   onClose,
   title = "Join Animandler 🐾",
-  subtitle = "Create a free account to like, comment, bookmark your favorite clips, and share your own pet videos!",
+  subtitle = "Create a free account to view your favourite pets, funny comics, games, pet events & the marketplace!",
 }: GuestAuthModalProps) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(visible);
@@ -75,16 +75,16 @@ export default function GuestAuthModal({
           {/* Feature Highlights */}
           <View style={styles.featuresRow}>
             <View style={styles.featureItem}>
-              <Heart size={14} color="#10b981" />
-              <Text style={styles.featureText}>Like & Comment</Text>
+              <Sparkles size={14} color="#10b981" />
+              <Text style={styles.featureText}>Favourite Pets</Text>
             </View>
             <View style={styles.featureItem}>
-              <Bookmark size={14} color="#fbbf24" />
-              <Text style={styles.featureText}>Save Clips</Text>
+              <Gamepad2 size={14} color="#fbbf24" />
+              <Text style={styles.featureText}>Comics & Games</Text>
             </View>
             <View style={styles.featureItem}>
-              <Sparkles size={14} color="#2dd4bf" />
-              <Text style={styles.featureText}>Post Pets</Text>
+              <Calendar size={14} color="#2dd4bf" />
+              <Text style={styles.featureText}>Events & Market</Text>
             </View>
           </View>
 

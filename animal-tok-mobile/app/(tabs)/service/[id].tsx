@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BookServiceModal from "@/components/BookServiceModal";
+import GuestAuthModal from "@/components/GuestAuthModal";
 
 export interface ServiceAppointment {
   id: string;
@@ -102,6 +103,9 @@ export default function ServiceDetailsScreen() {
   const isCreator = isOwner === "true" || user?.name === provider;
 
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
+  const [guestAuthVisible, setGuestAuthVisible] = useState(false);
+  const [guestAuthTitle, setGuestAuthTitle] = useState("Book Pet Service 🩺");
+  const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
   const [appointments, setAppointments] = useState<ServiceAppointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
   const [appointmentTab, setAppointmentTab] = useState<"upcoming" | "past">("upcoming");
@@ -417,7 +421,15 @@ export default function ServiceDetailsScreen() {
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.bookBtn}
-            onPress={() => setBookingModalVisible(true)}
+            onPress={() => {
+              if (!user) {
+                setGuestAuthTitle("Book Pet Service 🩺");
+                setGuestAuthSubtitle("Create a free account to book veterinary appointments, grooming sessions, and pet care!");
+                setGuestAuthVisible(true);
+                return;
+              }
+              setBookingModalVisible(true);
+            }}
             activeOpacity={0.85}
           >
             <Calendar size={18} color="#ffffff" />
@@ -448,6 +460,14 @@ export default function ServiceDetailsScreen() {
         onSuccess={() => {
           loadAppointments();
         }}
+      />
+
+      {/* Guest Authentication Modal */}
+      <GuestAuthModal
+        visible={guestAuthVisible}
+        onClose={() => setGuestAuthVisible(false)}
+        title={guestAuthTitle}
+        subtitle={guestAuthSubtitle}
       />
     </SafeAreaView>
   );

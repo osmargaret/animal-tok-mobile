@@ -369,9 +369,9 @@ export default function FeedScreen() {
       {show15SecBanner && !user && (
         <View style={styles.floatingGuestToast}>
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={styles.toastTitle}>Enjoying Animandler? 🎉</Text>
+            <Text style={styles.toastTitle}>Your Pet World Awaits 🐾✨</Text>
             <Text style={styles.toastSubtitle} numberOfLines={2}>
-              Create an account to like, bookmark clips, and share your own pets!
+              Join free to view your favourite pets, funny comics, games, pet events & the marketplace!
             </Text>
           </View>
           <TouchableOpacity

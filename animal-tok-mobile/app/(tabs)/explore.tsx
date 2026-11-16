@@ -311,16 +311,6 @@ export default function ExploreScreen() {
 
   // Reset category when switching tabs
   const handleTabChange = (tab: ExploreTab) => {
-    if (tab !== "trending" && !user) {
-      setGuestAuthTitle(tab === "events" ? "Explore Pet Events 🎉" : "Pet Marketplace & Care 🛍️");
-      setGuestAuthSubtitle(
-        tab === "events"
-          ? "Create an account or sign in to browse upcoming pet meetups, register for competitions, and RSVP!"
-          : "Create an account or sign in to purchase pet supplies, food, gear, and book certified vet and grooming services!"
-      );
-      setGuestAuthVisible(true);
-      return;
-    }
     setActiveTab(tab);
     setSelectedCategory("all");
   };
@@ -372,12 +362,24 @@ export default function ExploreScreen() {
   const [selectedServiceForBook, setSelectedServiceForBook] = useState<ServiceItem | null>(null);
 
   const handleOpenProductDetail = (item: ProductItem) => {
+    if (!user) {
+      setGuestAuthTitle("View Pet Product 🛍️");
+      setGuestAuthSubtitle("Create a free account to view full product details, prices, seller ratings, and order pet essentials!");
+      setGuestAuthVisible(true);
+      return;
+    }
     setSelectedDetailItem(item);
     setDetailModalType("product");
     setDetailModalVisible(true);
   };
 
   const handleOpenServiceDetail = (item: ServiceItem) => {
+    if (!user) {
+      setGuestAuthTitle("View Pet Care Service 🩺");
+      setGuestAuthSubtitle("Create a free account to view certified provider details, rates, reviews, and book appointments!");
+      setGuestAuthVisible(true);
+      return;
+    }
     setSelectedDetailItem(item);
     setDetailModalType("service");
     setDetailModalVisible(true);
@@ -781,31 +783,6 @@ export default function ExploreScreen() {
         {/* TAB 2: EVENTS TAB CONTENT                                      */}
         {/* ============================================================== */}
         {activeTab === "events" && (
-          !user ? (
-            <View style={styles.lockedExploreContainer}>
-              <View style={styles.lockedIconCircle}>
-                <Calendar size={38} color="#06b6d4" />
-              </View>
-              <Text style={styles.lockedTitle}>Pet Events & Agility Shows</Text>
-              <Text style={styles.lockedSubtitle}>
-                Create an account or sign in to browse upcoming pet meetups, register for sports & agility competitions, and RSVP with other pet parents!
-              </Text>
-              <TouchableOpacity
-                style={styles.lockedPrimaryBtn}
-                onPress={() => router.push({ pathname: "/auth", params: { mode: "signup" } })}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.lockedPrimaryBtnText}>Create Free Account</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.lockedSecondaryBtn}
-                onPress={() => router.push({ pathname: "/auth", params: { mode: "login" } })}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.lockedSecondaryBtnText}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
           <View style={styles.tabContentContainer}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
@@ -901,7 +878,15 @@ export default function ExploreScreen() {
                         {/* Retract / Expand Toggle Button with down/up arrow */}
                         <TouchableOpacity
                           style={styles.expandToggleBtn}
-                          onPress={() => toggleEventExpand(event.id)}
+                          onPress={() => {
+                            if (!user) {
+                              setGuestAuthTitle("View Pet Event Details 🎪");
+                              setGuestAuthSubtitle("Create a free account to view full event schedules, location details, attendees, and RSVP!");
+                              setGuestAuthVisible(true);
+                              return;
+                            }
+                            toggleEventExpand(event.id);
+                          }}
                           activeOpacity={0.7}
                         >
                           <Text style={styles.expandToggleBtnText}>
@@ -963,38 +948,12 @@ export default function ExploreScreen() {
               </View>
             )}
           </View>
-          )
         )}
 
         {/* ============================================================== */}
         {/* TAB 3: MARKETPLACE TAB CONTENT                                 */}
         {/* ============================================================== */}
         {activeTab === "marketplace" && (
-          !user ? (
-            <View style={styles.lockedExploreContainer}>
-              <View style={styles.lockedIconCircle}>
-                <ShoppingBag size={38} color="#06b6d4" />
-              </View>
-              <Text style={styles.lockedTitle}>Pet Marketplace & Services</Text>
-              <Text style={styles.lockedSubtitle}>
-                Create an account or sign in to browse pet supplies, buy food & accessories, and book certified veterinary and grooming services!
-              </Text>
-              <TouchableOpacity
-                style={styles.lockedPrimaryBtn}
-                onPress={() => router.push({ pathname: "/auth", params: { mode: "signup" } })}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.lockedPrimaryBtnText}>Create Free Account</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.lockedSecondaryBtn}
-                onPress={() => router.push({ pathname: "/auth", params: { mode: "login" } })}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.lockedSecondaryBtnText}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
           <View style={styles.tabContentContainer}>
             {/* Products Section */}
             {filteredProducts.length > 0 && (
@@ -1099,7 +1058,6 @@ export default function ExploreScreen() {
               </View>
             )}
           </View>
-          )
         )}
 
       </ScrollView>
