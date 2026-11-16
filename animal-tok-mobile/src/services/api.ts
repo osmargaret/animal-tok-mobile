@@ -67,16 +67,24 @@ export async function uploadMedia(
       }
     }
 
-    const filename = localUri.split("/").pop() || "upload";
-    const match = /\.(\w+)$/.exec(filename);
-    const ext = match ? match[1].toLowerCase() : "jpg";
+    const match = /\.(\w+)$/.exec(localUri.split("?")[0]);
+    const ext = match ? match[1].toLowerCase() : (resourceType === "video" ? "mp4" : "jpg");
+    const isVideo = resourceType === "video" || ["mp4", "mov", "avi", "mkv", "webm"].includes(ext);
+    const isAudio = ["mp3", "m4a", "wav", "aac"].includes(ext);
+    const prefix = isVideo ? "VID" : isAudio ? "AUD" : "IMG";
+
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const seq = String(Math.floor(1000 + Math.random() * 9000));
+    const filename = `ANIMANDLER-${prefix}-${dateStr}-WA${seq}.${ext}`;
+
     const mimeTypes: Record<string, string> = {
       jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
       gif: "image/gif", webp: "image/webp",
       mp4: "video/mp4", mov: "video/quicktime", avi: "video/x-msvideo",
       mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav",
     };
-    const type = mimeTypes[ext] || "application/octet-stream";
+    const type = mimeTypes[ext] || (isVideo ? "video/mp4" : isAudio ? "audio/mpeg" : "image/jpeg");
 
     const formData = new FormData();
 
