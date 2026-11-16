@@ -163,7 +163,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "Login failed. Please check your credentials.");
+      // Clean up any stale or previous session immediately
+      setUser(null);
+      setActiveProfile(null);
+      await AsyncStorage.removeItem("animaltok_user").catch(() => {});
+      await AsyncStorage.removeItem(ACTIVE_PROFILE_KEY).catch(() => {});
+      throw new Error(data.error || "Invalid credentials. Please check your username/email and password.");
     }
 
     if (data.user) {

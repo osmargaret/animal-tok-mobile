@@ -940,4 +940,46 @@ export const api = {
       return null;
     }
   },
+
+  /**
+   * Request password reset OTP to email
+   */
+  forgotPassword: async (email: string) => {
+    const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to send reset code.");
+    return data;
+  },
+
+  /**
+   * Verify password reset OTP code
+   */
+  verifyOtp: async (email: string, otp: string) => {
+    const response = await fetch(`${BASE_URL}/auth/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Invalid or expired verification code.");
+    return data;
+  },
+
+  /**
+   * Reset password with verified OTP code
+   */
+  resetPassword: async (email: string, otp: string, newPassword: string) => {
+    const response = await fetch(`${BASE_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to reset password.");
+    return data;
+  },
 };

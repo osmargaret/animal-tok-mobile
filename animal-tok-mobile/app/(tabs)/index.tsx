@@ -32,7 +32,7 @@ export default function FeedScreen() {
   const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24);
   const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
-  const { refresh } = useLocalSearchParams<{ refresh?: string }>();
+  const { refresh, focusPostId } = useLocalSearchParams<{ refresh?: string; focusPostId?: string }>();
   const { activeProfile, switchProfile, user } = useAuth();
   const listRef = useRef<any>(null);
   
@@ -174,10 +174,17 @@ export default function FeedScreen() {
   );
 
   useEffect(() => {
-    if (refresh) {
-      loadFeed(true);
+    if (refresh || focusPostId) {
+      loadFeed(true).then(() => {
+        setActiveIndex(0);
+        if (listRef.current) {
+          try {
+            listRef.current.scrollToOffset({ offset: 0, animated: true });
+          } catch (e) {}
+        }
+      });
     }
-  }, [refresh, loadFeed]);
+  }, [refresh, focusPostId, loadFeed]);
 
   useEffect(() => {
     loadFeed();
@@ -303,7 +310,7 @@ export default function FeedScreen() {
         </View>
       </View>
 
-      {/* Vertical Snap Video Feed */}
+      {/* Vertical Snap Video Feed with 50% threshold snap physics */}
       {feedHeight > 0 && (
         <FlashList
           ref={listRef}
@@ -311,6 +318,10 @@ export default function FeedScreen() {
           extraData={feedVersion}
           estimatedItemSize={feedHeight}
           pagingEnabled
+          snapToInterval={feedHeight}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          disableIntervalMomentum={true}
           showsVerticalScrollIndicator={false}
           refreshing={isRefreshing}
           onRefresh={async () => {
