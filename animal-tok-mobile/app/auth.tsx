@@ -84,8 +84,15 @@ export default function AuthScreen() {
     }
     setForgotLoading(true);
     try {
-      await api.forgotPassword(resetEmail.trim());
-      Alert.alert("Code Sent! 📬", `We've sent a 6-digit verification code to ${resetEmail.trim()}. Please check your inbox.`);
+      const res = await api.forgotPassword(resetEmail.trim());
+      if (res?.otp) {
+        Alert.alert(
+          "Verification Code",
+          `Your 6-digit verification code is:\n\n🔑 ${res.otp}\n\n(Enter this code on the next screen to reset your password.)`
+        );
+      } else {
+        Alert.alert("Code Sent! 📬", `We've sent a 6-digit verification code to ${resetEmail.trim()}. Please check your inbox.`);
+      }
       setForgotStep(2);
     } catch (e: any) {
       Alert.alert("Error", e.message || "Failed to send verification code. Please make sure the email is registered.");
