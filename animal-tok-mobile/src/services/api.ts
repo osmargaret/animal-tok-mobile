@@ -767,9 +767,12 @@ export const api = {
         return data.map((p: any) => ({
           id: p.id,
           name: p.title || p.name || "Pet Product",
+          title: p.title || p.name || "Pet Product",
           price: typeof p.price === "number" ? `$${p.price.toFixed(2)}` : (p.price || "$19.99"),
           rating: String(p.rating || "5.0"),
           seller: p.sellerName || p.seller || "Verified Seller",
+          sellerName: p.sellerName || p.seller || "Verified Seller",
+          sellerId: p.sellerId || p.seller_id || "",
           image: normalizeMediaUrl(p.image) || p.image || "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=500&auto=format&fit=crop&q=80",
           category: p.category || "General",
         }));
@@ -793,9 +796,12 @@ export const api = {
         return data.map((s: any) => ({
           id: s.id,
           name: s.title || s.name || "Pet Service",
+          title: s.title || s.name || "Pet Service",
           price: s.price || "$40/session",
           rating: String(s.rating || "5.0"),
           provider: s.providerName || s.provider || "Top Rated Pro",
+          providerName: s.providerName || s.provider || "Top Rated Pro",
+          providerId: s.providerId || s.provider_id || "",
           image: normalizeMediaUrl(s.image) || s.image || "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&auto=format&fit=crop&q=80",
           providerAvatar: normalizeMediaUrl(s.providerAvatar) || s.providerAvatar,
         }));
@@ -825,6 +831,8 @@ export const api = {
           category: e.category || "Meetup",
           description: e.description || "",
           image: normalizeMediaUrl(e.image) || e.image,
+          organizerId: e.organizerId || e.organizer_id || "",
+          organizerName: e.organizerName || e.organizer_name || "",
           isAttending: !!e.isAttending,
         }));
       }

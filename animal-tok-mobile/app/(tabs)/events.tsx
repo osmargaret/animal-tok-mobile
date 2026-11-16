@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Calendar, MapPin, Users, Check, HeartHandshake, ArrowLeft } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/services/api";
 
 const FALLBACK_EVENTS = [
@@ -50,15 +51,34 @@ export default function EventsScreen() {
 
   const loadEvents = React.useCallback(async () => {
     try {
+      let combined: any[] = [];
       const data = await api.getEvents();
       if (Array.isArray(data) && data.length > 0) {
-        setEventsList(data);
-        const initialRsvps: Record<string, boolean> = {};
-        data.forEach((e: any) => {
-          if (e.isAttending) initialRsvps[e.id] = true;
-        });
-        setRsvps(initialRsvps);
+        combined = [...data];
+      } else {
+        combined = [...FALLBACK_EVENTS];
       }
+
+      try {
+        const stored = await AsyncStorage.getItem("animaltok_custom_events");
+        if (stored) {
+          const custom = JSON.parse(stored);
+          if (Array.isArray(custom)) {
+            custom.forEach((ce: any) => {
+              if (!combined.some((e) => String(e.id) === String(ce.id))) {
+                combined.unshift(ce);
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      setEventsList(combined);
+      const initialRsvps: Record<string, boolean> = {};
+      combined.forEach((e: any) => {
+        if (e.isAttending) initialRsvps[e.id] = true;
+      });
+      setRsvps(initialRsvps);
     } catch (e) {
       console.warn("Failed to load live events:", e);
     }

@@ -221,6 +221,9 @@ export default function ProfileScreen() {
         // Match handler's own direct posts
         if (curUserId && (pAnimalId === curUserId || pUserId === curUserId || pHandlerId === curUserId)) return true;
         if (curUsername && pUsername === curUsername) return true;
+        const curName = (user?.name || "").toLowerCase().trim();
+        const pDispName = (p.displayName || "").toLowerCase().trim();
+        if (curName && pDispName && curName === pDispName) return true;
 
         // Match posts belonging to any pets owned by this handler
         return pets.some((pet) => {
@@ -251,40 +254,89 @@ export default function ProfileScreen() {
       });
     }
 
-    // Synchronize custom products & services (only show items belonging to this user)
+    // Synchronize custom products, services, and events (from backend server + local storage)
     try {
-      const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
-      if (storedProds) {
-        const customProds = JSON.parse(storedProds);
-        if (Array.isArray(customProds)) {
-          const myProds = customProds.filter((p: any) => String(p.sellerId || p.userId || "") === String(user?.id || ""));
-          setUserProducts(myProds);
-        } else {
-          setUserProducts([]);
-        }
-      } else {
-        setUserProducts([]);
-      }
+      const curUid = String(user?.id || "").toLowerCase();
+      const curUname = (user?.name || "").toLowerCase().trim();
+      const curUsername = (user?.username || "").toLowerCase().replace(/^@/, "").trim();
 
-      const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
-      if (storedSrvs) {
-        const customSrvs = JSON.parse(storedSrvs);
-        if (Array.isArray(customSrvs)) {
-          const mySrvs = customSrvs.filter((s: any) => String(s.providerId || s.sellerId || s.userId || "") === String(user?.id || ""));
-          setUserServices(mySrvs);
-        } else {
-          setUserServices([]);
+      // 1. PRODUCTS
+      let combinedProds: any[] = [];
+      try {
+        const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
+        if (storedProds) {
+          const parsed = JSON.parse(storedProds);
+          if (Array.isArray(parsed)) combinedProds.push(...parsed);
         }
-      } else {
-        setUserServices([]);
-      }
-      const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
-      if (storedEvts) {
-        const customEvts = JSON.parse(storedEvts);
-        if (Array.isArray(customEvts)) {
-          setUserEvents(customEvts);
+      } catch (e) {}
+      try {
+        const serverProds = await api.getMarketplaceProducts();
+        if (Array.isArray(serverProds)) {
+          serverProds.forEach((sp: any) => {
+            if (!combinedProds.some((p) => String(p.id) === String(sp.id))) {
+              combinedProds.push(sp);
+            }
+          });
         }
-      }
+      } catch (e) {}
+      const myProds = combinedProds.filter((p: any) => {
+        const sid = String(p.sellerId || p.userId || "").toLowerCase();
+        const sname = String(p.sellerName || p.seller || "").toLowerCase().trim();
+        return (curUid && sid === curUid) || (curUname && sname === curUname);
+      });
+      setUserProducts(myProds);
+
+      // 2. SERVICES
+      let combinedSrvs: any[] = [];
+      try {
+        const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
+        if (storedSrvs) {
+          const parsed = JSON.parse(storedSrvs);
+          if (Array.isArray(parsed)) combinedSrvs.push(...parsed);
+        }
+      } catch (e) {}
+      try {
+        const serverSrvs = await api.getMarketplaceServices();
+        if (Array.isArray(serverSrvs)) {
+          serverSrvs.forEach((ss: any) => {
+            if (!combinedSrvs.some((s) => String(s.id) === String(ss.id))) {
+              combinedSrvs.push(ss);
+            }
+          });
+        }
+      } catch (e) {}
+      const mySrvs = combinedSrvs.filter((s: any) => {
+        const pid = String(s.providerId || s.sellerId || s.userId || "").toLowerCase();
+        const pname = String(s.providerName || s.provider || "").toLowerCase().trim();
+        return (curUid && pid === curUid) || (curUname && pname === curUname);
+      });
+      setUserServices(mySrvs);
+
+      // 3. EVENTS
+      let combinedEvts: any[] = [];
+      try {
+        const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
+        if (storedEvts) {
+          const parsed = JSON.parse(storedEvts);
+          if (Array.isArray(parsed)) combinedEvts.push(...parsed);
+        }
+      } catch (e) {}
+      try {
+        const serverEvts = await api.getEvents();
+        if (Array.isArray(serverEvts)) {
+          serverEvts.forEach((se: any) => {
+            if (!combinedEvts.some((e) => String(e.id) === String(se.id))) {
+              combinedEvts.push(se);
+            }
+          });
+        }
+      } catch (e) {}
+      const myEvts = combinedEvts.filter((e: any) => {
+        const oid = String(e.organizerId || e.userId || "").toLowerCase();
+        const oname = String(e.organizerName || "").toLowerCase().trim();
+        return (curUid && oid === curUid) || (curUname && oname === curUname);
+      });
+      setUserEvents(myEvts);
     } catch (e) {
       console.warn("Error refreshing user marketplace items:", e);
     }
