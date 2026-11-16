@@ -94,6 +94,7 @@ export default function VideoPost({
       if (isVideo && player) {
         try {
           player.pause();
+          player.muted = true;
         } catch (e) {}
       }
       if (webAudioRef.current) {
@@ -111,6 +112,7 @@ export default function VideoPost({
     } else {
       if (isVideo && player) {
         try {
+          player.muted = isMuted || !!post.audioUrl;
           player.play();
         } catch (e) {}
       }
@@ -125,7 +127,7 @@ export default function VideoPost({
         } catch (e) {}
       }
     }
-  }, [isActive, isVideo, player, isMuted]);
+  }, [isActive, isVideo, player, isMuted, post.audioUrl]);
 
   useEffect(() => {
     if (player && isVideo) {
@@ -506,7 +508,7 @@ export default function VideoPost({
         <TouchableOpacity style={styles.avatarButton} onPress={handleProfilePress} activeOpacity={0.8}>
           <View style={styles.avatarCircle}>
             {post.avatar && (post.avatar.startsWith("http") || post.avatar.startsWith("data:") || post.avatar.startsWith("file:")) ? (
-              <Image source={{ uri: post.avatar }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+              <Image source={{ uri: post.avatar }} style={styles.avatarImg} resizeMode="cover" />
             ) : (
               <Text style={{ fontSize: 20 }}>{post.avatar || "🐾"}</Text>
             )}
@@ -669,11 +671,18 @@ const styles = StyleSheet.create({
     borderColor: "#06b6d4",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.4,
     shadowRadius: 5,
     elevation: 4,
+  },
+  avatarImg: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    overflow: "hidden",
   },
   actionItem: {
     alignItems: "center",

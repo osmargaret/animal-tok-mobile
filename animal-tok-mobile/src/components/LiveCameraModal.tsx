@@ -223,6 +223,9 @@ export default function LiveCameraModal({
         const video = await recordingPromise;
         if (video?.uri) {
           setIsRecording(false);
+          setIsProcessing(true);
+          // Wait 350ms so Android MediaRecorder releases hardware buffers and file locks cleanly
+          await new Promise((resolve) => setTimeout(resolve, 350));
           setIsProcessing(false);
           onCapture(video.uri, true);
         } else {

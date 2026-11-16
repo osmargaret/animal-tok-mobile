@@ -187,31 +187,42 @@ function NativeVideoPreview({
   onDurationLoaded?: (dur: number) => void;
 }) {
   const [loadError, setLoadError] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const videoSource = uri ? { uri } : null;
   const player = useVideoPlayer(videoSource, (p) => {
     p.loop = true;
     p.muted = isMuted;
-    try {
-      p.play();
-    } catch (e) {}
   });
 
   useEffect(() => {
-    if (player) {
+    // Delay playback and mounting slightly so camera hardware releases codecs safely
+    const timer = setTimeout(() => {
+      setIsReady(true);
+      if (player) {
+        try {
+          player.play();
+        } catch (e) {}
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [player]);
+
+  useEffect(() => {
+    if (player && isReady) {
       try {
         player.muted = isMuted;
       } catch (e) {}
     }
-  }, [player, isMuted]);
+  }, [player, isMuted, isReady]);
 
   useEffect(() => {
-    if (player) {
+    if (player && isReady) {
       try {
         player.playbackRate = playbackSpeed;
       } catch (e) {}
     }
-  }, [player, playbackSpeed]);
+  }, [player, playbackSpeed, isReady]);
 
   useEffect(() => {
     if (player && player.duration) {
@@ -219,7 +230,7 @@ function NativeVideoPreview({
     }
   }, [player?.duration]);
 
-  if (loadError || !player) {
+  if (loadError || !player || !isReady) {
     return (
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "#083344", alignItems: "center", justifyContent: "center" }]}>
         <Text style={{ fontSize: 36, marginBottom: 8 }}>📹</Text>

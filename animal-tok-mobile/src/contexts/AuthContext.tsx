@@ -98,9 +98,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.avatar && (
+            parsedUser.avatar.includes("images.unsplash.com") ||
+            parsedUser.avatar.includes("534528741775") ||
+            parsedUser.avatar.includes("507003211169")
+          )) {
+            parsedUser.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedUser.name || "User")}&background=027A69&color=fff&size=200&bold=true`;
+            AsyncStorage.setItem("animaltok_user", JSON.stringify(parsedUser)).catch(() => {});
+          }
           setUser(parsedUser);
           if (storedProfile) {
-            try { setActiveProfile(JSON.parse(storedProfile)); } catch (e) {}
+            try {
+              const parsedProfile = JSON.parse(storedProfile);
+              if (parsedProfile.avatar && (
+                parsedProfile.avatar.includes("images.unsplash.com") ||
+                parsedProfile.avatar.includes("534528741775") ||
+                parsedProfile.avatar.includes("507003211169")
+              )) {
+                parsedProfile.avatar = parsedUser.avatar;
+                AsyncStorage.setItem(ACTIVE_PROFILE_KEY, JSON.stringify(parsedProfile)).catch(() => {});
+              }
+              setActiveProfile(parsedProfile);
+            } catch (e) {}
           } else {
             setActiveProfile({
               id: parsedUser.id,
@@ -220,8 +239,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     specialization?: string,
     password?: string
   ) => {
-    if (!password || password.length < 6) {
-      throw new Error("Password must be at least 6 characters.");
+    const hasLetter = /[a-zA-Z]/.test(password || "");
+    const hasNumber = /[0-9]/.test(password || "");
+    if (!password || password.length < 6 || !hasLetter || !hasNumber) {
+      throw new Error("Password must be at least 6 characters long and contain both letters and numbers.");
     }
 
     const res = await fetch(`${getBaseUrl()}/auth/register`, {
@@ -237,6 +258,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (data.user) {
+      // Clear previous local test posts/items so the new registered user starts completely fresh
+      await AsyncStorage.removeItem("animaltok_custom_posts").catch(() => {});
+      await AsyncStorage.removeItem("animaltok_custom_products").catch(() => {});
+      await AsyncStorage.removeItem("animaltok_custom_services").catch(() => {});
+      await AsyncStorage.removeItem("animaltok_custom_events").catch(() => {});
+
       const newUser: MockUser = {
         id: data.user.id,
         name: data.user.name,
@@ -270,6 +297,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.removeItem(ACTIVE_PROFILE_KEY).catch(() => {});
     await AsyncStorage.removeItem("animaltok_user").catch(() => {});
     await AsyncStorage.removeItem(PETS_KEY).catch(() => {});
+    await AsyncStorage.removeItem("animaltok_custom_posts").catch(() => {});
+    await AsyncStorage.removeItem("animaltok_custom_products").catch(() => {});
+    await AsyncStorage.removeItem("animaltok_custom_services").catch(() => {});
+    await AsyncStorage.removeItem("animaltok_custom_events").catch(() => {});
   };
 
   const updateAccountType = async (type: "regular" | "business" | "vet" | "handler") => {

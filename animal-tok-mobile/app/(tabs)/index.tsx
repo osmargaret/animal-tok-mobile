@@ -315,7 +315,7 @@ export default function FeedScreen() {
         <FlashList
           ref={listRef}
           data={displayPosts}
-          extraData={feedVersion}
+          extraData={`${activeIndex}_${isScreenFocused}_${feedVersion}`}
           estimatedItemSize={feedHeight}
           pagingEnabled
           snapToInterval={feedHeight}

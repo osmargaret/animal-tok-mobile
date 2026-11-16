@@ -201,10 +201,7 @@ export default function ProfileScreen() {
         following: 0,
         likes: totalLikes > 0 ? formatNumber(totalLikes) : "0",
         bio: petBio,
-        coverImage:
-          activeProfile.coverImage ||
-          animalData?.coverImage ||
-          "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80",
+        coverImage: activeProfile.coverImage || animalData?.coverImage || "",
         photos: galleryPhotos,
         avatar: activeProfile.avatar || animalData?.avatar || "🐾",
         badges: [{ icon: "🏆", label: "Top Creator" }],
@@ -212,19 +209,26 @@ export default function ProfileScreen() {
       });
     } else if (user) {
       // Handler profile: collect posts from all pets managed by this handler AND handler's own direct posts
-      const handlerPosts = allPosts.filter((p: any) => {
-        if (p.animalId === user?.id || p.username === user?.username || p.username === "@alex.morgan" || !p.animalId) {
-          return true;
-        }
+      const curUserId = user?.id ? String(user.id).toLowerCase() : "";
+      const curUsername = user?.username ? user.username.toLowerCase().replace(/^@/, "") : "";
 
+      const handlerPosts = allPosts.filter((p: any) => {
+        const pAnimalId = p.animalId ? String(p.animalId).toLowerCase() : "";
+        const pUserId = p.userId ? String(p.userId).toLowerCase() : "";
+        const pHandlerId = p.handlerId ? String(p.handlerId).toLowerCase() : "";
+        const pUsername = (p.username || "").toLowerCase().replace(/^@/, "");
+
+        // Match handler's own direct posts
+        if (curUserId && (pAnimalId === curUserId || pUserId === curUserId || pHandlerId === curUserId)) return true;
+        if (curUsername && pUsername === curUsername) return true;
+
+        // Match posts belonging to any pets owned by this handler
         return pets.some((pet) => {
           const petId = String(pet.id).toLowerCase();
-          const pAnimalId = String(p.animalId || "").toLowerCase();
           if (pAnimalId && (pAnimalId === petId || pAnimalId === petId.replace(/^a_/, ""))) return true;
 
           const petUser = (pet.username || "").toLowerCase().replace(/^@/, "");
-          const pUser = (p.username || "").toLowerCase().replace(/^@/, "");
-          if (petUser && pUser && (petUser === pUser || pUser.includes(petUser))) return true;
+          if (petUser && pUsername && (petUser === pUsername || pUsername.includes(petUser))) return true;
 
           const petName = (pet.name || "").toLowerCase();
           const pName = (p.displayName || "").toLowerCase();
@@ -241,34 +245,38 @@ export default function ProfileScreen() {
         following: 0,
         likes: totalLikes > 0 ? formatNumber(totalLikes) : "0",
         bio: (user as any)?.bio || `Handler & parent of ${pets.map((p) => p.name).join(", ") || "pets"}! 🐾`,
-        coverImage: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80",
+        coverImage: (user as any)?.coverImage || activeProfile?.coverImage || "",
         badges: [{ icon: "🛡️", label: "Verified Handler" }],
         posts: handlerPosts,
       });
     }
 
-    // Synchronize custom products & services
+    // Synchronize custom products & services (only show items belonging to this user)
     try {
       const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
       if (storedProds) {
         const customProds = JSON.parse(storedProds);
         if (Array.isArray(customProds)) {
-          const merged = [...customProds, ...marketProducts.filter((p) => !customProds.some((cp: any) => cp.id === p.id))];
-          setUserProducts(merged);
+          const myProds = customProds.filter((p: any) => String(p.sellerId || p.userId || "") === String(user?.id || ""));
+          setUserProducts(myProds);
+        } else {
+          setUserProducts([]);
         }
       } else {
-        setUserProducts([...marketProducts]);
+        setUserProducts([]);
       }
 
       const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
       if (storedSrvs) {
         const customSrvs = JSON.parse(storedSrvs);
         if (Array.isArray(customSrvs)) {
-          const merged = [...customSrvs, ...marketServices.filter((s) => !customSrvs.some((cs: any) => cs.id === s.id))];
-          setUserServices(merged);
+          const mySrvs = customSrvs.filter((s: any) => String(s.providerId || s.sellerId || s.userId || "") === String(user?.id || ""));
+          setUserServices(mySrvs);
+        } else {
+          setUserServices([]);
         }
       } else {
-        setUserServices([...marketServices]);
+        setUserServices([]);
       }
       const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
       if (storedEvts) {
@@ -475,16 +483,19 @@ export default function ProfileScreen() {
         <View style={styles.compactHeaderCard}>
           {/* Cover Photo Banner */}
           <View style={styles.cardCoverBox}>
-            <Image
-              source={{
-                uri:
-                  profileStats?.coverImage ||
-                  activeProfile?.coverImage ||
-                  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80",
-              }}
-              style={styles.cardCoverImg}
-              resizeMode="cover"
-            />
+            {profileStats?.coverImage || activeProfile?.coverImage ? (
+              <Image
+                source={{
+                  uri: profileStats?.coverImage || activeProfile?.coverImage,
+                }}
+                style={styles.cardCoverImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.cardCoverImg, { backgroundColor: "#0f232e", alignItems: "center", justifyContent: "center" }]}>
+                <PawPrint size={34} color="#06b6d4" opacity={0.35} />
+              </View>
+            )}
             <TouchableOpacity
               style={styles.cardCoverEditBtn}
               onPress={() => router.push("/edit-profile")}

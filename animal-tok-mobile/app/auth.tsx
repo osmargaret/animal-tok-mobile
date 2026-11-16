@@ -48,8 +48,10 @@ export default function AuthScreen() {
         Alert.alert("Missing Name", "Please enter your full name.");
         return;
       }
-      if (password.length < 6) {
-        Alert.alert("Weak Password", "Password must be at least 6 characters long.");
+      const hasLetter = /[a-zA-Z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      if (password.length < 6 || !hasLetter || !hasNumber) {
+        Alert.alert("Password Requirement", "Password must be at least 6 characters long and contain both letters and numbers.");
         return;
       }
     }
@@ -111,8 +113,10 @@ export default function AuthScreen() {
 
   // Step 3: Set New Password
   const handleResetPassword = async () => {
-    if (!newPassword.trim() || newPassword.length < 6) {
-      Alert.alert("Password Too Short", "Your new password must be at least 6 characters.");
+    const hasLetter = /[a-zA-Z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    if (!newPassword.trim() || newPassword.length < 6 || !hasLetter || !hasNumber) {
+      Alert.alert("Password Requirement", "Your new password must be at least 6 characters long and contain both letters and numbers.");
       return;
     }
     if (newPassword !== confirmPassword) {
