@@ -28,6 +28,7 @@
         "backgroundColor": "#027A69"
       },
       "package": "com.animaltok.app",
+      "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",

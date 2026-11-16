@@ -17,6 +17,19 @@ export function getSocketUrl(): string {
   return base.replace(/\/api\/?$/, "");
 }
 
+/**
+ * Normalizes media URLs pointing to localhost:5000 / 10.0.2.2:5000 / relative uploads to the live Render backend
+ */
+export function normalizeMediaUrl(url?: string | null): string {
+  if (!url) return "";
+  if (typeof url !== "string") return "";
+  if (url.startsWith("/uploads/")) {
+    return `https://animal-tok-backend.onrender.com${url}`;
+  }
+  return url
+    .replace(/^https?:\/\/(localhost|10\.0\.2\.2|127\.0\.0\.1)(:\d+)?(?=\/|$)/, "https://animal-tok-backend.onrender.com");
+}
+
 const BASE_URL = getBaseUrl();
 
 let globalSocket: Socket | null = null;
@@ -89,7 +102,8 @@ export async function uploadMedia(
     }
 
     const data = await response.json();
-    return data.secure_url || data.url || localUri;
+    const rawUrl = data.secure_url || data.url || localUri;
+    return normalizeMediaUrl(rawUrl) || rawUrl;
   } catch (e) {
     console.error("uploadMedia error:", e);
     return localUri;
@@ -180,9 +194,11 @@ export const api = {
       const data = await response.json();
       return {
         ...data,
+        avatar: normalizeMediaUrl(data.avatar) || data.avatar,
+        coverImage: normalizeMediaUrl(data.coverImage) || data.coverImage,
         followers: Number(data.followers ?? data.followersCount ?? 0),
         handler: data.handler || data.handlerName || "Alex Morgan",
-        photos: data.photos || [
+        photos: Array.isArray(data.photos) ? data.photos.map((ph: string) => normalizeMediaUrl(ph) || ph) : [
           "https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&auto=format&fit=crop&q=80",
           "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?w=500&auto=format&fit=crop&q=80"
         ]
@@ -577,7 +593,15 @@ export const api = {
     try {
       const response = await fetch(`${BASE_URL}/messages/threads?userId=${encodeURIComponent(userId)}`);
       if (!response.ok) throw new Error("Failed to fetch inbox threads");
-      return await response.json();
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        return data.map((t: any) => ({
+          ...t,
+          avatar: normalizeMediaUrl(t.avatar) || t.avatar,
+          participantAvatar: normalizeMediaUrl(t.participantAvatar) || t.participantAvatar,
+        }));
+      }
+      return data;
     } catch (e) {
       console.warn("Failed to fetch inbox threads", e);
       return [];
@@ -599,15 +623,15 @@ export const api = {
         animalId: p.animalId || p.animal_id,
         username: p.animalUsername || `@${(p.animalName || 'pet').toLowerCase().replace(/\s+/g, '')}`,
         displayName: p.animalName || "Pet",
-        avatar: p.animalAvatar || "🐾",
+        avatar: normalizeMediaUrl(p.animalAvatar) || p.animalAvatar || "🐾",
         time: formatRelativeTime(p.createdAt || p.created_at || p.time, p.id),
         createdAt: p.createdAt || p.created_at,
         caption: p.caption || "",
         hashtags: Array.isArray(p.tags) ? p.tags.map((t: string) => `#${t.replace(/^#/, '')}`).join(' ') : (p.tags || "#AnimalTok"),
-        videoUrl: p.videoUrl || "",
-        posterUrl: p.imageUrl || p.videoUrl || "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=700&fit=crop",
-        imageUrl: p.imageUrl || "",
-        audioUrl: p.audioUrl,
+        videoUrl: normalizeMediaUrl(p.videoUrl) || "",
+        posterUrl: normalizeMediaUrl(p.imageUrl || p.videoUrl) || "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=700&fit=crop",
+        imageUrl: normalizeMediaUrl(p.imageUrl) || "",
+        audioUrl: normalizeMediaUrl(p.audioUrl) || p.audioUrl,
         audioName: p.audioName,
         likes: p.likesCount || 0,
         comments: p.commentsCount || 0,
@@ -672,7 +696,15 @@ export const api = {
     try {
       const response = await fetch(`${BASE_URL}/messages/${encodeURIComponent(threadId)}`);
       if (!response.ok) throw new Error("Failed to fetch messages");
-      return await response.json();
+      const messages = await response.json();
+      if (Array.isArray(messages)) {
+        return messages.map((m: any) => ({
+          ...m,
+          senderAvatar: normalizeMediaUrl(m.senderAvatar) || m.senderAvatar,
+          mediaUrl: normalizeMediaUrl(m.mediaUrl) || m.mediaUrl,
+        }));
+      }
+      return messages;
     } catch (e) {
       console.warn("Backend messages fetch failed, using fallback", e);
       return [];
@@ -730,7 +762,7 @@ export const api = {
           price: typeof p.price === "number" ? `$${p.price.toFixed(2)}` : (p.price || "$19.99"),
           rating: String(p.rating || "5.0"),
           seller: p.sellerName || p.seller || "Verified Seller",
-          image: p.image || "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=500&auto=format&fit=crop&q=80",
+          image: normalizeMediaUrl(p.image) || p.image || "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=500&auto=format&fit=crop&q=80",
           category: p.category || "General",
         }));
       }
@@ -756,7 +788,8 @@ export const api = {
           price: s.price || "$40/session",
           rating: String(s.rating || "5.0"),
           provider: s.providerName || s.provider || "Top Rated Pro",
-          image: s.image || "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&auto=format&fit=crop&q=80",
+          image: normalizeMediaUrl(s.image) || s.image || "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&auto=format&fit=crop&q=80",
+          providerAvatar: normalizeMediaUrl(s.providerAvatar) || s.providerAvatar,
         }));
       }
       return null;
@@ -783,6 +816,7 @@ export const api = {
           attendees: Number(e.attendeesCount || e.attendees || 0),
           category: e.category || "Meetup",
           description: e.description || "",
+          image: normalizeMediaUrl(e.image) || e.image,
           isAttending: !!e.isAttending,
         }));
       }

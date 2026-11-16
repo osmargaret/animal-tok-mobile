@@ -820,7 +820,7 @@ export default function CreateScreen() {
     setIsPublishing(true);
 
     try {
-      // 1. Upload media to backend / Cloudinary with 10-second safety timeout
+      // 1. Upload media to backend / Cloudinary with 60-second safety timeout for large videos
       let finalMediaUrl = mediaUri;
       try {
         const uploadPromise = uploadMedia(
@@ -828,7 +828,7 @@ export default function CreateScreen() {
           "animaltok/posts",
           isVideo ? "video" : "image"
         );
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000));
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 60000));
         const cloudinaryUrl = await Promise.race([uploadPromise, timeoutPromise]);
         if (cloudinaryUrl) {
           finalMediaUrl = cloudinaryUrl;
