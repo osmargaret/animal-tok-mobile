@@ -5,14 +5,15 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
   Image,
   ScrollView,
+  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { X, Check, Camera, Image as ImageIcon } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -21,7 +22,12 @@ import { api, uploadMedia } from "@/services/api";
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { activeProfile, user, switchProfile } = useAuth();
+  const insets = useSafeAreaInsets();
+  const topSafeInset = Math.max(
+    insets.top,
+    Platform.OS === "android" ? ((StatusBar.currentHeight || 28) + 16) : 24
+  );
+  const { activeProfile, user, switchProfile, updateUser } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,18 +47,17 @@ export default function EditProfileScreen() {
       try {
         if (isAnimal && activeProfile) {
           const animalData = await api.getAnimalProfile(activeProfile.id);
-          setName(animalData?.name || "");
-          setUsername(animalData?.username || "");
-          setBio(animalData?.bio || "");
+          setName(animalData?.name || activeProfile?.name || "");
+          setUsername(animalData?.username || activeProfile?.username || "");
+          setBio(animalData?.bio || activeProfile?.bio || "");
           setCoverImage(animalData?.coverImage || activeProfile?.coverImage || "");
           setAvatar(animalData?.avatar || activeProfile?.avatar || "");
         } else if (user) {
-          const handlerData = await api.getHandlerProfile(user.id);
-          setName(handlerData?.name || "");
-          setUsername(handlerData?.username || "");
-          setBio(handlerData?.bio || "");
-          setCoverImage("https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80");
-          setAvatar(user?.avatar || "");
+          setName(user?.name || "");
+          setUsername(user?.username || "");
+          setBio((user as any)?.bio || "");
+          setCoverImage((user as any)?.coverImage || activeProfile?.coverImage || "");
+          setAvatar(user?.avatar || activeProfile?.avatar || "");
         }
       } catch (e) {
         Alert.alert("Error", "Failed to load profile data");
@@ -137,6 +142,14 @@ export default function EditProfileScreen() {
           coverImage: finalCover,
           avatar: finalAvatar,
         });
+      } else if (user) {
+        await updateUser({
+          name: name.trim(),
+          username: username.trim(),
+          bio: bio.trim(),
+          coverImage: finalCover,
+          avatar: finalAvatar,
+        } as any);
       }
       router.back();
     } else {
@@ -146,22 +159,22 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+        {/* Header - Positioned below Android / iOS system status bar */}
+        <View style={[styles.header, { paddingTop: topSafeInset + 8 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} activeOpacity={0.75}>
             <X size={22} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={saving || loading}>
+          <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={saving || loading} activeOpacity={0.75}>
             {saving ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Check size={18} color="#ffffff" />
+              <Check size={20} color="#ffffff" strokeWidth={2.8} />
             )}
           </TouchableOpacity>
         </View>
@@ -239,7 +252,7 @@ export default function EditProfileScreen() {
           </ScrollView>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -253,25 +266,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#1e293b",
+    backgroundColor: "#0d1117",
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#161b22",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
   saveBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: "#06b6d4",
     alignItems: "center",
     justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#06b6d4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
   },
   headerTitle: {
     color: "#ffffff",

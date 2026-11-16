@@ -50,6 +50,7 @@ export default function LiveCameraModal({
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const cameraRef = useRef<any>(null);
@@ -223,10 +224,10 @@ export default function LiveCameraModal({
         const video = await recordingPromise;
         if (video?.uri) {
           setIsRecording(false);
-          setIsProcessing(true);
-          // Wait 350ms so Android MediaRecorder releases hardware buffers and file locks cleanly
-          await new Promise((resolve) => setTimeout(resolve, 350));
-          setIsProcessing(false);
+          setIsFinalizing(true);
+          // Wait 500ms so CameraView unmounts and Android releases the camera device completely
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          setIsFinalizing(false);
           onCapture(video.uri, true);
         } else {
           setIsRecording(false);
@@ -340,7 +341,12 @@ export default function LiveCameraModal({
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
       <View style={styles.statusBarCover} pointerEvents="none" />
-      {!permission?.granted ? (
+      {isFinalizing ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000000", alignItems: "center", justifyContent: "center", zIndex: 999 }]}>
+          <ActivityIndicator size="large" color="#06b6d4" />
+          <Text style={{ color: "#ffffff", marginTop: 14, fontSize: 15, fontWeight: "600" }}>Finalizing video...</Text>
+        </View>
+      ) : !permission?.granted ? (
           <View style={styles.permissionBox}>
             <Text style={{ fontSize: 48, marginBottom: 16 }}>📷</Text>
             <Text style={styles.permissionTitle}>Camera Permission Required</Text>

@@ -189,24 +189,28 @@ function NativeVideoPreview({
   const [loadError, setLoadError] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  const videoSource = uri ? { uri } : null;
+  useEffect(() => {
+    // Delay video decoding 450ms so Android Camera2 HAL & MediaRecorder release all hardware resources cleanly
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [uri]);
+
+  // Do not initialize ExoPlayer with file URI until camera pipeline has completely released
+  const videoSource = isReady && uri ? { uri } : null;
   const player = useVideoPlayer(videoSource, (p) => {
     p.loop = true;
     p.muted = isMuted;
   });
 
   useEffect(() => {
-    // Delay playback and mounting slightly so camera hardware releases codecs safely
-    const timer = setTimeout(() => {
-      setIsReady(true);
-      if (player) {
-        try {
-          player.play();
-        } catch (e) {}
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [player]);
+    if (player && isReady) {
+      try {
+        player.play();
+      } catch (e) {}
+    }
+  }, [player, isReady]);
 
   useEffect(() => {
     if (player && isReady) {
@@ -233,8 +237,8 @@ function NativeVideoPreview({
   if (loadError || !player || !isReady) {
     return (
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "#083344", alignItems: "center", justifyContent: "center" }]}>
-        <Text style={{ fontSize: 36, marginBottom: 8 }}>📹</Text>
-        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>Video Ready for Editing</Text>
+        <ActivityIndicator size="large" color="#06b6d4" />
+        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600", marginTop: 10 }}>Readying Video...</Text>
       </View>
     );
   }

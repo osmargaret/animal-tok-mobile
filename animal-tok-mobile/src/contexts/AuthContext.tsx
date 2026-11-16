@@ -49,6 +49,7 @@ interface AuthContextType {
     password?: string
   ) => Promise<void>;
   updateAccountType: (type: "regular" | "business" | "vet" | "handler") => Promise<void>;
+  updateUser: (updatedData: Partial<MockUser>) => Promise<void>;
   addPet: (pet: ActiveProfile) => void;
   logout: () => Promise<void>;
   switchProfile: (profile: ActiveProfile) => void;
@@ -311,6 +312,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = async (updatedData: Partial<MockUser>) => {
+    if (!user) return;
+    const mergedUser = { ...user, ...updatedData };
+    setUser(mergedUser);
+    await AsyncStorage.setItem("animaltok_user", JSON.stringify(mergedUser)).catch(() => {});
+
+    // If currently on handler profile, sync activeProfile too
+    if (activeProfile?.type === "handler" || activeProfile?.id === user.id) {
+      persistProfile({
+        ...activeProfile,
+        name: mergedUser.name || activeProfile.name,
+        username: mergedUser.username || activeProfile.username,
+        avatar: mergedUser.avatar || activeProfile.avatar,
+        coverImage: (mergedUser as any).coverImage || activeProfile.coverImage,
+      });
+    }
+  };
+
   const switchProfile = (profile: ActiveProfile) => {
     persistProfile(profile);
   };
@@ -338,6 +357,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         signup,
         updateAccountType,
+        updateUser,
         addPet,
         logout,
         switchProfile,
