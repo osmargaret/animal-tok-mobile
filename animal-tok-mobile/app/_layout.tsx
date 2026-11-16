@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { registerForPushNotificationsAsync, setupNotificationListeners } from "@/services/notifications";
+import { Audio } from "expo-av";
 
 import { Platform, View, StyleSheet } from "react-native";
 
@@ -44,6 +45,17 @@ function NotificationInitializer() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Configure native iOS audio to ensure video sound plays even when the physical iPhone mute switch is set to silent
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: true,
+    }).catch((err) => {
+      console.warn("Could not configure audio mode:", err);
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

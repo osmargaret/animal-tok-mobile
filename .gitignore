@@ -48,3 +48,6 @@ Thumbs.db
 .idea/
 
 animal-tok-landingpage/
+
+*.apk
+*.ipa

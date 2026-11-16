@@ -15,7 +15,7 @@ const DesktopSidebar = ({ onEventsOpen }: DesktopSidebarProps) => {
     <aside className="hidden lg:flex flex-col w-60 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
       <div className="flex items-center gap-2 px-5 py-5">
         <span className="text-2xl">🐾</span>
-        <span className="text-xl font-bold text-foreground">AnimalTok</span>
+        <span className="text-xl font-bold text-foreground">Animandler</span>
       </div>
 
       <div className="flex gap-2 px-5 mb-4">

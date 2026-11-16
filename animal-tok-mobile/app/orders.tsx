@@ -339,7 +339,7 @@ export default function OrdersScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: topInset }]}>
+    <View style={[styles.container, { paddingTop: topInset }]}>
       <StatusBar barStyle="light-content" backgroundColor="#0d1117" />
 
       {/* Header */}
@@ -417,7 +417,7 @@ export default function OrdersScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

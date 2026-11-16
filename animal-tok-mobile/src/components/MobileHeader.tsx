@@ -17,7 +17,7 @@ const MobileHeader = () => {
         <div className="flex items-center justify-between px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex items-center gap-2">
             <span className="text-xl">🐾</span>
-            <span className="text-base font-bold text-foreground">AnimalTok</span>
+            <span className="text-base font-bold text-foreground">Animandler</span>
           </div>
           <div className="flex items-center gap-3">
             <button className="text-muted-foreground" onClick={() => navigate("/explore")}>

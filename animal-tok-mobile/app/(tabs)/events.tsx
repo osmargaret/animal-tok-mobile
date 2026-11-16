@@ -109,7 +109,7 @@ export default function EventsScreen() {
     );
 
     if (newStatus) {
-      Alert.alert("RSVP Confirmed! 🎉", `You are now registered for "${title}". Added to your AnimalTok calendar!`);
+      Alert.alert("RSVP Confirmed! 🎉", `You are now registered for "${title}". Added to your Animandler calendar!`);
     }
 
     // Call backend API

@@ -310,7 +310,7 @@ export default function VideoPost({
 
   const handleShare = async () => {
     try {
-      const shareUrl = post.videoUrl || post.imageUrl || "https://animaltok.app";
+      const shareUrl = post.videoUrl || post.imageUrl || "https://animal-tok-landingpage.vercel.app";
       const shareMsg = `Check out ${post.displayName}'s pet post on Animandler: "${post.caption}" 🐾\n${shareUrl}`;
 
       const result = await Share.share({

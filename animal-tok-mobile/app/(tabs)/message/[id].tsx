@@ -317,7 +317,7 @@ export default function MessageViewScreen() {
               <View style={styles.securityBanner}>
                 <Lock size={14} color="#64748b" />
                 <Text style={styles.securityText}>
-                  Direct 1-on-1 private messaging on AnimalTok
+                  Direct 1-on-1 private messaging on Animandler
                 </Text>
               </View>
             }

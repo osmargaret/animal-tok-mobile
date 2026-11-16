@@ -14,12 +14,14 @@
       "backgroundColor": "#0A0E14"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.animaltok.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "AnimalTok needs camera access so you can film your pet's videos.",
-        "NSMicrophoneUsageDescription": "AnimalTok needs microphone access for recording audio with your pet videos.",
-        "NSPhotoLibraryUsageDescription": "AnimalTok needs photo library access to upload photos and videos of your pets."
+        "NSCameraUsageDescription": "Animandler needs camera access so you can film your pet's videos.",
+        "NSMicrophoneUsageDescription": "Animandler needs microphone access for recording audio with your pet videos.",
+        "NSPhotoLibraryUsageDescription": "Animandler needs photo library access to upload photos and videos of your pets.",
+        "NSPhotoLibraryAddUsageDescription": "Animandler needs photo library access to save photos and videos of your pets to your camera roll.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -61,8 +63,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you upload pet photos and videos.",
-          "cameraPermission": "The app accesses your camera to let you film pet videos."
+          "photosPermission": "Animandler accesses your photos to let you upload pet photos and videos.",
+          "cameraPermission": "Animandler accesses your camera to let you film pet videos."
         }
       ]
     ],

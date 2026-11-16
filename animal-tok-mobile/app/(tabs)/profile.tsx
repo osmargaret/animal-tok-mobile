@@ -171,7 +171,7 @@ export default function ProfileScreen() {
         }
       }
       if (!petBio) {
-        petBio = `Loving life on AnimalTok! 🐾`;
+        petBio = `Loving life on Animandler! 🐾`;
       }
 
       // Photos from profile gallery if any

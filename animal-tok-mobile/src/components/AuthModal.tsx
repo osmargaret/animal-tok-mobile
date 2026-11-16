@@ -85,7 +85,7 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
                   </button>
                 )}
                 <h2 className="text-lg font-bold text-foreground">
-                  {step === "auth" && "Welcome to AnimalTok"}
+                  {step === "auth" && "Welcome to Animandler"}
                   {step === "addPet" && "Add a Pet"}
                   {step === "addBusiness" && "Add a Business"}
                   {step === "subscription" && "Choose a Plan"}

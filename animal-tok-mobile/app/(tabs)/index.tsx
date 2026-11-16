@@ -202,7 +202,7 @@ export default function FeedScreen() {
           time: formatRelativeTime(newPost.createdAt || newPost.created_at || newPost.time, newPost.id),
           createdAt: newPost.createdAt || newPost.created_at,
           caption: newPost.caption || "",
-          hashtags: Array.isArray(newPost.tags) ? newPost.tags.map((t: string) => `#${t.replace(/^#/, "")}`).join(" ") : (newPost.tags || "#AnimalTok"),
+          hashtags: Array.isArray(newPost.tags) ? newPost.tags.map((t: string) => `#${t.replace(/^#/, "")}`).join(" ") : (newPost.tags || "#Animandler"),
           videoUrl: newPost.videoUrl || "",
           posterUrl: newPost.imageUrl || newPost.videoUrl || "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=700&fit=crop",
           audioUrl: newPost.audioUrl,

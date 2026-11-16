@@ -12,6 +12,18 @@
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://animal-tok-backend.onrender.com/api"
+      }
+    },
+    "preview-simulator": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://animal-tok-backend.onrender.com/api"
       }
@@ -19,6 +31,10 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "ios": {},
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://animal-tok-backend.onrender.com/api"
       }
     }
   },
