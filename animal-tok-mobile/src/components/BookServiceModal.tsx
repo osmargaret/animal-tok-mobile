@@ -70,8 +70,8 @@ export default function BookServiceModal({
   if (!service) return null;
 
   const router = useRouter();
-  const [clientName, setClientName] = useState(user?.name || "Alex Morgan");
-  const [clientEmail, setClientEmail] = useState(user?.email || "alex@example.com");
+  const [clientName, setClientName] = useState(user?.name || "");
+  const [clientEmail, setClientEmail] = useState(user?.email || "");
   const [clientPhone, setClientPhone] = useState("+1 (512) 555-0192");
   const [appointmentDate, setAppointmentDate] = useState("Tomorrow at 10:00 AM");
   const [petInfo, setPetInfo] = useState("");

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/lib/supabase";
 import { getBaseUrl } from "@/services/api";
+import { Alert } from "react-native";
 
 export interface MockUser {
   id: string;
@@ -9,6 +9,7 @@ export interface MockUser {
   username: string;
   email: string;
   avatar: string;
+  token?: string;
   accountType?: "regular" | "pending" | "business" | "vet" | "handler";
   role?: "user" | "business" | "vet" | "admin";
   clinicName?: string;
@@ -44,7 +45,8 @@ interface AuthContextType {
     username: string,
     accountType?: "handler" | "vet" | "business",
     clinicName?: string,
-    specialization?: string
+    specialization?: string,
+    password?: string
   ) => Promise<void>;
   updateAccountType: (type: "regular" | "business" | "vet" | "handler") => Promise<void>;
   addPet: (pet: ActiveProfile) => void;
@@ -61,15 +63,6 @@ export const useAuth = () => {
   return ctx;
 };
 
-const MOCK_USER: MockUser = {
-  id: "user-1",
-  name: "Alex Morgan",
-  username: "@alex.morgan",
-  email: "alex@example.com",
-  avatar: "🐾",
-  accountType: "regular",
-};
-
 const PETS_KEY = "animaltok_pets";
 const ACTIVE_PROFILE_KEY = "animaltok_active_profile";
 
@@ -81,7 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Load persisted active profile, pets, and user from AsyncStorage
-    // Load persisted custom user posts into feedPosts
     AsyncStorage.getItem("animaltok_custom_posts").then((storedPosts) => {
       if (storedPosts) {
         try {
@@ -126,7 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const parsed = JSON.parse(storedPets);
           if (Array.isArray(parsed)) {
-            // Deduplicate pets by id and lowercase name
             const seen = new Set<string>();
             const unique = parsed.filter((p: any) => {
               const key = `${p.id || ""}_${p.name || ""}`.toLowerCase().trim();
@@ -141,26 +132,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {}
       }
     }).finally(() => setIsLoading(false));
-
-    // Supabase auth state listener (if configured)
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const sbUser: MockUser = {
-          id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
-          username: `@${session.user.email?.split("@")[0] || "user"}`,
-          email: session.user.email || "",
-          avatar: "🐾",
-          accountType: session.user.user_metadata?.accountType || "regular",
-        };
-        setUser(sbUser);
-        AsyncStorage.setItem("animaltok_user", JSON.stringify(sbUser)).catch(() => {});
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, []);
 
   const persistProfile = (profile: ActiveProfile) => {
@@ -179,97 +150,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       AsyncStorage.setItem(PETS_KEY, JSON.stringify(updated)).catch(() => {});
       return updated;
     });
-    // Automatically switch to the new pet profile
     persistProfile(pet);
   };
 
-  const login = async (email: string, _password: string) => {
-    try {
-      // 1. Try backend login first
-      const res = await fetch(`${getBaseUrl()}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: email, password: _password })
-      });
+  const login = async (email: string, password: string) => {
+    const res = await fetch(`${getBaseUrl()}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: email, password }),
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          const loggedUser: MockUser = {
-            id: data.user.id,
-            name: data.user.name,
-            username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
-            email: data.user.email || email,
-            avatar: data.user.avatar || (data.user.role === "vet" ? "🩺" : "🐾"),
-            accountType: data.user.accountType || (data.user.role === "vet" ? "vet" : data.user.role === "business" ? "business" : "handler"),
-            role: data.user.role || "user",
-            clinicName: data.user.clinicName,
-            specialization: data.user.specialization,
-          };
-          setUser(loggedUser);
-          await AsyncStorage.setItem("animaltok_user", JSON.stringify(loggedUser));
-          persistProfile({
-            id: loggedUser.id,
-            name: loggedUser.name,
-            username: loggedUser.username,
-            avatar: loggedUser.avatar,
-            type: "handler",
-            role: loggedUser.role,
-            clinicName: loggedUser.clinicName,
-          });
+    const data = await res.json();
 
-          if (data.animal) {
-            addPet({
-              id: data.animal.id,
-              name: data.animal.name,
-              username: data.animal.username,
-              avatar: data.animal.avatar || "🐾",
-              type: "animal",
-              breed: data.animal.breed,
-              age: data.animal.age,
-              bio: data.animal.bio,
-            });
-          }
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn("Backend auth call failed, trying Supabase fallback:", err);
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed. Please check your credentials.");
     }
 
-    try {
-      // 2. Try Supabase fallback
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: _password });
-      if (error) throw error;
-      if (data.user) {
-        const loggedUser: MockUser = {
-          id: data.user.id,
-          name: data.user.user_metadata?.full_name || email.split("@")[0],
-          username: `@${email.split("@")[0]}`,
-          email: email,
-          avatar: "🐾",
-          accountType: data.user.user_metadata?.accountType || "regular",
-        };
-        setUser(loggedUser);
-        await AsyncStorage.setItem("animaltok_user", JSON.stringify(loggedUser));
-        persistProfile({
-          id: loggedUser.id,
-          name: loggedUser.name,
-          username: loggedUser.username,
-          avatar: loggedUser.avatar,
-          type: "handler",
+    if (data.user) {
+      const loggedUser: MockUser = {
+        id: data.user.id,
+        name: data.user.name,
+        username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
+        email: data.user.email || email,
+        avatar: data.user.avatar || (data.user.role === "vet" ? "🩺" : "🐾"),
+        token: data.token,
+        accountType: data.user.accountType || (data.user.role === "vet" ? "vet" : data.user.role === "business" ? "business" : "handler"),
+        role: data.user.role || "user",
+        clinicName: data.user.clinicName,
+        specialization: data.user.specialization,
+      };
+      setUser(loggedUser);
+      await AsyncStorage.setItem("animaltok_user", JSON.stringify(loggedUser));
+      persistProfile({
+        id: loggedUser.id,
+        name: loggedUser.name,
+        username: loggedUser.username,
+        avatar: loggedUser.avatar,
+        type: "handler",
+        role: loggedUser.role,
+        clinicName: loggedUser.clinicName,
+      });
+
+      if (data.animal) {
+        addPet({
+          id: data.animal.id,
+          name: data.animal.name,
+          username: data.animal.username,
+          avatar: data.animal.avatar || "🐾",
+          type: "animal",
+          breed: data.animal.breed,
+          age: data.animal.age,
+          bio: data.animal.bio,
         });
       }
-    } catch (e) {
-      // 3. Fallback demo user
-      setUser(MOCK_USER);
-      persistProfile({
-        id: MOCK_USER.id,
-        name: MOCK_USER.name,
-        username: MOCK_USER.username,
-        avatar: MOCK_USER.avatar,
-        type: "handler",
-      });
     }
   };
 
@@ -279,77 +212,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     username: string,
     accountType: "handler" | "vet" | "business" = "handler",
     clinicName?: string,
-    specialization?: string
+    specialization?: string,
+    password?: string
   ) => {
-    try {
-      // Register with the Express backend & Neon Postgres
-      const res = await fetch(`${getBaseUrl()}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, username, accountType, clinicName, specialization }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          const newUser: MockUser = {
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-            username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
-            avatar: data.user.avatar || (accountType === "vet" ? "🩺" : "🐾"),
-            accountType: data.user.accountType || accountType,
-            role: data.user.role || (accountType === "vet" ? "vet" : accountType === "business" ? "business" : "user"),
-            clinicName: data.user.clinicName || clinicName,
-            specialization: data.user.specialization || specialization,
-          };
-          setUser(newUser);
-          await AsyncStorage.setItem("animaltok_user", JSON.stringify(newUser));
-          persistProfile({
-            id: newUser.id,
-            name: newUser.name,
-            username: newUser.username,
-            avatar: newUser.avatar,
-            type: "handler",
-            role: newUser.role,
-            clinicName: newUser.clinicName,
-          });
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn("Backend registration failed, using local registration:", err);
+    if (!password || password.length < 6) {
+      throw new Error("Password must be at least 6 characters.");
     }
 
-    const newUser: MockUser = {
-      ...MOCK_USER,
-      id: `u_${Date.now()}`,
-      name,
-      email,
-      username: `@${username}`,
-      accountType: accountType,
-      role: accountType === "vet" ? "vet" : accountType === "business" ? "business" : "user",
-      clinicName,
-      specialization,
-      avatar: accountType === "vet" ? "🩺" : "🐾",
-    };
-    setUser(newUser);
-    await AsyncStorage.setItem("animaltok_user", JSON.stringify(newUser));
-    persistProfile({
-      id: newUser.id,
-      name: newUser.name,
-      username: newUser.username,
-      avatar: newUser.avatar,
-      type: "handler",
-      role: newUser.role,
-      clinicName: newUser.clinicName,
+    const res = await fetch(`${getBaseUrl()}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, username, password, accountType, clinicName, specialization }),
     });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Registration failed. Please try again.");
+    }
+
+    if (data.user) {
+      const newUser: MockUser = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
+        avatar: data.user.avatar || (accountType === "vet" ? "🩺" : "🐾"),
+        token: data.token,
+        accountType: data.user.accountType || accountType,
+        role: data.user.role || (accountType === "vet" ? "vet" : accountType === "business" ? "business" : "user"),
+        clinicName: data.user.clinicName || clinicName,
+        specialization: data.user.specialization || specialization,
+      };
+      setUser(newUser);
+      await AsyncStorage.setItem("animaltok_user", JSON.stringify(newUser));
+      persistProfile({
+        id: newUser.id,
+        name: newUser.name,
+        username: newUser.username,
+        avatar: newUser.avatar,
+        type: "handler",
+        role: newUser.role,
+        clinicName: newUser.clinicName,
+      });
+    }
   };
 
   const logout = async () => {
-    try {
-      await supabase.auth.signOut().catch(() => {});
-    } catch (e) {}
     setUser(null);
     setActiveProfile(null);
     setPets([]);

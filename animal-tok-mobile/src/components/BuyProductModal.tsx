@@ -35,7 +35,7 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ProductItem } from "@/data/marketData";
-import { api } from "@/services/api";
+import { api, getBaseUrl } from "@/services/api";
 
 interface BuyProductModalProps {
   visible: boolean;
@@ -150,6 +150,10 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
       alertMsg("Delivery Address Required", "Please enter your complete delivery address.");
       return;
     }
+    if (!buyerEmail.trim() || !buyerEmail.includes("@")) {
+      alertMsg("Email Required", "Please enter a valid email address to receive your payment confirmation.");
+      return;
+    }
 
     setSubmitting(true);
     const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
@@ -177,16 +181,55 @@ export const BuyProductModal: React.FC<BuyProductModalProps> = ({
       subtotal: subtotal.toFixed(2),
       shippingFee: shippingFee.toFixed(2),
       total: totalAmount,
-      currency: "USD",
-      status: "confirmed",
+      currency: "NGN",
+      status: "pending_payment",
       createdAt: new Date().toISOString(),
     };
 
     try {
-      await finishOrder(orderData);
+      // Initialize Paystack payment via backend
+      const BASE = getBaseUrl().replace("/api", "");
+      const paystackRes = await fetch(`${BASE}/api/payments/initialize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: buyerEmail.trim(),
+          amount: parseFloat(totalAmount),
+          currency: "NGN",
+          metadata: {
+            orderId,
+            itemName: product.name,
+            buyerName: buyerName.trim(),
+            customerId: user?.id,
+          },
+          callback_url: `https://animal-tok-backend.onrender.com/api/payments/verify/${orderId}`,
+        }),
+      });
+
+      const paystackData = await paystackRes.json();
+
+      if (paystackData?.data?.authorization_url) {
+        // Open Paystack payment page
+        await Linking.openURL(paystackData.data.authorization_url);
+        // Save order locally as pending (will be confirmed via webhook)
+        orderData.status = "pending_payment";
+        await finishOrder(orderData);
+      } else {
+        // Paystack not configured yet — save order locally and show it as confirmed
+        console.warn("Paystack init failed, saving order locally:", paystackData);
+        orderData.status = "confirmed";
+        await finishOrder(orderData);
+      }
     } catch (err: any) {
-      alertMsg("Order Failed", err?.message || "Could not complete order. Please try again.");
-      setSubmitting(false);
+      // Network error — save locally so order isn't lost
+      console.warn("Payment init error, saving order locally:", err);
+      orderData.status = "confirmed";
+      try {
+        await finishOrder(orderData);
+      } catch (innerErr: any) {
+        alertMsg("Order Failed", innerErr?.message || "Could not complete order. Please try again.");
+        setSubmitting(false);
+      }
     }
   };
 

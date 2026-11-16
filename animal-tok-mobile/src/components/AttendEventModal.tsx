@@ -68,8 +68,8 @@ export default function AttendEventModal({
   const unitPrice = parseFloat((event.ticketPrice || "0").replace(/[^0-9.]/g, "")) || 0;
 
   // Form states
-  const [fullName, setFullName] = useState(user?.name || "Alex Morgan");
-  const [email, setEmail] = useState(user?.email || "alex@example.com");
+  const [fullName, setFullName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState("+1 (512) 555-0192");
   const [guestsCount, setGuestsCount] = useState(1);
   const [petInfo, setPetInfo] = useState("");

@@ -49,7 +49,7 @@ export default function AuthScreen() {
           ? `@${cleanBase}`
           : `@user${Math.floor(1000 + Math.random() * 9000)}`;
 
-        await signup(name.trim(), email.trim(), autoUsername, "handler");
+        await signup(name.trim(), email.trim(), autoUsername, "handler", undefined, undefined, password.trim());
         router.replace("/(tabs)/profile");
       }
     } catch (e: any) {
