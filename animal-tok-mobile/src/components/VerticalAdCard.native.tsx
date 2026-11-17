@@ -249,7 +249,7 @@ export default function VerticalAdCard({ post, isActive }: VerticalAdCardProps) 
           activeOpacity={0.8}
         >
           <View style={[styles.actionIconCircle, isLiked && styles.actionIconLiked]}>
-            <Heart size={24} color={isLiked ? "#ff2b54" : "#ffffff"} fill={isLiked ? "#ff2b54" : "none"} />
+            <Heart size={24} color={isLiked ? "#2dd4bf" : "#06b6d4"} fill={isLiked ? "#2dd4bf" : "none"} />
           </View>
           <Text style={styles.actionCount}>{likeCount.toLocaleString()}</Text>
         </TouchableOpacity>
@@ -461,7 +461,8 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   actionIconLiked: {
-    borderColor: "rgba(255, 43, 84, 0.6)",
+    borderColor: "rgba(45, 212, 191, 0.85)",
+    backgroundColor: "rgba(45, 212, 191, 0.22)",
   },
   actionIconSaved: {
     borderColor: "rgba(251, 191, 36, 0.6)",

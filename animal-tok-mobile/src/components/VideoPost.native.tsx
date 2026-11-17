@@ -226,7 +226,7 @@ export default function VideoPost({
     const text = `${post.caption || ""} ${post.hashtags || ""}`.toLowerCase();
     if (text.includes("sports") || text.includes("agility")) return { label: "🏆 Sports & Agility", color: "#f59e0b" };
     if (text.includes("gaming") || text.includes("game") || text.includes("play")) return { label: "🎮 Pet Gaming", color: "#8b5cf6" };
-    if (text.includes("mating") || text.includes("breed") || text.includes("stud")) return { label: "❤️ Mating & Breeding", color: "#ec4899" };
+    if (text.includes("mating") || text.includes("breed") || text.includes("stud")) return { label: "🐾 Mating & Breeding", color: "#0d9488" };
     if (text.includes("vet") || text.includes("health") || text.includes("doctor")) return { label: "🩺 Vet Program", color: "#10b981" };
     if (text.includes("event") || text.includes("meetup")) return { label: "🎉 Pet Event", color: "#06b6d4" };
     return null;
@@ -498,16 +498,27 @@ export default function VideoPost({
         )}
       </TouchableOpacity>
 
-      {/* Dark gradient overlay at bottom - reduced to just wrap author text */}
-      <View
-        style={[
-          styles.gradientOverlay,
-          Platform.OS === "web" && ({
-            background: "linear-gradient(to top, rgba(13, 17, 23, 0.7) 0%, rgba(13, 17, 23, 0.3) 70%, transparent 100%)",
-          } as any),
-        ]}
-        pointerEvents="none"
-      />
+      {/* Smooth multi-stop dark bottom scrim so overlay text stays razor-sharp on bright footage */}
+      {Platform.OS === "web" ? (
+        <View
+          style={[
+            styles.gradientOverlay,
+            {
+              background:
+                "linear-gradient(to top, rgba(6, 10, 18, 0.92) 0%, rgba(8, 13, 22, 0.72) 52%, rgba(10, 15, 25, 0.28) 82%, transparent 100%)",
+            } as any,
+          ]}
+          pointerEvents="none"
+        />
+      ) : (
+        <View style={styles.gradientOverlayNative} pointerEvents="none">
+          <View style={{ flex: 1, backgroundColor: "rgba(6, 10, 18, 0.06)" }} />
+          <View style={{ flex: 1, backgroundColor: "rgba(6, 10, 18, 0.22)" }} />
+          <View style={{ flex: 1.1, backgroundColor: "rgba(6, 10, 18, 0.44)" }} />
+          <View style={{ flex: 1.2, backgroundColor: "rgba(6, 10, 18, 0.66)" }} />
+          <View style={{ flex: 1.3, backgroundColor: "rgba(6, 10, 18, 0.86)" }} />
+        </View>
+      )}
 
       {/* Center Toast Feedback for Mute / Unmute */}
       {showMuteToast && (
@@ -541,19 +552,19 @@ export default function VideoPost({
           </View>
         </TouchableOpacity>
 
-        {/* Like Button - Vibrant crimson red when liked */}
+        {/* Like Button - Animandler teal when liked (no red colors) */}
         <TouchableOpacity style={styles.actionItem} onPress={handleLike} activeOpacity={0.75}>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
               <Heart
                 size={23}
-                color={isLiked ? "#ff2b54" : "#ffffff"}
-                fill={isLiked ? "#ff2b54" : "none"}
-                strokeWidth={2.4}
+                color={isLiked ? "#2dd4bf" : "#06b6d4"}
+                fill={isLiked ? "#2dd4bf" : "none"}
+                strokeWidth={2.5}
               />
             </View>
           </Animated.View>
-          <Text style={[styles.actionText, isLiked && { color: "#ff2b54", fontWeight: "800" }]}>{likeCount}</Text>
+          <Text style={[styles.actionText, isLiked && { color: "#2dd4bf", fontWeight: "800" }]}>{likeCount}</Text>
         </TouchableOpacity>
 
         {/* Comment Button - Bolder, teal green, filled (not outline alone), reduced size */}
@@ -642,9 +653,11 @@ export default function VideoPost({
             onPress={handleToggleMute}
             activeOpacity={0.8}
           >
-            <Music size={13} color="#06b6d4" />
+            <Music size={13} color="#2dd4bf" />
             <Text style={styles.audioText} numberOfLines={1}>
-              {post.audioName ? post.audioName : `Original Sound - ${post.displayName}'s Pet Log`}
+              {post.audioName
+                ? post.audioName.replace(/^[\s\u{1F3B5}\u{1F3B6}\u{1F3BC}\u{1F3A7}]+/u, "")
+                : `Original Sound - ${post.displayName}'s Pet Log`}
             </Text>
             {post.audioName?.toLowerCase().includes("promoted") || post.audioName?.toLowerCase().includes("sponsored") ? (
               <View style={styles.audioPromotedTag}>
@@ -674,8 +687,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 125,
-    backgroundColor: "rgba(13, 17, 23, 0.45)",
+    height: 260,
+    backgroundColor: "rgba(13, 17, 23, 0.58)",
+  },
+  gradientOverlayNative: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 260,
+    flexDirection: "column",
   },
   actionSidebar: {
     position: "absolute",
@@ -729,8 +750,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   actionIconCircleLiked: {
-    borderColor: "rgba(255, 43, 84, 0.85)",
-    backgroundColor: "rgba(255, 43, 84, 0.22)",
+    borderColor: "rgba(45, 212, 191, 0.85)",
+    backgroundColor: "rgba(45, 212, 191, 0.22)",
   },
   actionIconCircleSaved: {
     borderColor: "rgba(45, 212, 191, 0.8)",
@@ -755,33 +776,52 @@ const styles = StyleSheet.create({
   userHeader: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: 6,
     marginBottom: 6,
   },
   displayName: {
     color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 16.5,
+    fontWeight: "800",
+    textShadowColor: "rgba(0, 0, 0, 0.98)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   username: {
-    color: "#94a3b8",
-    fontSize: 13,
+    color: "#f1f5f9",
+    fontSize: 13.5,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.98)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   timeTag: {
-    color: "#64748b",
-    fontSize: 11,
+    color: "#e2e8f0",
+    fontSize: 12,
+    fontWeight: "600",
+    textShadowColor: "rgba(0, 0, 0, 0.98)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   caption: {
-    color: "#f8fafc",
-    fontSize: 14,
-    lineHeight: 19,
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontWeight: "600",
+    lineHeight: 20,
     marginBottom: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.98)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   hashtags: {
-    color: "#06b6d4",
-    fontSize: 13,
-    fontWeight: "600",
+    color: "#5eead4",
+    fontSize: 13.5,
+    fontWeight: "700",
     marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.98)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   audioRow: {
     flexDirection: "row",
@@ -789,8 +829,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   audioText: {
-    color: "#cbd5e1",
-    fontSize: 12,
+    color: "#ffffff",
+    fontSize: 12.5,
+    fontWeight: "700",
+    flexShrink: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.98)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   playPulseContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -806,7 +851,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   muteTag: {
-    color: "#ef4444",
+    color: "#06b6d4",
     fontSize: 11,
     fontWeight: "bold",
     marginLeft: 4,

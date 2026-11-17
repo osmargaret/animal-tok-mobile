@@ -265,7 +265,7 @@ export default function BookServiceModal({
                 </View>
                 {petInfo ? (
                   <View style={styles.passRow}>
-                    <PawPrint size={14} color="#ec4899" />
+                    <PawPrint size={14} color="#06b6d4" />
                     <Text style={styles.passText}>Pet: {petInfo}</Text>
                   </View>
                 ) : null}
@@ -458,7 +458,7 @@ export default function BookServiceModal({
                 {/* Pet Info */}
                 <View style={styles.inputGroup}>
                   <View style={styles.labelRow}>
-                    <PawPrint size={13} color="#ec4899" />
+                    <PawPrint size={13} color="#06b6d4" />
                     <Text style={styles.inputLabel}>Pet Name & Breed (Optional)</Text>
                   </View>
                   <TextInput

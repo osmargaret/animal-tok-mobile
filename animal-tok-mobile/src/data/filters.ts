@@ -46,7 +46,7 @@ export const VIDEO_FILTERS: VideoFilter[] = [
     name: "Dreamy Glow",
     emoji: "🌸",
     css: "brightness(1.08) contrast(0.95) saturate(1.3)",
-    tintColor: "#ec4899",
+    tintColor: "#c084fc",
     tintOpacity: 0.18,
   },
   {

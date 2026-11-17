@@ -331,7 +331,7 @@ export default function OrdersScreen() {
             onPress={() => handleDelete(item.id)}
             activeOpacity={0.8}
           >
-            <Trash2 size={15} color="#ef4444" />
+            <Trash2 size={15} color="#f59e0b" />
             <Text style={styles.deleteBtnText}>Delete</Text>
           </TouchableOpacity>
         </View>
@@ -674,12 +674,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderColor: "rgba(245, 158, 11, 0.3)",
   },
   deleteBtnText: {
-    color: "#ef4444",
+    color: "#f59e0b",
     fontSize: 12,
     fontWeight: "700",
   },

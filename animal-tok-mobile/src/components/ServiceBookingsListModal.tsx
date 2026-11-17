@@ -220,7 +220,7 @@ export default function ServiceBookingsListModal({
 
                   {item.petInfo ? (
                     <View style={styles.detailRow}>
-                      <PawPrint size={13} color="#ec4899" />
+                      <PawPrint size={13} color="#06b6d4" />
                       <Text style={styles.detailText}>Pet: {item.petInfo}</Text>
                     </View>
                   ) : null}

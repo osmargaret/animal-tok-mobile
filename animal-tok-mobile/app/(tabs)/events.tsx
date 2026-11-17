@@ -196,7 +196,7 @@ export default function EventsScreen() {
                 </View>
 
                 <View style={styles.infoRow}>
-                  <MapPin size={14} color="#ef4444" />
+                  <MapPin size={14} color="#06b6d4" />
                   <Text style={styles.infoText}>{item.location}</Text>
                 </View>
 

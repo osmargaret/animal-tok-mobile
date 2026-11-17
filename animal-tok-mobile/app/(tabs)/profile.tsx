@@ -1219,15 +1219,15 @@ export default function ProfileScreen() {
                 ) : null}
                 {selectedPost.audioName ? (
                   <View style={styles.postModalAudioRow}>
-                    <Music size={13} color="#06b6d4" />
+                    <Music size={13} color="#2dd4bf" />
                     <Text style={styles.postModalAudioText} numberOfLines={1}>
-                      {selectedPost.audioName}
+                      {String(selectedPost.audioName).replace(/^[\s\u{1F3B5}\u{1F3B6}\u{1F3BC}\u{1F3A7}]+/u, "")}
                     </Text>
                   </View>
                 ) : null}
                 <View style={styles.postModalStatsRow}>
                   <View style={styles.postModalStatItem}>
-                    <Heart size={14} color="#ef4444" />
+                    <Heart size={14} color="#2dd4bf" fill="#2dd4bf" />
                     <Text style={styles.postModalStatText}>{formatNumber(selectedPost.likes || 0)} Likes</Text>
                   </View>
                   <Text style={styles.postModalTimeText}>{formatRelativeTime(selectedPost.createdAt || (selectedPost as any)?.created_at || selectedPost.time, selectedPost.id)}</Text>
@@ -2042,12 +2042,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    backgroundColor: "rgba(245, 158, 11, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.35)",
+    borderColor: "rgba(245, 158, 11, 0.35)",
   },
   postModalDeleteText: {
-    color: "#ef4444",
+    color: "#f59e0b",
     fontSize: 13,
     fontWeight: "700",
   },

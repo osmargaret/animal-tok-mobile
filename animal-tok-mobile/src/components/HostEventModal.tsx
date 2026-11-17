@@ -27,7 +27,7 @@ interface HostEventModalProps {
 
 const CATEGORIES = [
   { id: "meetup", label: "🐾 Meetup & Play" },
-  { id: "mating", label: "❤️ Mating & Breeding" },
+  { id: "mating", label: "🐾 Mating & Breeding" },
   { id: "sports", label: "🏆 Sports & Agility" },
   { id: "contest", label: "🎉 Contest & Show" },
   { id: "clinic", label: "🩺 Vet Clinic" },

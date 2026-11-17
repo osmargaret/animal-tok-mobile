@@ -105,7 +105,7 @@ export const VIDEO_FILTERS: VideoFilter[] = [
     name: "Dreamy Glow",
     emoji: "🌸",
     css: "brightness(1.08) contrast(0.95) saturate(1.3)",
-    tintColor: "#ec4899",
+    tintColor: "#c084fc",
     tintOpacity: 0.18,
   },
   {
@@ -900,7 +900,7 @@ export default function CreateScreen() {
         posterUrl: finalMediaUrl,
         imageUrl: !isVideo ? finalMediaUrl : undefined,
         audioUrl: soundUrl,
-        audioName: soundTitle ? `🎵 ${soundTitle}` : undefined,
+        audioName: soundTitle ? soundTitle : undefined,
         filterId: filterToApply?.id,
         filterName: filterToApply?.name,
         filterColor: filterToApply?.tintColor,

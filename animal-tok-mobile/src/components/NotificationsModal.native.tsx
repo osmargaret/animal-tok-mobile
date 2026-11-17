@@ -79,7 +79,7 @@ export default function NotificationsModal({ visible, onClose }: NotificationsMo
       case "event":
         return <Calendar size={18} color="#06b6d4" />;
       case "like":
-        return <Heart size={18} color="#ef4444" fill="#ef4444" />;
+        return <Heart size={18} color="#2dd4bf" fill="#2dd4bf" />;
       case "message":
         return <MessageSquare size={18} color="#10b981" />;
       default:

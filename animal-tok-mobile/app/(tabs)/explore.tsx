@@ -74,7 +74,7 @@ const TRENDING_CATEGORIES = [
   { id: "all", label: "All Trending" },
   { id: "viral", label: "⚡ Viral Hits" },
   { id: "sports", label: "🏆 Sports & Agility" },
-  { id: "mating", label: "❤️ Mating & Breeding" },
+  { id: "mating", label: "🐾 Mating & Breeding" },
   { id: "funny", label: "😂 Funny & Fails" },
   { id: "tricks", label: "🎾 Tricks & Skills" },
   { id: "cute", label: "🍼 Cute & Puppies" },
@@ -82,7 +82,7 @@ const TRENDING_CATEGORIES = [
 
 const EVENT_CATEGORIES = [
   { id: "all", label: "All Events" },
-  { id: "mating", label: "❤️ Mating & Breeding" },
+  { id: "mating", label: "🐾 Mating & Breeding" },
   { id: "sports", label: "🏆 Sports & Agility" },
   { id: "meetup", label: "🐾 Meetups & Play" },
   { id: "adoption", label: "🏠 Adoptions & Rescues" },
@@ -121,7 +121,7 @@ interface ExploreEvent {
 const EXPLORE_EVENTS: ExploreEvent[] = [
   {
     id: "e1",
-    title: "Golden & Doodle Pedigree Mating Meetup ❤️",
+    title: "Golden & Doodle Pedigree Mating Meetup 🐾",
     date: "Saturday, Nov 22 • 11:00 AM",
     location: "Cedar Creek Canine Estate, Austin TX",
     attendees: 38,
@@ -204,7 +204,7 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
   },
   {
     id: "e6",
-    title: "Bengal & Ragdoll Stud Matching Gala ❤️",
+    title: "Bengal & Ragdoll Stud Matching Gala 🐾",
     date: "Sunday, Jan 10 • 2:00 PM",
     location: "Hill Country Pet Resort",
     attendees: 31,
@@ -860,7 +860,7 @@ export default function ExploreScreen() {
                   const isExpanded = !!expandedEvents[event.id];
                   const categoryBadgeColor =
                     event.category === "mating"
-                      ? "#ec4899"
+                      ? "#0d9488"
                       : event.category === "sports"
                       ? "#f59e0b"
                       : event.category === "contest"

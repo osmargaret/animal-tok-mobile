@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#06b6d4",
   },
   overlayActionBtnDanger: {
-    backgroundColor: "rgba(239, 68, 68, 0.8)",
+    backgroundColor: "rgba(245, 158, 11, 0.85)",
   },
   overlayActionText: {
     color: "#ffffff",
