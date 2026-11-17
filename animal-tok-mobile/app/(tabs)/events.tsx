@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import GuestAuthModal from "@/components/GuestAuthModal";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const FALLBACK_EVENTS = [
   {
@@ -141,8 +142,18 @@ export default function EventsScreen() {
     await api.toggleEventRsvp(id);
   };
 
+  const swipeHandlers = useSwipeGesture({
+    enabled: !guestAuthVisible,
+    onSwipeLeft: () => {
+      router.replace("/(tabs)/marketplace");
+    },
+    onSwipeRight: () => {
+      router.replace("/(tabs)/explore");
+    },
+  });
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...swipeHandlers}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBox}>
           <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 8 }}>

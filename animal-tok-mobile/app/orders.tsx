@@ -31,6 +31,7 @@ import {
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 export interface Order {
   id: string;
@@ -338,8 +339,27 @@ export default function OrdersScreen() {
     );
   };
 
+  const handleOrdersSwipeLeft = () => {
+    if (activeTab === "pending") {
+      setActiveTab("fulfilled");
+    }
+  };
+
+  const handleOrdersSwipeRight = () => {
+    if (activeTab === "fulfilled") {
+      setActiveTab("pending");
+    } else {
+      router.back();
+    }
+  };
+
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleOrdersSwipeLeft,
+    onSwipeRight: handleOrdersSwipeRight,
+  });
+
   return (
-    <View style={[styles.container, { paddingTop: topInset }]}>
+    <View style={[styles.container, { paddingTop: topInset }]} {...swipeHandlers}>
       <StatusBar barStyle="light-content" backgroundColor="#0d1117" />
 
       {/* Header */}

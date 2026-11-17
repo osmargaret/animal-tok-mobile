@@ -19,6 +19,7 @@ import { X, Check, Camera, Image as ImageIcon } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, uploadMedia } from "@/services/api";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -158,8 +159,14 @@ export default function EditProfileScreen() {
     }
   };
 
+  const swipeHandlers = useSwipeGesture({
+    onSwipeRight: () => {
+      router.back();
+    },
+  });
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipeHandlers}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}

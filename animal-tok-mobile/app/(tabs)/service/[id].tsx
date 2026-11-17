@@ -36,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BookServiceModal from "@/components/BookServiceModal";
 import GuestAuthModal from "@/components/GuestAuthModal";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 export interface ServiceAppointment {
   id: string;
@@ -182,8 +183,28 @@ export default function ServiceDetailsScreen() {
   const pastAppointments = serviceAppointmentsList.filter((a) => isAppointmentPassed(a));
   const displayedAppointments = appointmentTab === "upcoming" ? upcomingAppointments : pastAppointments;
 
+  const handleServiceSwipeLeft = () => {
+    if (appointmentTab === "upcoming") {
+      setAppointmentTab("past");
+    }
+  };
+
+  const handleServiceSwipeRight = () => {
+    if (appointmentTab === "past") {
+      setAppointmentTab("upcoming");
+    } else {
+      router.back();
+    }
+  };
+
+  const swipeHandlers = useSwipeGesture({
+    enabled: !bookingModalVisible && !guestAuthVisible,
+    onSwipeLeft: handleServiceSwipeLeft,
+    onSwipeRight: handleServiceSwipeRight,
+  });
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...swipeHandlers}>
       <StatusBar barStyle="light-content" backgroundColor="#0d1117" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Banner Image */}

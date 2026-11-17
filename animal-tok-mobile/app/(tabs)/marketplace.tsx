@@ -17,6 +17,7 @@ import { marketProducts, marketServices, type ProductItem, type ServiceItem } fr
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import GuestAuthModal from "@/components/GuestAuthModal";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 export default function MarketplaceScreen() {
   const [activeTab, setActiveTab] = useState<"products" | "services">("products");
@@ -76,8 +77,30 @@ export default function MarketplaceScreen() {
     }, [loadMarketplace])
   );
 
+  const handleSwipeLeft = () => {
+    if (activeTab === "products") {
+      setActiveTab("services");
+    } else {
+      router.replace("/(tabs)/inbox");
+    }
+  };
+
+  const handleSwipeRight = () => {
+    if (activeTab === "services") {
+      setActiveTab("products");
+    } else {
+      router.replace("/(tabs)/explore");
+    }
+  };
+
+  const swipeHandlers = useSwipeGesture({
+    enabled: !guestAuthVisible,
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+  });
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...swipeHandlers}>
       <View style={styles.stickyHeader}>
         <View style={styles.headerTitleRow}>
           <Text style={styles.pageTitle}>Pet Marketplace</Text>

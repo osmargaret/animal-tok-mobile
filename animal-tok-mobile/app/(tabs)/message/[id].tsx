@@ -19,6 +19,7 @@ import { Send, ArrowLeft, ShieldCheck, Lock, ShoppingBag, CreditCard, Sparkles, 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 // Local storage key per thread for offline persistence
 const threadKey = (id: string) => `animaltok_thread_${id}`;
@@ -207,8 +208,14 @@ export default function MessageViewScreen() {
     );
   }
 
+  const swipeHandlers = useSwipeGesture({
+    onSwipeRight: () => {
+      router.back();
+    },
+  });
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipeHandlers}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}

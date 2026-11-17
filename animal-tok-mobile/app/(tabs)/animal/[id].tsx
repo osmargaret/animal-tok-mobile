@@ -14,6 +14,7 @@ import { MessageCircle, Heart, ShieldCheck, MapPin, ArrowLeft, Plus, Minus } fro
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, type AnimalProfileData } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SIZE = (SCREEN_WIDTH - 40) / 3;
@@ -123,8 +124,14 @@ export default function AnimalProfileScreen() {
     );
   }
 
+  const swipeHandlers = useSwipeGesture({
+    onSwipeRight: () => {
+      router.back();
+    },
+  });
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipeHandlers}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Cover Photo Banner */}
         <View style={styles.coverBox}>

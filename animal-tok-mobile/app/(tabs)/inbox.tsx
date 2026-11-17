@@ -19,6 +19,7 @@ import { MessageSquare, ArrowLeft, Search, Sparkles, ChevronRight } from "lucide
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import { formatRelativeTime } from "@/utils/timeAgo";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 interface ThreadItem {
   threadId: string;
@@ -177,9 +178,18 @@ export default function InboxScreen() {
     });
   };
 
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: () => {
+      router.replace("/(tabs)/profile");
+    },
+    onSwipeRight: () => {
+      router.replace("/(tabs)/explore");
+    },
+  });
+
   if (!user) {
     return (
-      <View style={[styles.safeArea, { paddingTop: topSafeInset + 16 }]}>
+      <View style={[styles.safeArea, { paddingTop: topSafeInset + 16 }]} {...swipeHandlers}>
         <View style={styles.guestContainer}>
           <View style={styles.guestIconCircle}>
             <MessageSquare size={38} color="#06b6d4" />
@@ -208,7 +218,7 @@ export default function InboxScreen() {
   }
 
   return (
-    <View style={styles.safeArea}>
+    <View style={styles.safeArea} {...swipeHandlers}>
       {/* Top Header */}
       <View style={[styles.header, { paddingTop: topSafeInset + 14 }]}>
         <Text style={styles.headerTitle}>Direct Messages</Text>

@@ -51,6 +51,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
 import { formatRelativeTime } from "@/utils/timeAgo";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
@@ -485,9 +486,47 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const PROFILE_TABS: ("grid" | "products" | "services" | "events" | "saved")[] = [
+    "grid",
+    "products",
+    "services",
+    "events",
+    "saved",
+  ];
+
+  const handleProfileSwipeLeft = () => {
+    const idx = PROFILE_TABS.indexOf(activeTab);
+    if (idx >= 0 && idx < PROFILE_TABS.length - 1) {
+      setActiveTab(PROFILE_TABS[idx + 1]);
+    }
+  };
+
+  const handleProfileSwipeRight = () => {
+    const idx = PROFILE_TABS.indexOf(activeTab);
+    if (idx > 0) {
+      setActiveTab(PROFILE_TABS[idx - 1]);
+    } else if (idx === 0) {
+      router.replace("/(tabs)/inbox");
+    }
+  };
+
+  const isAnyModalOpen = hostEventModalVisible || !!selectedPost;
+
+  const swipeHandlers = useSwipeGesture({
+    enabled: !isAnyModalOpen,
+    onSwipeLeft: handleProfileSwipeLeft,
+    onSwipeRight: handleProfileSwipeRight,
+  });
+
+  const guestSwipeHandlers = useSwipeGesture({
+    onSwipeRight: () => {
+      router.replace("/(tabs)/inbox");
+    },
+  });
+
   if (!user) {
     return (
-      <View style={[styles.container, { paddingTop: topSafeInset + 16 }]}>
+      <View style={[styles.container, { paddingTop: topSafeInset + 16 }]} {...guestSwipeHandlers}>
         <View style={styles.guestProfileBox}>
           <Text style={{ fontSize: 60, marginBottom: 16 }}>🐾</Text>
           <Text style={styles.guestTitle}>Your Pet Journey Starts Here</Text>
@@ -514,7 +553,7 @@ export default function ProfileScreen() {
   const currentPosts = profileStats?.posts || [];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipeHandlers}>
       {/* Sticky Header Bar */}
       <View style={[styles.stickyHeaderBar, { paddingTop: topSafeInset + 14 }]}>
         <Text style={styles.barTitle}>Profile</Text>

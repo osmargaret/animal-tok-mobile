@@ -5,6 +5,7 @@ import { Star, ShoppingCart, ShoppingBag, ChevronLeft, MessageCircle } from 'luc
 import { useAuth } from '@/contexts/AuthContext';
 import { BuyProductModal } from '@/components/BuyProductModal';
 import GuestAuthModal from '@/components/GuestAuthModal';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
 export default function ProductDetailsModal() {
   const params = useLocalSearchParams();
@@ -61,8 +62,15 @@ export default function ProductDetailsModal() {
     Alert.alert("Added to Cart 🛒", `${name} has been added to your cart.`);
   };
 
+  const swipeHandlers = useSwipeGesture({
+    enabled: !orderModalVisible && !guestAuthVisible,
+    onSwipeRight: () => {
+      router.back();
+    },
+  });
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...swipeHandlers}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
         <View style={styles.imageContainer}>

@@ -51,6 +51,7 @@ import GuestAuthModal from "@/components/GuestAuthModal";
 import { BuyProductModal } from "@/components/BuyProductModal";
 import BookServiceModal from "@/components/BookServiceModal";
 import { MarketDetailModal } from "@/components/MarketDetailModal";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -315,6 +316,28 @@ export default function ExploreScreen() {
     setSelectedCategory("all");
   };
 
+  const handleSwipeLeft = () => {
+    setPetDropdownOpen(false);
+    if (activeTab === "trending") {
+      handleTabChange("events");
+    } else if (activeTab === "events") {
+      handleTabChange("marketplace");
+    } else if (activeTab === "marketplace") {
+      router.replace("/(tabs)/inbox");
+    }
+  };
+
+  const handleSwipeRight = () => {
+    setPetDropdownOpen(false);
+    if (activeTab === "marketplace") {
+      handleTabChange("events");
+    } else if (activeTab === "events") {
+      handleTabChange("trending");
+    } else if (activeTab === "trending") {
+      router.replace("/(tabs)/");
+    }
+  };
+
   const handleAttendEvent = (event: ExploreEvent) => {
     if (!user) {
       setGuestAuthTitle("Attend Pet Event 🎉");
@@ -360,6 +383,20 @@ export default function ExploreScreen() {
 
   const [bookServiceModalVisible, setBookServiceModalVisible] = useState(false);
   const [selectedServiceForBook, setSelectedServiceForBook] = useState<ServiceItem | null>(null);
+
+  const isAnyModalOpen =
+    guestAuthVisible ||
+    hostModalVisible ||
+    !!selectedAttendEvent ||
+    buyProductModalVisible ||
+    bookServiceModalVisible ||
+    detailModalVisible;
+
+  const swipeHandlers = useSwipeGesture({
+    enabled: !isAnyModalOpen,
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+  });
 
   const handleOpenProductDetail = (item: ProductItem) => {
     if (!user) {
@@ -544,7 +581,7 @@ export default function ExploreScreen() {
       : MARKET_CATEGORIES;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipeHandlers}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
