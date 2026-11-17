@@ -40,6 +40,7 @@ import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 export interface ServiceAppointment {
   id: string;
+  threadId?: string;
   serviceId?: string;
   serviceName?: string;
   provider?: string;
@@ -91,6 +92,7 @@ export default function ServiceDetailsScreen() {
     price = "$45.00",
     rating = "5.0",
     provider = "Verified Specialist",
+    providerId,
     image = "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=800&fit=crop",
     category = "Pet Care",
     description,
@@ -154,7 +156,7 @@ export default function ServiceDetailsScreen() {
 
   const handleMessageClient = (app: ServiceAppointment) => {
     const clientDisplayName = app.clientName || "Client";
-    const threadId = `booking_chat_${clientDisplayName.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${app.id}`;
+    const threadId = app.threadId || `booking_${app.id}`;
     router.push({
       pathname: "/(tabs)/message/[id]",
       params: {
@@ -468,6 +470,7 @@ export default function ServiceDetailsScreen() {
           price,
           rating,
           provider,
+          providerId,
           image,
           category,
           description,

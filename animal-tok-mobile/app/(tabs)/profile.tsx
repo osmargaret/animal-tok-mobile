@@ -1044,6 +1044,7 @@ export default function ProfileScreen() {
                               price: srv.price,
                               rating: srv.rating || "5.0",
                               provider: srv.provider,
+                              providerId: srv.providerId || activeProfile?.id || user?.id || "",
                               image: srv.image,
                               category: srv.category || "Professional Care",
                               description: srv.description || "",
@@ -1132,6 +1133,7 @@ export default function ProfileScreen() {
                             image: evt.image,
                             isPaid: evt.isPaid,
                             ticketPrice: evt.ticketPrice,
+                            organizerId: evt.organizerId || activeProfile?.id || user?.id,
                             organizerName: evt.organizerName || activeProfile?.name,
                           })
                         }

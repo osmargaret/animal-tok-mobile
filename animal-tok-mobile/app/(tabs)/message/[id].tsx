@@ -40,7 +40,7 @@ export default function MessageViewScreen() {
     animalId?: string;
     itemTitle?: string;
     itemPrice?: string;
-    itemType?: "product" | "service";
+    itemType?: "product" | "service" | "event";
     itemImage?: string;
     initialMessage?: string;
   }>();
@@ -260,7 +260,11 @@ export default function MessageViewScreen() {
               )}
               <View style={styles.tradeBadgeMiniWrap}>
                 <Text style={styles.tradeBadgeMini}>
-                  {params.itemType === "service" ? "Service" : "Product"}
+                  {params.itemType === "event"
+                    ? "Event"
+                    : params.itemType === "service"
+                    ? "Service"
+                    : "Product"}
                 </Text>
               </View>
               <Text style={styles.tradeTitleMini} numberOfLines={1}>
@@ -287,7 +291,11 @@ export default function MessageViewScreen() {
                 <View style={{ flex: 1, marginHorizontal: 10 }}>
                   <View style={styles.tradeBadgeRow}>
                     <Text style={styles.tradeBadge}>
-                      {params.itemType === "service" ? "Pet Service" : "Product Item"}
+                      {params.itemType === "event"
+                        ? "Pet Event"
+                        : params.itemType === "service"
+                        ? "Pet Service"
+                        : "Product Item"}
                     </Text>
                   </View>
                   <Text style={styles.tradeTitle} numberOfLines={2}>

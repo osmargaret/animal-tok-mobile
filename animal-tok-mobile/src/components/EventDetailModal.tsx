@@ -32,7 +32,9 @@ export interface EventDetailItem {
   isPaid?: boolean;
   ticketPrice?: string;
   capacity?: number;
+  organizerId?: string;
   organizerName?: string;
+  organizerAvatar?: string;
 }
 
 interface EventDetailModalProps {

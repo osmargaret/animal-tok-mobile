@@ -828,7 +828,8 @@ export const api = {
     senderName?: string,
     senderAvatar?: string,
     recipientName?: string,
-    recipientAvatar?: string
+    recipientAvatar?: string,
+    meta?: { eventId?: string; serviceId?: string }
   ) => {
     try {
       const response = await fetch(`${BASE_URL}/messages/send`, {
@@ -843,6 +844,7 @@ export const api = {
           senderAvatar,
           recipientName,
           recipientAvatar,
+          ...(meta || {}),
         })
       });
       if (!response.ok) throw new Error("Failed to send message");
@@ -900,6 +902,12 @@ export const api = {
           provider: s.providerName || s.provider || "Top Rated Pro",
           providerName: s.providerName || s.provider || "Top Rated Pro",
           providerId: s.providerId || s.provider_id || "",
+          category: s.category || "Care",
+          description: s.description || "",
+          availability: s.availability,
+          locationName: s.locationName || s.location,
+          locationAddress: s.locationAddress || s.location,
+          mode: s.mode || "onsite",
           image: normalizeMediaUrl(s.image) || s.image || "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&auto=format&fit=crop&q=80",
           providerAvatar: normalizeMediaUrl(s.providerAvatar) || s.providerAvatar,
         }));
@@ -927,11 +935,16 @@ export const api = {
           location: e.location || "Community Park",
           attendees: Number(e.attendeesCount || e.attendees || 0),
           category: e.category || "Meetup",
+          categoryLabel: e.category || "Meetup",
+          petType: e.petType || "all",
           description: e.description || "",
           image: normalizeMediaUrl(e.image) || e.image,
           organizerId: e.organizerId || e.organizer_id || "",
           organizerName: e.organizerName || e.organizer_name || "",
           isAttending: !!e.isAttending,
+          isPaid: Boolean(e.isPaid),
+          ticketPrice: e.ticketPrice ? String(e.ticketPrice) : "Free",
+          capacity: e.capacity,
         }));
       }
       return null;
@@ -1204,6 +1217,7 @@ export const api = {
               isPaid: Boolean(e.isPaid),
               ticketPrice: e.ticketPrice ? String(e.ticketPrice) : "Free",
               capacity: e.capacity,
+              organizerId: e.organizerId || e.organizer_id || "",
               organizerName: e.organizerName,
             }))
           : [],
@@ -1214,6 +1228,7 @@ export const api = {
               price: typeof p.price === "number" ? `$${p.price.toFixed(2)}` : p.price || "$19.99",
               rating: String(p.rating || "5.0"),
               seller: p.sellerName || p.seller || "Verified Seller",
+              sellerId: p.sellerId || p.seller_id || "",
               image:
                 normalizeMediaUrl(p.image) ||
                 p.image ||
@@ -1228,11 +1243,13 @@ export const api = {
               price: s.price || "$40/session",
               rating: String(s.rating || "5.0"),
               provider: s.providerName || s.provider || "Top Rated Pro",
+              providerId: s.providerId || s.provider_id || "",
               image:
                 normalizeMediaUrl(s.image) ||
                 s.image ||
                 "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&auto=format&fit=crop&q=80",
               category: s.category || "Care",
+              description: s.description || "",
             }))
           : [],
       };

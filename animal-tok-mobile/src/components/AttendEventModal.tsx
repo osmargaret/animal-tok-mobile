@@ -29,9 +29,12 @@ import {
   ExternalLink,
   Ticket,
   Sparkles,
+  MessageSquare,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../services/api";
+import { sendFormConversationMessage } from "../utils/conversationHelper";
 
 export interface AttendEventItem {
   id: string;
@@ -41,7 +44,9 @@ export interface AttendEventItem {
   location: string;
   image?: string;
   categoryLabel?: string;
+  organizerId?: string;
   organizerName?: string;
+  organizerAvatar?: string;
   isPaid?: boolean;
   ticketPrice?: string;
   attendees?: number;
@@ -64,6 +69,7 @@ export default function AttendEventModal({
 }: AttendEventModalProps) {
   if (!event) return null;
 
+  const router = useRouter();
   const isPaid = Boolean(event.isPaid && event.ticketPrice && event.ticketPrice.toLowerCase() !== "free");
   const unitPrice = parseFloat((event.ticketPrice || "0").replace(/[^0-9.]/g, "")) || 0;
 
@@ -78,6 +84,8 @@ export default function AttendEventModal({
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [regId, setRegId] = useState("");
+  const [chatThreadId, setChatThreadId] = useState("");
+  const [resolvedCreatorId, setResolvedCreatorId] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -96,6 +104,12 @@ export default function AttendEventModal({
     const newRegId = `REG-${Math.floor(100000 + Math.random() * 900000)}`;
     setRegId(newRegId);
 
+    const attendeeId = user?.id || "u_attendee";
+    const safeEvtSlug = String(event.id).replace(/[^a-zA-Z0-9_-]/g, "");
+    const safeUserSlug = String(attendeeId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const threadId = `event_${safeEvtSlug}_${safeUserSlug}`;
+    setChatThreadId(threadId);
+
     try {
       // 1. Persist locally to user's registered events
       const stored = await AsyncStorage.getItem("animaltok_event_registrations");
@@ -107,20 +121,71 @@ export default function AttendEventModal({
         eventTitle: event.title,
         eventDate: event.date,
         eventLocation: event.location,
+        organizerId: event.organizerId || "",
+        organizerName: event.organizerName || "Event Host",
+        threadId,
         fullName: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
         guestsCount,
         petInfo: petInfo.trim(),
-        isPaid: false,
+        specialNotes: specialNotes.trim(),
+        isPaid,
+        ticketPrice: isPaid ? event.ticketPrice : "Free Entry",
         createdAt: new Date().toISOString(),
       });
       await AsyncStorage.setItem("animaltok_event_registrations", JSON.stringify(list));
 
-      // 2. Call backend RSVP endpoint
+      // 2. Call backend RSVP endpoint (non-blocking)
       try {
         await api.toggleEventRsvp(event.id);
       } catch (e) {}
+
+      // 3. Send the filled registration form to the event creator as a direct message
+      try {
+        const admissionLabel = isPaid
+          ? `${event.ticketPrice}${guestsCount > 1 ? ` × ${guestsCount} ($${(unitPrice * guestsCount).toFixed(2)})` : ""}`
+          : "Free Entry";
+        const msgBody =
+          `🎟️ Event Attendance Registration — #${newRegId}\n` +
+          `─────────────────────────\n` +
+          `🎪  Event: ${event.title}\n` +
+          `📅  Date: ${event.date}\n` +
+          `📍  Location: ${event.location}\n` +
+          `💰  Admission: ${admissionLabel}\n` +
+          `👥  Passes: ${guestsCount} ${guestsCount > 1 ? "passes" : "pass"}\n` +
+          `🐾  Pet: ${petInfo.trim() || "Not specified"}\n` +
+          `─────────────────────────\n` +
+          `👤  Attendee: ${fullName.trim()}\n` +
+          `📞  ${phone.trim() || "Not provided"}` +
+          (email.trim() ? `\n📧  ${email.trim()}` : "") +
+          `\n📝  Message / Notes: ${specialNotes.trim() || "Looking forward to attending!"}`;
+
+        const creatorDisplayName = event.organizerName || "Event Host";
+        const creatorAvatar =
+          event.organizerAvatar ||
+          event.image ||
+          "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400&fit=crop";
+
+        const sentMsg = await sendFormConversationMessage({
+          threadId,
+          messageText: msgBody,
+          senderId: attendeeId,
+          senderName: fullName.trim() || user?.name || "Attendee",
+          senderAvatar: user?.avatar || "🐾",
+          recipientId: event.organizerId,
+          recipientName: creatorDisplayName,
+          recipientAvatar: creatorAvatar,
+          meta: { eventId: event.id },
+        });
+        if (sentMsg?.recipientId) {
+          setResolvedCreatorId(sentMsg.recipientId);
+        } else if (event.organizerId) {
+          setResolvedCreatorId(event.organizerId);
+        }
+      } catch (msgErr) {
+        console.warn("Auto-message to event creator failed (non-blocking):", msgErr);
+      }
 
       setConfirmed(true);
       onSuccess(event.id);
@@ -193,12 +258,44 @@ export default function AttendEventModal({
               </View>
 
               <Text style={styles.successNote}>
-                A confirmation has been saved to your account. Present this digital pass or give your name at the event entrance.
+                Your registration details have been sent to {event.organizerName || "the event creator"} as a message so you can chat directly and coordinate details.
               </Text>
 
-              <TouchableOpacity style={styles.doneBtn} onPress={handleClose} activeOpacity={0.85}>
-                <Text style={styles.doneBtnText}>Done</Text>
-              </TouchableOpacity>
+              <View style={styles.successActions}>
+                <TouchableOpacity
+                  style={styles.chatBtn}
+                  onPress={() => {
+                    const targetThread =
+                      chatThreadId ||
+                      `event_${String(event.id).replace(/[^a-zA-Z0-9_-]/g, "")}_${String(user?.id || "u_attendee").replace(/[^a-zA-Z0-9_-]/g, "")}`;
+                    handleClose();
+                    router.push({
+                      pathname: "/(tabs)/message/[id]",
+                      params: {
+                        id: targetThread,
+                        recipientId: resolvedCreatorId || event.organizerId || "",
+                        name: event.organizerName || "Event Host",
+                        avatar:
+                          event.organizerAvatar ||
+                          event.image ||
+                          "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400&fit=crop",
+                        itemTitle: event.title,
+                        itemPrice: isPaid ? event.ticketPrice : "Free Entry",
+                        itemType: "event",
+                        itemImage: event.image,
+                      },
+                    });
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <MessageSquare size={16} color="#ffffff" />
+                  <Text style={styles.chatBtnText}>Chat with Host</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.doneBtn} onPress={handleClose} activeOpacity={0.85}>
+                  <Text style={styles.doneBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           ) : (
             /* Attendance Form */
@@ -229,8 +326,10 @@ export default function AttendEventModal({
                   </View>
                   <View style={styles.priceRow}>
                     <Text style={styles.priceLabel}>Admission:</Text>
-                    <Text style={[styles.priceValue, { color: "#10b981" }]}>
-                      Free Entry
+                    <Text style={[styles.priceValue, { color: isPaid ? "#f59e0b" : "#10b981" }]}>
+                      {isPaid
+                        ? `${event.ticketPrice}${guestsCount > 1 ? ` × ${guestsCount} ($${(unitPrice * guestsCount).toFixed(2)})` : ""}`
+                        : "Free Entry"}
                     </Text>
                   </View>
                 </View>
@@ -641,18 +740,39 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 16,
   },
-  doneBtn: {
+  successActions: {
+    width: "100%",
+    gap: 10,
+  },
+  chatBtn: {
     width: "100%",
     backgroundColor: "#06b6d4",
     paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  chatBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  doneBtn: {
+    width: "100%",
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    paddingVertical: 13,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   doneBtnText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
+    color: "#94a3b8",
+    fontSize: 14,
+    fontWeight: "600",
   },
   awaitingContainer: {
     flex: 1,

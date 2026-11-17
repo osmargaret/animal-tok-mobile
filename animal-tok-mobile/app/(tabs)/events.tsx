@@ -17,6 +17,7 @@ import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import GuestAuthModal from "@/components/GuestAuthModal";
 import EventDetailModal, { type EventDetailItem } from "@/components/EventDetailModal";
+import AttendEventModal from "@/components/AttendEventModal";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const FALLBACK_EVENTS = [
@@ -55,6 +56,7 @@ export default function EventsScreen() {
   const [eventsList, setEventsList] = useState(FALLBACK_EVENTS);
   const [rsvps, setRsvps] = useState<Record<string, boolean>>({});
   const [selectedEventDetail, setSelectedEventDetail] = useState<EventDetailItem | null>(null);
+  const [selectedAttendEvent, setSelectedAttendEvent] = useState<any | null>(null);
   const [guestAuthVisible, setGuestAuthVisible] = useState(false);
   const [guestAuthTitle, setGuestAuthTitle] = useState("View Pet Event 🎪");
   const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
@@ -114,12 +116,14 @@ export default function EventsScreen() {
       location: item.location,
       attendees: item.attendees || 0,
       category: item.category,
-      categoryLabel: item.category,
+      categoryLabel: item.categoryLabel || item.category,
       description: item.description,
       image: item.image,
       isPaid: item.isPaid,
       ticketPrice: item.ticketPrice,
+      organizerId: item.organizerId,
       organizerName: item.organizerName,
+      organizerAvatar: item.organizerAvatar,
     });
   };
 
@@ -160,7 +164,7 @@ export default function EventsScreen() {
   };
 
   const swipeHandlers = useSwipeGesture({
-    enabled: !guestAuthVisible && !selectedEventDetail,
+    enabled: !guestAuthVisible && !selectedEventDetail && !selectedAttendEvent,
     onSwipeLeft: () => {
       router.replace("/(tabs)/marketplace");
     },
@@ -242,17 +246,51 @@ export default function EventsScreen() {
         isAttending={selectedEventDetail ? !!rsvps[selectedEventDetail.id] : false}
         onClose={() => setSelectedEventDetail(null)}
         onToggleAttend={(evt) => {
-          handleRsvpPress(evt.id, evt.title);
-          setSelectedEventDetail((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  attendees: Math.max(0, prev.attendees + (!rsvps[evt.id] ? 1 : -1)),
-                }
-              : null
-          );
+          if (rsvps[evt.id]) {
+            handleRsvpPress(evt.id, evt.title);
+            setSelectedEventDetail((prev) =>
+              prev ? { ...prev, attendees: Math.max(0, prev.attendees - 1) } : null
+            );
+          } else {
+            const matched = eventsList.find((e) => String(e.id) === String(evt.id)) || evt;
+            setSelectedEventDetail(null);
+            setSelectedAttendEvent(matched);
+          }
         }}
       />
+
+      {/* Attend Event Form Modal */}
+      {selectedAttendEvent && (
+        <AttendEventModal
+          visible={!!selectedAttendEvent}
+          event={{
+            id: selectedAttendEvent.id,
+            title: selectedAttendEvent.title,
+            date: selectedAttendEvent.date,
+            location: selectedAttendEvent.location,
+            image: selectedAttendEvent.image,
+            categoryLabel: selectedAttendEvent.categoryLabel || selectedAttendEvent.category,
+            organizerId: selectedAttendEvent.organizerId,
+            organizerName: selectedAttendEvent.organizerName,
+            organizerAvatar: selectedAttendEvent.organizerAvatar,
+            isPaid: selectedAttendEvent.isPaid,
+            ticketPrice: selectedAttendEvent.ticketPrice,
+            attendees: selectedAttendEvent.attendees,
+          }}
+          user={user}
+          onClose={() => setSelectedAttendEvent(null)}
+          onSuccess={(eventId) => {
+            setRsvps((prev) => ({ ...prev, [eventId]: true }));
+            setEventsList((prev) =>
+              prev.map((e) =>
+                String(e.id) === String(eventId)
+                  ? { ...e, attendees: (e.attendees || 0) + 1, isAttending: true }
+                  : e
+              )
+            );
+          }}
+        />
+      )}
 
       {/* Guest Authentication Modal */}
       <GuestAuthModal

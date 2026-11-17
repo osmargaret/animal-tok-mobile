@@ -32,10 +32,11 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ServiceItem } from "@/data/marketData";
-import { api } from "@/services/api";
+import { sendFormConversationMessage } from "@/utils/conversationHelper";
 
 export interface ServiceBookingItem {
   id: string;
+  threadId?: string;
   serviceId: string;
   serviceName: string;
   providerName: string;
@@ -83,6 +84,8 @@ export default function BookServiceModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
+  const [chatThreadId, setChatThreadId] = useState("");
+  const [resolvedCreatorId, setResolvedCreatorId] = useState("");
 
   const timeSlotSuggestions = [
     "Tomorrow at 10:00 AM",
@@ -96,6 +99,12 @@ export default function BookServiceModal({
     if (user?.email) setClientEmail(user.email);
   }, [user]);
 
+  useEffect(() => {
+    if (visible) {
+      setConfirmed(false);
+    }
+  }, [visible, service?.id]);
+
   const handleConfirmBooking = async () => {
     if (!clientName.trim()) {
       Alert.alert("Name Required", "Please enter your full name.");
@@ -108,14 +117,17 @@ export default function BookServiceModal({
 
     setIsSubmitting(true);
     const newRef = `BK-${Math.floor(100000 + Math.random() * 900000)}`;
+    const threadId = `booking_${newRef}`;
     setBookingRef(newRef);
+    setChatThreadId(threadId);
 
     const booking: ServiceBookingItem = {
       id: newRef,
+      threadId,
       serviceId: service.id,
       serviceName: service.name,
       providerName: service.provider,
-      providerId: service.providerId || "u_1",
+      providerId: service.providerId || "",
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim(),
       clientEmail: clientEmail.trim(),
@@ -135,15 +147,14 @@ export default function BookServiceModal({
       list.unshift(booking);
       await AsyncStorage.setItem("animaltok_service_bookings", JSON.stringify(list));
 
-      // Auto-send confirmation message thread to service creator
+      // Auto-send filled booking form to service creator to initiate conversation
       try {
-        const threadId = `booking_${booking.id}`;
         const modeLine =
           booking.mode === "virtual"
             ? "💻  Virtual / Video Consultation"
             : "🏢  Onsite / In-person Visit";
         const msgBody =
-          `🗓️ Service Booking Confirmed — #${booking.id}\n` +
+          `🗓️ Service Booking Request — #${booking.id}\n` +
           `─────────────────────────\n` +
           `🏷️  Service: ${booking.serviceName}\n` +
           `📅  Scheduled: ${booking.appointmentDate}\n` +
@@ -157,37 +168,26 @@ export default function BookServiceModal({
           (booking.notes ? `\n📝  Notes: ${booking.notes}` : "");
 
         const clientId = user?.id || "u_client";
-        const providerId = booking.providerId || "u_provider";
+        const providerId = booking.providerId || undefined;
         const clientDisplayName = booking.clientName || user?.name || "Client";
         const providerDisplayName = booking.providerName || "Service Provider";
 
-        await api.sendMessage(
+        const sentMsg = await sendFormConversationMessage({
           threadId,
-          msgBody,
-          clientId,
-          providerId,
-          clientDisplayName,
-          user?.avatar || "🐾",
-          providerDisplayName,
-          service.image || "🩺"
-        );
-
-        // Also persist thread locally so it appears instantly in the Inbox and chat
-        const localThreadKey = `animaltok_thread_${threadId}`;
-        const localMsg = {
-          id: `msg_${Date.now()}`,
-          sender: "me",
-          text: msgBody,
-          time: "Just now",
-          threadId,
+          messageText: msgBody,
           senderId: clientId,
+          senderName: clientDisplayName,
+          senderAvatar: user?.avatar || "🐾",
           recipientId: providerId,
-          createdAt: new Date().toISOString(),
-        };
-        const existingThread = await AsyncStorage.getItem(localThreadKey);
-        const threadMsgs = existingThread ? JSON.parse(existingThread) : [];
-        threadMsgs.push(localMsg);
-        await AsyncStorage.setItem(localThreadKey, JSON.stringify(threadMsgs));
+          recipientName: providerDisplayName,
+          recipientAvatar: service.image || "🩺",
+          meta: { serviceId: service.id },
+        });
+        if (sentMsg?.recipientId) {
+          setResolvedCreatorId(sentMsg.recipientId);
+        } else if (providerId) {
+          setResolvedCreatorId(providerId);
+        }
       } catch (msgErr) {
         console.warn("Auto-message after booking failed (non-blocking):", msgErr);
       }
@@ -279,12 +279,13 @@ export default function BookServiceModal({
                 <TouchableOpacity
                   style={styles.chatBtn}
                   onPress={() => {
+                    const targetThread = chatThreadId || `booking_${bookingRef}`;
                     handleClose();
                     router.push({
                       pathname: "/(tabs)/message/[id]",
                       params: {
-                        id: `booking_${bookingRef}`,
-                        recipientId: service.providerId || "u_provider",
+                        id: targetThread,
+                        recipientId: resolvedCreatorId || service.providerId || "u_provider",
                         name: service.provider,
                         avatar: service.image || "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&fit=crop",
                         itemTitle: service.name,

@@ -129,7 +129,9 @@ interface ExploreEvent {
   ticketPrice?: string;
   capacity?: number;
   escrowStatus?: string;
+  organizerId?: string;
   organizerName?: string;
+  organizerAvatar?: string;
 }
 
 const EXPLORE_EVENTS: ExploreEvent[] = [
@@ -227,6 +229,7 @@ const EXPLORE_EVENTS: ExploreEvent[] = [
     petType: "cat",
     description: "Purebred Bengal and Ragdoll registered breeders showcase and pedigree documentation exchange.",
     image: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&fit=crop",
+    organizerName: "Hill Country Pet Resort",
   },
 ];
 
@@ -492,7 +495,9 @@ export default function ExploreScreen() {
 
   const handleRegistrationSuccess = (eventId: string) => {
     setRsvps((prev) => ({ ...prev, [eventId]: true }));
-    setPurchasedTickets((prev) => ({ ...prev, [eventId]: true }));
+    if (selectedAttendEvent?.isPaid) {
+      setPurchasedTickets((prev) => ({ ...prev, [eventId]: true }));
+    }
     setEventsList((prev) =>
       prev.map((e) => (e.id === eventId ? { ...e, attendees: (e.attendees || 0) + 1 } : e))
     );
@@ -555,21 +560,9 @@ export default function ExploreScreen() {
       return;
     }
 
-    if (matched?.isPaid) {
+    if (matched) {
       setSelectedEventDetail(null);
       handleAttendEvent(matched);
-    } else if (matched) {
-      setRsvps((prev) => ({ ...prev, [matched.id]: true }));
-      setEventsList((prev) =>
-        prev.map((e) => (e.id === matched.id ? { ...e, attendees: (e.attendees || 0) + 1 } : e))
-      );
-      setSelectedEventDetail((prev) =>
-        prev && String(prev.id) === String(matched.id)
-          ? { ...prev, attendees: (prev.attendees || 0) + 1 }
-          : prev
-      );
-      api.toggleEventRsvp(matched.id);
-      Alert.alert("RSVP Confirmed! 🎉", `You're attending "${matched.title}".`);
     }
   };
 
@@ -1629,6 +1622,7 @@ export default function ExploreScreen() {
               ticketPrice: newEvent.ticketPrice,
               capacity: newEvent.capacity,
               escrowStatus: newEvent.escrowStatus,
+              organizerId: newEvent.organizerId,
               organizerName: newEvent.organizerName || "Community Host",
             },
             ...prev,
@@ -1657,7 +1651,9 @@ export default function ExploreScreen() {
             location: selectedAttendEvent.location,
             image: selectedAttendEvent.image,
             categoryLabel: selectedAttendEvent.categoryLabel,
+            organizerId: selectedAttendEvent.organizerId,
             organizerName: selectedAttendEvent.organizerName,
+            organizerAvatar: selectedAttendEvent.organizerAvatar,
             isPaid: selectedAttendEvent.isPaid,
             ticketPrice: selectedAttendEvent.ticketPrice,
             attendees: selectedAttendEvent.attendees,

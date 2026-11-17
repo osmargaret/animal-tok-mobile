@@ -16,10 +16,12 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, ArrowLeft, Search, Sparkles, ChevronRight } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import { formatRelativeTime } from "@/utils/timeAgo";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { localThreadsStorageKey } from "@/utils/conversationHelper";
 
 interface ThreadItem {
   threadId: string;
@@ -51,6 +53,9 @@ function getCleanParticipantName(item: ThreadItem): string {
     const clean = tid.replace(/^booking_/, "").replace(/_/g, " ");
     return clean.replace(/\b\w/g, (c) => c.toUpperCase());
   }
+  if (tid.startsWith("event_")) {
+    return "Event Host";
+  }
   if (tid.startsWith("t_service_")) {
     return "Pet Care Specialist";
   }
@@ -74,6 +79,9 @@ function getCleanAvatar(item: ThreadItem): string {
   }
   if (tid.startsWith("booking_")) {
     return "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&fit=crop";
+  }
+  if (tid.startsWith("event_")) {
+    return "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400&fit=crop";
   }
   return "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200&fit=crop";
 }
@@ -99,10 +107,23 @@ export default function InboxScreen() {
       return;
     }
     try {
-      const data = await api.getInboxThreads(currentUserId);
-      if (Array.isArray(data)) {
-        setThreads(data);
+      const [serverData, localRaw] = await Promise.all([
+        api.getInboxThreads(currentUserId),
+        AsyncStorage.getItem(localThreadsStorageKey(currentUserId)).catch(() => null),
+      ]);
+      const serverThreads = Array.isArray(serverData) ? serverData : [];
+      const localParsed = localRaw ? JSON.parse(localRaw) : [];
+      const localThreads: ThreadItem[] = Array.isArray(localParsed) ? localParsed : [];
+
+      const merged: ThreadItem[] = [...serverThreads];
+      const seen = new Set(serverThreads.map((t: ThreadItem) => t.threadId));
+      for (const lt of localThreads) {
+        if (lt?.threadId && !seen.has(lt.threadId)) {
+          seen.add(lt.threadId);
+          merged.push(lt);
+        }
       }
+      setThreads(merged);
     } catch (e) {
       console.warn("Failed to load threads:", e);
     } finally {
