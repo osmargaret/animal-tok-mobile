@@ -855,6 +855,7 @@ export default function CreateScreen() {
       // 2. Prepare post data
       const soundTitle = selectedSound ? `${selectedSound.title} - ${selectedSound.artist}` : undefined;
       const soundUrl = selectedSound ? selectedSound.previewUrl : undefined;
+      const filterToApply = selectedFilterId !== "normal" ? selectedFilter : undefined;
 
       let serverPost: any = null;
       try {
@@ -872,6 +873,11 @@ export default function CreateScreen() {
           ],
           audioUrl: soundUrl,
           audioName: soundTitle,
+          filterId: filterToApply?.id,
+          filterName: filterToApply?.name,
+          filterColor: filterToApply?.tintColor,
+          filterOpacity: filterToApply?.tintOpacity,
+          filterCss: filterToApply?.css,
         });
       } catch (e) {
         console.warn("Failed to reach server createPost, persisting locally:", e);
@@ -895,6 +901,11 @@ export default function CreateScreen() {
         imageUrl: !isVideo ? finalMediaUrl : undefined,
         audioUrl: soundUrl,
         audioName: soundTitle ? `🎵 ${soundTitle}` : undefined,
+        filterId: filterToApply?.id,
+        filterName: filterToApply?.name,
+        filterColor: filterToApply?.tintColor,
+        filterOpacity: filterToApply?.tintOpacity,
+        filterCss: filterToApply?.css,
         likes: 0,
         comments: 0,
         saves: 0,

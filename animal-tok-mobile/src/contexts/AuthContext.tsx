@@ -47,7 +47,8 @@ interface AuthContextType {
     clinicName?: string,
     specialization?: string,
     password?: string
-  ) => Promise<void>;
+  ) => Promise<any>;
+  completeRegistrationWithOtp: (email: string, otp: string) => Promise<any>;
   updateAccountType: (type: "regular" | "business" | "vet" | "handler") => Promise<void>;
   updateUser: (updatedData: Partial<MockUser>) => Promise<void>;
   addPet: (pet: ActiveProfile) => void;
@@ -258,6 +259,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error(data.error || "Registration failed. Please try again.");
     }
 
+    if (data.requiresOtp) {
+      return data;
+    }
+
     if (data.user) {
       // Clear previous local test posts/items so the new registered user starts completely fresh
       await AsyncStorage.removeItem("animaltok_custom_posts").catch(() => {});
@@ -288,7 +293,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: newUser.role,
         clinicName: newUser.clinicName,
       });
+      return data;
     }
+    return data;
+  };
+
+  const completeRegistrationWithOtp = async (email: string, otp: string) => {
+    const res = await fetch(`${getBaseUrl()}/auth/verify-registration`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Verification failed. Invalid or expired code.");
+    }
+
+    if (data.user) {
+      await AsyncStorage.removeItem("animaltok_custom_posts").catch(() => {});
+      await AsyncStorage.removeItem("animaltok_custom_products").catch(() => {});
+      await AsyncStorage.removeItem("animaltok_custom_services").catch(() => {});
+      await AsyncStorage.removeItem("animaltok_custom_events").catch(() => {});
+
+      const newUser: MockUser = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        username: data.user.username.startsWith("@") ? data.user.username : `@${data.user.username}`,
+        avatar: data.user.avatar || (data.user.accountType === "vet" ? "🩺" : "🐾"),
+        token: data.token,
+        accountType: data.user.accountType || "handler",
+        role: data.user.role || (data.user.accountType === "vet" ? "vet" : data.user.accountType === "business" ? "business" : "user"),
+        clinicName: data.user.clinicName,
+        specialization: data.user.specialization,
+      };
+      setUser(newUser);
+      await AsyncStorage.setItem("animaltok_user", JSON.stringify(newUser));
+      persistProfile({
+        id: newUser.id,
+        name: newUser.name,
+        username: newUser.username,
+        avatar: newUser.avatar,
+        type: "handler",
+        role: newUser.role,
+        clinicName: newUser.clinicName,
+      });
+      return data;
+    }
+    return data;
   };
 
   const logout = async () => {
@@ -356,6 +410,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         login,
         signup,
+        completeRegistrationWithOtp,
         updateAccountType,
         updateUser,
         addPet,

@@ -28,6 +28,12 @@ export interface FeedPost {
   ctaUrl?: string;
   category?: string;
   mediaUrl?: string;
+  // Visual Media Filter Fields
+  filterId?: string;
+  filterName?: string;
+  filterColor?: string;
+  filterOpacity?: number;
+  filterCss?: string;
 }
 
 export interface CommentItem {

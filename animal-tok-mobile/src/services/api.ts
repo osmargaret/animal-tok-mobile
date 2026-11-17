@@ -655,7 +655,12 @@ export const api = {
         ctaText: p.ctaText || 'Learn More',
         ctaUrl: p.ctaUrl,
         category: p.category,
-        mediaUrl: normalizeMediaUrl(p.mediaUrl) || p.mediaUrl
+        mediaUrl: normalizeMediaUrl(p.mediaUrl) || p.mediaUrl,
+        filterId: p.filterId || p.filter_id,
+        filterName: p.filterName || p.filter_name,
+        filterColor: p.filterColor || p.filter_color,
+        filterOpacity: p.filterOpacity ?? p.filter_opacity,
+        filterCss: p.filterCss || p.filter_css
       }));
     } catch (e) {
       console.warn("Backend feed fetch failed, using fallback mock", e);
@@ -708,6 +713,11 @@ export const api = {
     tags?: string[];
     audioUrl?: string;
     audioName?: string;
+    filterId?: string;
+    filterName?: string;
+    filterColor?: string;
+    filterOpacity?: number;
+    filterCss?: string;
   }) => {
     try {
       const response = await fetch(`${BASE_URL}/feed`, {
@@ -1038,6 +1048,60 @@ export const api = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Failed to reset password.");
+    return data;
+  },
+
+  /**
+   * Step 1: Send Registration Email Verification OTP
+   */
+  requestRegistrationOtp: async (registrationData: {
+    name: string;
+    email: string;
+    username: string;
+    password?: string;
+    accountType?: "handler" | "vet" | "business";
+    clinicName?: string;
+    specialization?: string;
+    petName?: string;
+    petBreed?: string;
+    petAge?: string;
+    petBio?: string;
+  }) => {
+    const response = await fetch(`${BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(registrationData),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Registration request failed.");
+    return data;
+  },
+
+  /**
+   * Step 2: Verify Registration OTP and Complete Account Creation
+   */
+  verifyRegistrationOtp: async (email: string, otp: string) => {
+    const response = await fetch(`${BASE_URL}/auth/verify-registration`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Verification failed. Invalid or expired code.");
+    return data;
+  },
+
+  /**
+   * Resend Registration OTP
+   */
+  resendRegistrationOtp: async (email: string) => {
+    const response = await fetch(`${BASE_URL}/auth/resend-registration-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to resend code.");
     return data;
   },
 };

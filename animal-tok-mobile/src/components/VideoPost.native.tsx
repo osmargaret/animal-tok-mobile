@@ -20,6 +20,7 @@ import type { FeedPost } from "@/data/feedData";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatRelativeTime } from "@/utils/timeAgo";
+import { getFilterById } from "@/data/filters";
 
 interface VideoPostProps {
   post: FeedPost;
@@ -435,6 +436,9 @@ export default function VideoPost({
     muteToastTimer.current = setTimeout(() => setShowMuteToast(false), 1200);
   };
 
+  const filterDef = getFilterById(post.filterId);
+  const hasFilter = (post.filterId && post.filterId !== "normal") || (post.filterColor && post.filterColor !== "transparent");
+
   return (
     <View style={[styles.container, { width: '100%', height: '100%' }]}>
       {/* Background Video / Image Player with pointerEvents="none" */}
@@ -442,7 +446,11 @@ export default function VideoPost({
         {isVideo && player ? (
           <VideoView
             player={player}
-            style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
+            style={[
+              StyleSheet.absoluteFillObject,
+              { width: '100%', height: '100%' },
+              Platform.OS === 'web' && filterDef.css !== 'none' ? ({ filter: filterDef.css } as any) : undefined
+            ]}
             contentFit="cover"
             nativeControls={false}
             allowsFullscreen={false}
@@ -450,8 +458,26 @@ export default function VideoPost({
         ) : (
           <Image
             source={{ uri: post.imageUrl || post.posterUrl || "https://images.unsplash.com/photo-1543466835-00a7907e9de1" }}
-            style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
+            style={[
+              StyleSheet.absoluteFillObject,
+              { width: '100%', height: '100%' },
+              Platform.OS === 'web' && filterDef.css !== 'none' ? ({ filter: filterDef.css } as any) : undefined
+            ]}
             resizeMode="cover"
+          />
+        )}
+
+        {/* Native & Web Filter Tint Overlay */}
+        {hasFilter && (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                backgroundColor: post.filterColor || filterDef.tintColor || "#000000",
+                opacity: post.filterOpacity ?? filterDef.tintOpacity ?? 0.18,
+              },
+            ]}
           />
         )}
       </View>

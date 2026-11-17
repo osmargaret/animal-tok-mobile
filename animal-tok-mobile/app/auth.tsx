@@ -22,12 +22,19 @@ import { api } from "@/services/api";
 export default function AuthScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
-  const { login, signup } = useAuth();
+  const { login, signup, completeRegistrationWithOtp } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(params.mode === "signup" ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Registration OTP State
+  const [regOtpVisible, setRegOtpVisible] = useState(false);
+  const [regOtp, setRegOtp] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Forgot Password State
   const [forgotModalVisible, setForgotModalVisible] = useState(false);
@@ -37,6 +44,14 @@ export default function AuthScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -66,13 +81,67 @@ export default function AuthScreen() {
           ? `@${cleanBase}`
           : `@user${Math.floor(1000 + Math.random() * 9000)}`;
 
-        await signup(name.trim(), email.trim(), autoUsername, "handler", undefined, undefined, password.trim());
+        const res = await signup(name.trim(), email.trim(), autoUsername, "handler", undefined, undefined, password.trim());
+        if (res?.requiresOtp) {
+          setRegEmail(email.trim());
+          setRegOtpVisible(true);
+          setResendCooldown(60);
+          if (res?.otp) {
+            Alert.alert(
+              "Verification Code",
+              `Your 6-digit verification code is:\n\n🔑 ${res.otp}\n\n(Enter this code to activate your account.)`
+            );
+          } else {
+            Alert.alert(
+              "Check Your Email 📬",
+              `We've sent a 6-digit verification code to ${email.trim()}. Please enter it below to activate your account.`
+            );
+          }
+          return;
+        }
         router.replace("/(tabs)/profile");
       }
     } catch (e: any) {
       Alert.alert("Authentication Failed", e.message || "Invalid credentials. Please verify your email and password.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyRegistrationOtp = async () => {
+    if (!regOtp.trim() || regOtp.trim().length !== 6) {
+      Alert.alert("Invalid Code", "Please enter the full 6-digit verification code sent to your email.");
+      return;
+    }
+    setRegLoading(true);
+    try {
+      await completeRegistrationWithOtp(regEmail.trim(), regOtp.trim());
+      setRegOtpVisible(false);
+      setRegOtp("");
+      Alert.alert("Welcome to Animandler! 🎉", "Your email has been verified and your account is activated.");
+      router.replace("/(tabs)/profile");
+    } catch (e: any) {
+      Alert.alert("Verification Failed", e.message || "Invalid or expired code. Please try again.");
+    } finally {
+      setRegLoading(false);
+    }
+  };
+
+  const handleResendRegistrationOtp = async () => {
+    if (resendCooldown > 0) return;
+    setRegLoading(true);
+    try {
+      const res = await api.resendRegistrationOtp(regEmail.trim());
+      setResendCooldown(60);
+      if (res?.otp) {
+        Alert.alert("New Code", `Your new 6-digit verification code is:\n\n🔑 ${res.otp}`);
+      } else {
+        Alert.alert("Code Resent! 📬", `A fresh verification code has been sent to ${regEmail.trim()}.`);
+      }
+    } catch (e: any) {
+      Alert.alert("Resend Failed", e.message || "Could not resend verification code. Please try again.");
+    } finally {
+      setRegLoading(false);
     }
   };
 
@@ -440,6 +509,71 @@ export default function AuthScreen() {
                 </TouchableOpacity>
               </View>
             )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Registration Email OTP Verification Modal */}
+      <Modal
+        visible={regOtpVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {}}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <CheckCircle2 size={20} color="#06b6d4" />
+                <Text style={styles.modalTitle}>Verify Your Email</Text>
+              </View>
+              <TouchableOpacity onPress={() => setRegOtpVisible(false)} hitSlop={12}>
+                <X size={20} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDesc}>
+                We've sent a 6-digit verification code to{" "}
+                <Text style={{ color: "#06b6d4", fontWeight: "bold" }}>{regEmail}</Text>.
+                Enter it below to verify your email and activate your Animandler account.
+              </Text>
+              <View style={styles.modalInputWrapper}>
+                <KeyRound size={16} color="#64748b" />
+                <TextInput
+                  style={[styles.modalInput, { letterSpacing: 6, fontSize: 18, fontWeight: "bold" }]}
+                  placeholder="123456"
+                  placeholderTextColor="#64748b"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={regOtp}
+                  onChangeText={setRegOtp}
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.modalActionBtn, regLoading && { opacity: 0.6 }]}
+                onPress={handleVerifyRegistrationOtp}
+                disabled={regLoading}
+              >
+                {regLoading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.modalActionText}>Verify & Complete Registration</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.resendBtn}
+                onPress={handleResendRegistrationOtp}
+                disabled={regLoading || resendCooldown > 0}
+              >
+                <Text style={[styles.resendBtnText, resendCooldown > 0 && { color: "#64748b" }]}>
+                  {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't receive code? Resend"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
