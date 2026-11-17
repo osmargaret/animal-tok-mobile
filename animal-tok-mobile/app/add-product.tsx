@@ -26,7 +26,7 @@ const SERVICE_CATEGORIES = ["Grooming", "Training", "Dog Walking", "Vet Care", "
 
 export default function AddProductScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, activeProfile } = useAuth();
   const { type: queryType } = useLocalSearchParams<{ type?: string }>();
 
   const [type, setType] = useState<"product" | "service">(queryType === "service" ? "service" : "product");
@@ -153,7 +153,9 @@ export default function AddProductScreen() {
 
       // 2. POST to Backend
       const endpoint = type === "product" ? "/marketplace/products" : "/marketplace/services";
+      const ownerId = activeProfile?.id || user?.id || "u_1";
       const sellerDisplayName =
+        (activeProfile?.type === "animal" ? activeProfile.name : null) ||
         (user as any)?.businessName ||
         (user as any)?.clinicName ||
         user?.name ||
@@ -167,7 +169,7 @@ export default function AddProductScreen() {
               category: category.trim() || "General",
               image: finalImage,
               description: description.trim() || "Premium pet quality item.",
-              sellerId: user?.id || "u_1",
+              sellerId: ownerId,
               types: parsedTypes,
               sizes: parsedSizes,
               colors: parsedColors,
@@ -180,7 +182,7 @@ export default function AddProductScreen() {
               category: category.trim() || "Care",
               image: finalImage,
               description: description.trim() || "Professional pet service.",
-              providerId: user?.id || "u_1",
+              providerId: ownerId,
               location: locationAddress.trim() || locationName.trim() || location.trim() || "Austin, TX",
               locationName: locationName.trim(),
               locationAddress: locationAddress.trim(),
@@ -204,12 +206,13 @@ export default function AddProductScreen() {
       // 3. Update memory data structures
       const itemId = `${type === "product" ? "prod" : "serv"}_${Date.now()}`;
       if (type === "product") {
-        const newProduct: ProductItem = {
+        const newProduct: ProductItem & { sellerId?: string } = {
           id: itemId,
           name: name.trim(),
           price: displayPrice,
           rating: "5.0",
           seller: sellerDisplayName,
+          sellerId: ownerId,
           image: finalImage,
           category: category.trim(),
           description: description.trim(),
@@ -240,7 +243,7 @@ export default function AddProductScreen() {
           locationName: locationName.trim(),
           locationAddress: locationAddress.trim() || location.trim(),
           mode,
-          providerId: user?.id || "u_1",
+          providerId: ownerId,
         };
         marketServices.unshift(newService);
 

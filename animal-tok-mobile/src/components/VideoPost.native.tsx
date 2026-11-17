@@ -21,6 +21,7 @@ import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatRelativeTime } from "@/utils/timeAgo";
 import { getFilterById } from "@/data/filters";
+import { isPostSavedForProfile, toggleSavedPostForProfile } from "@/utils/savedPosts";
 
 interface VideoPostProps {
   post: FeedPost;
@@ -41,7 +42,7 @@ export default function VideoPost({
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, activeProfile } = useAuth();
   const [isLiked, setIsLiked] = useState(Boolean((post as any)?.isLiked));
   const [likeCount, setLikeCount] = useState(Number(post?.likes ?? (post as any)?.likesCount ?? 0));
   const [sharesCount, setSharesCount] = useState(Number(post?.saves ?? (post as any)?.sharesCount ?? 0));
@@ -268,22 +269,17 @@ export default function VideoPost({
     };
   }, [post?.id]);
 
-  // Check saved state from AsyncStorage on mount
+  // Check saved state from AsyncStorage on mount / active profile switch
   useEffect(() => {
     let isMounted = true;
-    AsyncStorage.getItem("animaltok_saved_posts").then((stored) => {
-      if (!isMounted || !stored) return;
-      try {
-        const list = JSON.parse(stored);
-        if (Array.isArray(list) && list.some((p: any) => String(p.id) === String(post.id))) {
-          setIsSaved(true);
-        }
-      } catch (e) {}
+    const profileKeyId = activeProfile?.id || user?.id;
+    isPostSavedForProfile(post.id, profileKeyId, user?.id).then((saved) => {
+      if (isMounted) setIsSaved(saved);
     });
     return () => {
       isMounted = false;
     };
-  }, [post?.id]);
+  }, [post?.id, activeProfile?.id, user?.id]);
 
   const handleLike = async () => {
     if (!user && onAuthPrompt) {
@@ -344,17 +340,8 @@ export default function VideoPost({
     setSavesCount((prev) => (nextSaved ? prev + 1 : Math.max(0, prev - 1)));
 
     try {
-      const stored = await AsyncStorage.getItem("animaltok_saved_posts");
-      let list = stored ? JSON.parse(stored) : [];
-      if (!Array.isArray(list)) list = [];
-      if (nextSaved) {
-        if (!list.some((p: any) => String(p.id) === String(post.id))) {
-          list.unshift(post);
-        }
-      } else {
-        list = list.filter((p: any) => String(p.id) !== String(post.id));
-      }
-      await AsyncStorage.setItem("animaltok_saved_posts", JSON.stringify(list));
+      const profileKeyId = activeProfile?.id || user?.id;
+      await toggleSavedPostForProfile(post, nextSaved, profileKeyId, user?.id);
     } catch (e) {
       console.warn("Failed to persist saved post:", e);
     }

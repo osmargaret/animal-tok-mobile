@@ -496,14 +496,18 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
     paddingHorizontal: 16,
   },
   gridItem: {
-    width: GRID_SIZE,
-    height: GRID_SIZE,
-    borderRadius: 10,
+    width: "48.2%",
+    aspectRatio: 0.9,
+    borderRadius: 14,
     overflow: "hidden",
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    marginBottom: 12,
   },
   gridImg: {
     width: "100%",

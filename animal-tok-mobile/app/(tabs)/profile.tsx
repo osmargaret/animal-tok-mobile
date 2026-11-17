@@ -50,11 +50,12 @@ import { marketProducts, marketServices, ProductItem, ServiceItem } from "@/data
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
+import EventDetailModal, { type EventDetailItem } from "@/components/EventDetailModal";
+import { ModalVideoPlayer } from "@/components/ModalVideoPlayer";
+import { getFilterById } from "@/data/filters";
+import { getSavedPostsForProfile, toggleSavedPostForProfile } from "@/utils/savedPosts";
 import { formatRelativeTime } from "@/utils/timeAgo";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const GRID_SIZE = (SCREEN_WIDTH - 48) / 3;
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -69,12 +70,14 @@ export default function ProfileScreen() {
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
   // Products, Services, Events owned or hosted by this profile
-  const [userProducts, setUserProducts] = useState<ProductItem[]>(marketProducts);
-  const [userServices, setUserServices] = useState<ServiceItem[]>(marketServices);
+  const [userProducts, setUserProducts] = useState<ProductItem[]>([]);
+  const [userServices, setUserServices] = useState<ServiceItem[]>([]);
   const [userEvents, setUserEvents] = useState<any[]>([]);
   const [hostEventModalVisible, setHostEventModalVisible] = useState(false);
+  const [selectedEventDetail, setSelectedEventDetail] = useState<EventDetailItem | null>(null);
   const [serviceAppointments, setServiceAppointments] = useState<any[]>([]);
   const [orderCount, setOrderCount] = useState(0);
+  const prevProfileIdRef = React.useRef<string | undefined>(activeProfile?.id);
 
   const isAnimal = activeProfile?.type === "animal";
   const isVet = user?.role === "vet" || user?.accountType === "vet";
@@ -87,8 +90,25 @@ export default function ProfileScreen() {
     return val.toString();
   };
 
-  const fetchStats = async () => {
+  const fetchStats = async (switchedProfile = false) => {
     setLoading(true);
+    if (switchedProfile) {
+      setProfileStats(null);
+      setSavedPosts([]);
+      setUserProducts([]);
+      setUserServices([]);
+      setUserEvents([]);
+    }
+
+    const activeProfId = activeProfile?.id || user?.id;
+
+    // Load per-profile saved posts immediately
+    try {
+      const scopedSaved = await getSavedPostsForProfile(activeProfId, user?.id);
+      setSavedPosts(scopedSaved);
+    } catch {
+      setSavedPosts([]);
+    }
 
     // 1. Gather all posts (feedPosts + locally persisted custom posts)
     let allPosts: any[] = feedPosts.map((fp) => ({
@@ -248,18 +268,35 @@ export default function ProfileScreen() {
         followers: 0,
         following: 0,
         likes: totalLikes > 0 ? formatNumber(totalLikes) : "0",
-        bio: (user as any)?.bio || `Handler & parent of ${pets.map((p) => p.name).join(", ") || "pets"}! 🐾`,
+        bio:
+          (user as any)?.bio ||
+          (pets.length > 0
+            ? `Pet parent to ${pets.map((p) => p.name).join(", ")} 🐾`
+            : "Sharing pet moments on Animandler 🐾"),
         coverImage: (user as any)?.coverImage || activeProfile?.coverImage || "",
-        badges: [{ icon: "🛡️", label: "Verified Handler" }],
         posts: handlerPosts,
       });
     }
 
-    // Synchronize custom products, services, and events (from backend server + local storage)
+    // Synchronize custom products, services, and events scoped to the active profile
     try {
+      const curProfileId = String(activeProfile?.id || user?.id || "").toLowerCase();
+      const curProfileName = String(activeProfile?.name || user?.name || "").toLowerCase().trim();
       const curUid = String(user?.id || "").toLowerCase();
       const curUname = (user?.name || "").toLowerCase().trim();
-      const curUsername = (user?.username || "").toLowerCase().replace(/^@/, "").trim();
+
+      const matchesActiveOwner = (itemIdField: string, itemNameField: string) => {
+        if (isAnimal && activeProfile) {
+          return (
+            (curProfileId && itemIdField === curProfileId) ||
+            (curProfileName && itemNameField === curProfileName)
+          );
+        }
+        return (
+          (curUid && itemIdField === curUid) ||
+          (curUname && itemNameField === curUname)
+        );
+      };
 
       // 1. PRODUCTS
       let combinedProds: any[] = [];
@@ -283,7 +320,7 @@ export default function ProfileScreen() {
       const myProds = combinedProds.filter((p: any) => {
         const sid = String(p.sellerId || p.userId || "").toLowerCase();
         const sname = String(p.sellerName || p.seller || "").toLowerCase().trim();
-        return (curUid && sid === curUid) || (curUname && sname === curUname);
+        return matchesActiveOwner(sid, sname);
       });
       setUserProducts(myProds);
 
@@ -309,7 +346,7 @@ export default function ProfileScreen() {
       const mySrvs = combinedSrvs.filter((s: any) => {
         const pid = String(s.providerId || s.sellerId || s.userId || "").toLowerCase();
         const pname = String(s.providerName || s.provider || "").toLowerCase().trim();
-        return (curUid && pid === curUid) || (curUname && pname === curUname);
+        return matchesActiveOwner(pid, pname);
       });
       setUserServices(mySrvs);
 
@@ -335,7 +372,7 @@ export default function ProfileScreen() {
       const myEvts = combinedEvts.filter((e: any) => {
         const oid = String(e.organizerId || e.userId || "").toLowerCase();
         const oname = String(e.organizerName || "").toLowerCase().trim();
-        return (curUid && oid === curUid) || (curUname && oname === curUname);
+        return matchesActiveOwner(oid, oname);
       });
       setUserEvents(myEvts);
     } catch (e) {
@@ -343,6 +380,17 @@ export default function ProfileScreen() {
     }
 
     setLoading(false);
+  };
+
+  const handleUnsavePost = async (post: any) => {
+    try {
+      const profileKeyId = activeProfile?.id || user?.id;
+      await toggleSavedPostForProfile(post, false, profileKeyId, user?.id);
+      setSavedPosts((prev) => prev.filter((p) => String(p.id) !== String(post.id)));
+      setSelectedPost(null);
+    } catch (err) {
+      console.warn("Failed to remove saved post:", err);
+    }
   };
 
   const handleDeletePost = (postId: string | number) => {
@@ -400,8 +448,10 @@ export default function ProfileScreen() {
   };
 
   useEffect(() => {
-    fetchStats();
-  }, [activeProfile, user]);
+    const didSwitch = prevProfileIdRef.current !== activeProfile?.id;
+    prevProfileIdRef.current = activeProfile?.id;
+    fetchStats(didSwitch);
+  }, [activeProfile?.id, user?.id]);
 
   const loadServiceAppointments = async () => {
     try {
@@ -436,7 +486,7 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchStats();
+      fetchStats(false);
       loadServiceAppointments();
       // Load order count from AsyncStorage
       AsyncStorage.getItem("animaltok_product_orders").then((raw) => {
@@ -447,16 +497,7 @@ export default function ProfileScreen() {
           setOrderCount(0);
         }
       });
-      // Load saved posts from AsyncStorage
-      AsyncStorage.getItem("animaltok_saved_posts").then((raw) => {
-        try {
-          const list = raw ? JSON.parse(raw) : [];
-          setSavedPosts(Array.isArray(list) ? list : []);
-        } catch {
-          setSavedPosts([]);
-        }
-      });
-    }, [activeProfile, user])
+    }, [activeProfile?.id, user?.id])
   );
 
   const handleLogout = async () => {
@@ -510,7 +551,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const isAnyModalOpen = hostEventModalVisible || !!selectedPost;
+  const isAnyModalOpen = hostEventModalVisible || !!selectedPost || !!selectedEventDetail;
 
   const swipeHandlers = useSwipeGesture({
     enabled: !isAnyModalOpen,
@@ -551,6 +592,57 @@ export default function ProfileScreen() {
   }
 
   const currentPosts = profileStats?.posts || [];
+
+  const isImgAvatar = (val?: string | null) =>
+    !!val && (val.startsWith("http") || val.startsWith("data:") || val.startsWith("file:") || val.startsWith("/"));
+
+  const renderUniformMediaGrid = (items: any[], isSavedTab = false) => (
+    <View style={styles.uniformGrid}>
+      {items.map((post: any, idx: number) => {
+        const isVid = !!(
+          post.videoUrl ||
+          (post.posterUrl && post.posterUrl.match(/\.(mp4|mov|webm)$/i))
+        );
+        const mediaUri =
+          post.imageUrl || post.posterUrl || post.videoUrl || (typeof post === "string" ? post : "");
+
+        return (
+          <TouchableOpacity
+            key={post.id || idx}
+            style={styles.uniformMediaCard}
+            activeOpacity={0.85}
+            onPress={() => setSelectedPost(post)}
+          >
+            <View style={styles.uniformCardThumbWrap}>
+              <Image source={{ uri: mediaUri }} style={styles.uniformCardImg} resizeMode="cover" />
+              <View style={styles.uniformCardPlayPill}>
+                <Play size={10} color="#ffffff" fill="#ffffff" />
+                <Text style={styles.uniformCardPlayText}>
+                  {isVid ? (post.likes ? formatNumber(post.likes) : "Play") : "View"}
+                </Text>
+              </View>
+              {isSavedTab && (
+                <View style={styles.uniformSavedPill}>
+                  <Bookmark size={10} color="#2dd4bf" fill="#2dd4bf" />
+                </View>
+              )}
+            </View>
+            <View style={styles.uniformCardBody}>
+              <Text style={styles.uniformCardTag} numberOfLines={1}>
+                {post.displayName || activeProfile?.name || "Post"}
+              </Text>
+              <Text style={styles.uniformCardTitle} numberOfLines={1}>
+                {post.caption || (isVid ? "Pet Video Clip" : "Pet Photo")}
+              </Text>
+              <Text style={styles.uniformCardMeta} numberOfLines={1}>
+                {post.likes ? `${formatNumber(post.likes)} likes` : post.time || "Tap to play"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   return (
     <View style={styles.container} {...swipeHandlers}>
@@ -677,7 +769,12 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={styles.profileUsername}>{activeProfile?.username}</Text>
+            <Text style={styles.profileUsername}>
+              {activeProfile?.username}
+              {isAnimal && (activeProfile?.breed || activeProfile?.age)
+                ? ` • ${[activeProfile.breed, activeProfile.age].filter(Boolean).join(" • ")}`
+                : ""}
+            </Text>
             {isVet && (user?.clinicName || user?.specialization) ? (
               <View style={styles.clinicInfoRow}>
                 <Stethoscope size={13} color="#10b981" />
@@ -691,18 +788,22 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Switch Active Profile - Horizontal Selector */}
+        {/* Switch Active Profile - Clean Horizontal Selector */}
         <View style={styles.switchWrapper}>
           <Text style={styles.switchHeaderTitle}>SWITCH PROFILE</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.switchScroll}>
-            {/* Handler Option */}
+            {/* Personal Account Option */}
             <TouchableOpacity
               style={[styles.switchChip, !isAnimal && styles.switchChipActive]}
               onPress={switchToHandler}
             >
-              <ShieldCheck size={15} color={!isAnimal ? "#8b5cf6" : "#64748b"} />
+              {isImgAvatar(user?.avatar) ? (
+                <Image source={{ uri: user!.avatar }} style={styles.switchPetPhoto} />
+              ) : (
+                <ShieldCheck size={14} color={!isAnimal ? "#06b6d4" : "#64748b"} />
+              )}
               <Text style={[styles.switchChipText, !isAnimal && styles.switchChipTextActive]}>
-                Handler ({user?.name ? user.name.split(" ")[0] : "Me"})
+                {user?.name ? user.name.split(" ")[0] : "Me"}
               </Text>
             </TouchableOpacity>
 
@@ -715,10 +816,7 @@ export default function ProfileScreen() {
                   style={[styles.switchChip, isSelected && styles.switchChipActive]}
                   onPress={() => switchProfile(pet)}
                 >
-                  {pet.avatar &&
-                  (pet.avatar.startsWith("http") ||
-                    pet.avatar.startsWith("data:") ||
-                    pet.avatar.startsWith("file:")) ? (
+                  {isImgAvatar(pet.avatar) ? (
                     <Image source={{ uri: pet.avatar }} style={styles.switchPetPhoto} />
                   ) : (
                     <Text style={{ fontSize: 15 }}>{pet.avatar || "🐾"}</Text>
@@ -742,25 +840,7 @@ export default function ProfileScreen() {
           <ActivityIndicator size="large" color="#06b6d4" style={{ marginTop: 24 }} />
         ) : (
           <>
-            {/* Pet Achievements (if any) */}
-            {profileStats?.badges && profileStats.badges.length > 0 && (
-              <View style={styles.badgesCard}>
-                <View style={styles.badgeHeader}>
-                  <Award size={15} color="#f59e0b" />
-                  <Text style={styles.badgeTitle}>Achievements & Badges</Text>
-                </View>
-                <View style={styles.badgeRow}>
-                  {profileStats.badges.map((badge: any, i: number) => (
-                    <View key={i} style={styles.badgeChip}>
-                      <Text style={styles.badgeEmoji}>{badge.icon}</Text>
-                      <Text style={styles.badgeText}>{badge.label}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Command Center Tabs: Posts | Products | Services | Events */}
+            {/* Command Center Tabs: Posts | Products | Services | Events | Saved */}
             <View style={styles.gridTabRow}>
               <TouchableOpacity
                 style={[styles.gridTabBtn, activeTab === "grid" && styles.gridTabActive]}
@@ -828,55 +908,16 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* TAB 1: POSTS & VIDEOS */}
+            {/* TAB 1: POSTS & VIDEOS (2-column uniform grid) */}
             {activeTab === "grid" && (
               currentPosts.length > 0 ? (
-                <View style={styles.grid}>
-                  {currentPosts.map((post: any, idx: number) => {
-                    const isVid = !!(
-                      post.videoUrl ||
-                      (post.posterUrl && post.posterUrl.match(/\.(mp4|mov|webm)$/i))
-                    );
-                    const mediaUri =
-                      post.imageUrl || post.posterUrl || post.videoUrl || (typeof post === "string" ? post : "");
-
-                    return (
-                      <TouchableOpacity
-                        key={post.id || idx}
-                        style={styles.gridItem}
-                        activeOpacity={0.85}
-                        onPress={() => setSelectedPost(post)}
-                      >
-                        <Image source={{ uri: mediaUri }} style={styles.gridImg} resizeMode="cover" />
-
-                        {/* Video Badge with Play icon */}
-                        {isVid && (
-                          <View style={styles.gridVideoBadge}>
-                            <Play size={10} color="#ffffff" fill="#ffffff" />
-                            <Text style={styles.gridVideoBadgeText}>
-                              {post.likes ? formatNumber(post.likes) : "Clip"}
-                            </Text>
-                          </View>
-                        )}
-
-                        {/* Bottom caption overlay */}
-                        {post.caption ? (
-                          <View style={styles.gridCaptionOverlay}>
-                            <Text style={styles.gridCaptionText} numberOfLines={1}>
-                              {post.caption}
-                            </Text>
-                          </View>
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                renderUniformMediaGrid(currentPosts, false)
               ) : (
                 <View style={styles.emptyPostsBox}>
                   <Text style={{ fontSize: 44, marginBottom: 10 }}>🎬</Text>
                   <Text style={styles.emptyPostsTitle}>No posts yet for {activeProfile?.name}</Text>
                   <Text style={styles.emptyPostsSub}>
-                    Capture live pet videos or upload photos to showcase your pet!
+                    Capture live pet videos or upload photos to showcase {activeProfile?.name}!
                   </Text>
                   <TouchableOpacity style={styles.createPostBtn} onPress={() => router.push("/create")}>
                     <Plus size={16} color="#ffffff" />
@@ -969,11 +1010,11 @@ export default function ProfileScreen() {
                 </View>
 
                 {userServices.length > 0 ? (
-                  <View style={styles.hubServicesList}>
+                  <View style={styles.uniformGrid}>
                     {userServices.map((srv) => (
                       <TouchableOpacity
                         key={srv.id}
-                        style={styles.hubServiceCard}
+                        style={styles.uniformMediaCard}
                         onPress={() =>
                           router.push({
                             pathname: "/(tabs)/service/[id]",
@@ -996,13 +1037,19 @@ export default function ProfileScreen() {
                         }
                         activeOpacity={0.85}
                       >
-                        <Image source={{ uri: srv.image }} style={styles.hubServiceImg} />
-                        <View style={styles.hubServiceBody}>
-                          <Text style={styles.hubServiceTitle}>{srv.name}</Text>
-                          <Text style={styles.hubServiceProvider}>By {srv.provider}</Text>
-                          <Text style={styles.hubServicePrice}>{srv.price}</Text>
-                          <Text style={styles.hubServiceAppointments}>
-                            {getUpcomingCountForService(srv.id, srv.name)} upcoming appointments
+                        <Image source={{ uri: srv.image }} style={styles.uniformProductImg} resizeMode="cover" />
+                        <View style={styles.uniformCardBody}>
+                          <Text style={styles.uniformCardTag} numberOfLines={1}>
+                            {srv.category || "SERVICE"}
+                          </Text>
+                          <Text style={styles.uniformCardTitle} numberOfLines={1}>
+                            {srv.name}
+                          </Text>
+                          <Text style={[styles.uniformCardMeta, { color: "#10b981", fontWeight: "800" }]}>
+                            {srv.price}
+                          </Text>
+                          <Text style={[styles.uniformCardMeta, { color: "#06b6d4", marginTop: 2 }]} numberOfLines={1}>
+                            {getUpcomingCountForService(srv.id, srv.name)} upcoming
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -1045,27 +1092,51 @@ export default function ProfileScreen() {
                 </View>
 
                 {userEvents.length > 0 ? (
-                  <View style={styles.hubEventsList}>
+                  <View style={styles.uniformGrid}>
                     {userEvents.map((evt) => (
-                      <View key={evt.id} style={styles.hubEventCard}>
-                        {evt.image ? (
-                          <Image source={{ uri: evt.image }} style={styles.hubEventImg} />
-                        ) : null}
-                        <View style={styles.hubEventBody}>
-                          <View style={styles.hubEventCategoryPill}>
-                            <Text style={styles.hubEventCategoryText}>{evt.category}</Text>
-                          </View>
-                          <Text style={styles.hubEventTitle}>{evt.title}</Text>
-                          <View style={styles.hubEventMetaRow}>
-                            <Calendar size={13} color="#06b6d4" />
-                            <Text style={styles.hubEventMetaText}>{evt.date}</Text>
-                          </View>
-                          <View style={styles.hubEventMetaRow}>
-                            <MapPin size={13} color="#64748b" />
-                            <Text style={styles.hubEventMetaText}>{evt.location}</Text>
-                          </View>
+                      <TouchableOpacity
+                        key={evt.id}
+                        style={styles.uniformMediaCard}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          setSelectedEventDetail({
+                            id: String(evt.id),
+                            title: evt.title,
+                            date: evt.date || "Upcoming",
+                            location: evt.location || "Community Park",
+                            attendees: Number(evt.attendeesCount ?? evt.attendees ?? 1),
+                            category: evt.category,
+                            categoryLabel: evt.categoryLabel || evt.category || "Pet Event",
+                            petType: evt.petType,
+                            description: evt.description || "Join us for this pet community event!",
+                            image: evt.image,
+                            isPaid: evt.isPaid,
+                            ticketPrice: evt.ticketPrice,
+                            organizerName: evt.organizerName || activeProfile?.name,
+                          })
+                        }
+                      >
+                        <Image
+                          source={{
+                            uri:
+                              evt.image ||
+                              "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
+                          }}
+                          style={styles.uniformProductImg}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.uniformCardBody}>
+                          <Text style={styles.uniformCardTag} numberOfLines={1}>
+                            {evt.category || "EVENT"}
+                          </Text>
+                          <Text style={styles.uniformCardTitle} numberOfLines={2}>
+                            {evt.title}
+                          </Text>
+                          <Text style={styles.uniformCardMeta} numberOfLines={1}>
+                            {evt.date}
+                          </Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 ) : (
@@ -1087,53 +1158,16 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            {/* TAB 5: SAVED VIDEOS & POSTS */}
+            {/* TAB 5: SAVED VIDEOS & POSTS (2-column uniform grid) */}
             {activeTab === "saved" && (
               savedPosts.length > 0 ? (
-                <View style={styles.grid}>
-                  {savedPosts.map((post: any, idx: number) => {
-                    const isVid = !!(
-                      post.videoUrl ||
-                      (post.posterUrl && post.posterUrl.match(/\.(mp4|mov|webm)$/i))
-                    );
-                    const mediaUri =
-                      post.imageUrl || post.posterUrl || post.videoUrl || (typeof post === "string" ? post : "");
-
-                    return (
-                      <TouchableOpacity
-                        key={post.id || idx}
-                        style={styles.gridItem}
-                        activeOpacity={0.85}
-                        onPress={() => setSelectedPost(post)}
-                      >
-                        <Image source={{ uri: mediaUri }} style={styles.gridImg} resizeMode="cover" />
-
-                        {isVid && (
-                          <View style={styles.gridVideoBadge}>
-                            <Play size={10} color="#ffffff" fill="#ffffff" />
-                            <Text style={styles.gridVideoBadgeText}>
-                              {post.likes ? formatNumber(post.likes) : "Clip"}
-                            </Text>
-                          </View>
-                        )}
-
-                        {post.caption ? (
-                          <View style={styles.gridCaptionOverlay}>
-                            <Text style={styles.gridCaptionText} numberOfLines={1}>
-                              {post.caption}
-                            </Text>
-                          </View>
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                renderUniformMediaGrid(savedPosts, true)
               ) : (
                 <View style={styles.emptyHubBox}>
                   <Text style={{ fontSize: 40, marginBottom: 12 }}>🔖</Text>
-                  <Text style={styles.emptyHubTitle}>No Saved Posts Yet</Text>
+                  <Text style={styles.emptyHubTitle}>No Saved Posts for {activeProfile?.name}</Text>
                   <Text style={styles.emptyHubSub}>
-                    Bookmark clips and videos from the feed to watch them anytime.
+                    Bookmark clips and videos from the feed to watch them anytime on this profile.
                   </Text>
                   <TouchableOpacity
                     style={styles.createPostBtn}
@@ -1157,10 +1191,14 @@ export default function ProfileScreen() {
               {/* Modal Top Bar */}
               <View style={styles.postModalHeader}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  {activeProfile?.avatar && (activeProfile.avatar.startsWith("http") || activeProfile.avatar.startsWith("data:") || activeProfile.avatar.startsWith("/")) ? (
-                    <Image source={{ uri: activeProfile.avatar }} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="cover" />
+                  {isImgAvatar(selectedPost.avatar || activeProfile?.avatar) ? (
+                    <Image
+                      source={{ uri: selectedPost.avatar || activeProfile?.avatar }}
+                      style={{ width: 28, height: 28, borderRadius: 14 }}
+                      resizeMode="cover"
+                    />
                   ) : (
-                    <Text style={{ fontSize: 20 }}>{activeProfile?.avatar || "🐾"}</Text>
+                    <Text style={{ fontSize: 20 }}>{selectedPost.avatar || activeProfile?.avatar || "🐾"}</Text>
                   )}
                   <View>
                     <Text style={styles.postModalAuthor}>{selectedPost.displayName || activeProfile?.name}</Text>
@@ -1168,43 +1206,54 @@ export default function ProfileScreen() {
                   </View>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <TouchableOpacity
-                    style={styles.postModalTopDeleteBtn}
-                    onPress={() => handleDeletePost(selectedPost.id)}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Trash2 size={18} color="#94a3b8" />
-                  </TouchableOpacity>
+                  {activeTab === "saved" ? (
+                    <TouchableOpacity
+                      style={styles.postModalTopDeleteBtn}
+                      onPress={() => handleUnsavePost(selectedPost)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Bookmark size={18} color="#2dd4bf" fill="#2dd4bf" />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.postModalTopDeleteBtn}
+                      onPress={() => handleDeletePost(selectedPost.id)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Trash2 size={18} color="#94a3b8" />
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity style={styles.postModalCloseBtn} onPress={() => setSelectedPost(null)}>
                     <X size={18} color="#ffffff" />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Media Container */}
+              {/* Media Container (plays video natively on mobile & web) */}
               <View style={styles.postModalMediaBox}>
-                {selectedPost.videoUrl && Platform.OS === "web" ? (
-                  <video
-                    src={selectedPost.videoUrl}
-                    controls
-                    autoPlay
-                    loop
-                    playsInline
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      backgroundColor: "#000",
-                    }}
-                  />
-                ) : (
-                  <Image
-                    source={{
-                      uri: selectedPost.imageUrl || selectedPost.posterUrl || selectedPost.videoUrl,
-                    }}
-                    style={styles.postModalImage}
-                    resizeMode="cover"
+                <ModalVideoPlayer
+                  videoUrl={selectedPost.videoUrl}
+                  imageUrl={selectedPost.imageUrl || selectedPost.posterUrl}
+                />
+                {((selectedPost.filterId && selectedPost.filterId !== "normal") ||
+                  (selectedPost.filterColor && selectedPost.filterColor !== "transparent")) && (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      StyleSheet.absoluteFillObject,
+                      {
+                        backgroundColor:
+                          selectedPost.filterColor ||
+                          getFilterById(selectedPost.filterId).tintColor ||
+                          "transparent",
+                        opacity:
+                          selectedPost.filterOpacity ??
+                          getFilterById(selectedPost.filterId).tintOpacity ??
+                          0.18,
+                      },
+                    ]}
                   />
                 )}
               </View>
@@ -1242,6 +1291,19 @@ export default function ProfileScreen() {
         visible={hostEventModalVisible}
         onClose={() => setHostEventModalVisible(false)}
         onEventCreated={(newEvent) => setUserEvents((prev) => [newEvent, ...prev])}
+      />
+
+      {/* Event Detail Popup Modal */}
+      <EventDetailModal
+        visible={!!selectedEventDetail}
+        event={selectedEventDetail}
+        isAttending={true}
+        onClose={() => setSelectedEventDetail(null)}
+        onToggleAttend={async (evt) => {
+          await api.toggleEventRsvp(evt.id);
+          setSelectedEventDetail(null);
+          fetchStats(false);
+        }}
       />
     </View>
   );
@@ -1626,17 +1688,95 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
   },
   gridItem: {
-    width: GRID_SIZE,
-    height: GRID_SIZE * 1.35,
-    borderRadius: 10,
+    width: "48.2%",
+    aspectRatio: 0.78,
+    borderRadius: 14,
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#161b22",
     borderWidth: 1,
     borderColor: "#1e293b",
+    marginBottom: 12,
+  },
+  uniformGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  uniformMediaCard: {
+    width: "48.2%",
+    backgroundColor: "#161b22",
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    marginBottom: 12,
+  },
+  uniformCardThumbWrap: {
+    width: "100%",
+    height: 132,
+    position: "relative",
+    backgroundColor: "#0d1117",
+  },
+  uniformCardImg: {
+    width: "100%",
+    height: "100%",
+  },
+  uniformProductImg: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "#0d1117",
+  },
+  uniformCardPlayPill: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(13, 17, 23, 0.78)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  uniformCardPlayText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  uniformSavedPill: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(13, 17, 23, 0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uniformCardBody: {
+    padding: 9,
+  },
+  uniformCardTag: {
+    color: "#06b6d4",
+    fontSize: 10,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  uniformCardTitle: {
+    color: "#ffffff",
+    fontSize: 12.5,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  uniformCardMeta: {
+    color: "#94a3b8",
+    fontSize: 11,
   },
   gridImg: {
     width: "100%",
@@ -1867,15 +2007,16 @@ const styles = StyleSheet.create({
   hubProductsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    justifyContent: "space-between",
   },
   hubProductCard: {
-    width: "48%",
+    width: "48.2%",
     backgroundColor: "#161b22",
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#1e293b",
+    marginBottom: 12,
   },
   hubProductImg: {
     width: "100%",

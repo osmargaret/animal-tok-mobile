@@ -141,11 +141,11 @@ export default function MarketplaceScreen() {
         {activeTab === "products" ? (
           <View style={styles.grid}>
             {displayProducts.map((item) => (
-              <TouchableOpacity 
-                key={item.id} 
-                style={[styles.card, { width: cardWidth }]} 
+              <TouchableOpacity
+                key={item.id}
+                style={styles.card}
                 onPress={() => handleProductPress(item)}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 <Image source={{ uri: item.image }} style={styles.cardImg} />
                 <View style={styles.ratingBadge}>
@@ -153,11 +153,11 @@ export default function MarketplaceScreen() {
                   <Text style={styles.ratingText}>{item.rating}</Text>
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={styles.categoryLabel}>{item.category}</Text>
+                  <Text style={styles.categoryLabel} numberOfLines={1}>{item.category}</Text>
                   <Text style={styles.cardTitle} numberOfLines={1}>
                     {item.name}
                   </Text>
-                  <Text style={styles.sellerName}>{item.seller}</Text>
+                  <Text style={styles.sellerName} numberOfLines={1}>{item.seller}</Text>
 
                   <View style={styles.priceRow}>
                     <Text style={styles.priceText}>{item.price}</Text>
@@ -170,28 +170,32 @@ export default function MarketplaceScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.servicesList}>
+          <View style={styles.grid}>
             {displayServices.map((serv) => (
-              <TouchableOpacity 
-                key={serv.id} 
-                style={styles.serviceCard}
+              <TouchableOpacity
+                key={serv.id}
+                style={styles.card}
                 onPress={() => handleServicePress(serv)}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <Image source={{ uri: serv.image }} style={styles.serviceImg} />
-                <View style={styles.serviceBody}>
-                  <View style={styles.serviceHeader}>
-                    <Text style={styles.serviceTitle}>{serv.name}</Text>
-                    <View style={styles.ratingBadgeInline}>
-                      <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                      <Text style={styles.ratingText}>{serv.rating}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.providerName}>{serv.provider}</Text>
+                <Image source={{ uri: serv.image }} style={styles.cardImg} />
+                <View style={styles.ratingBadge}>
+                  <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                  <Text style={styles.ratingText}>{serv.rating}</Text>
+                </View>
+                <View style={styles.cardBody}>
+                  <Text style={[styles.categoryLabel, { color: "#10b981" }]} numberOfLines={1}>
+                    {serv.category || "SERVICE"}
+                  </Text>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {serv.name}
+                  </Text>
+                  <Text style={styles.sellerName} numberOfLines={1}>{serv.provider}</Text>
+
                   <View style={styles.priceRow}>
                     <Text style={styles.priceText}>{serv.price}</Text>
-                    <View style={styles.buyBtn}>
-                      <Text style={styles.buyBtnText}>Details</Text>
+                    <View style={[styles.buyBtn, { backgroundColor: "#10b981" }]}>
+                      <Text style={styles.buyBtnText}>Book</Text>
                     </View>
                   </View>
                 </View>
@@ -286,15 +290,17 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between",
   },
   card: {
+    width: "48.2%",
     backgroundColor: "#161b22",
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#1e293b",
     position: "relative",
+    marginBottom: 12,
   },
   cardImg: {
     width: "100%",

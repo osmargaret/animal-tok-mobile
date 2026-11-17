@@ -8,13 +8,15 @@ import {
   SafeAreaView,
   Alert,
   Platform,
+  Image,
 } from "react-native";
-import { Calendar, MapPin, Users, Check, HeartHandshake, ArrowLeft } from "lucide-react-native";
+import { Calendar, MapPin, Users, Check, ArrowLeft } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import GuestAuthModal from "@/components/GuestAuthModal";
+import EventDetailModal, { type EventDetailItem } from "@/components/EventDetailModal";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const FALLBACK_EVENTS = [
@@ -52,6 +54,7 @@ export default function EventsScreen() {
   const { user } = useAuth();
   const [eventsList, setEventsList] = useState(FALLBACK_EVENTS);
   const [rsvps, setRsvps] = useState<Record<string, boolean>>({});
+  const [selectedEventDetail, setSelectedEventDetail] = useState<EventDetailItem | null>(null);
   const [guestAuthVisible, setGuestAuthVisible] = useState(false);
   const [guestAuthTitle, setGuestAuthTitle] = useState("View Pet Event 🎪");
   const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
@@ -104,6 +107,20 @@ export default function EventsScreen() {
       setGuestAuthVisible(true);
       return;
     }
+    setSelectedEventDetail({
+      id: item.id,
+      title: item.title,
+      date: item.date,
+      location: item.location,
+      attendees: item.attendees || 0,
+      category: item.category,
+      categoryLabel: item.category,
+      description: item.description,
+      image: item.image,
+      isPaid: item.isPaid,
+      ticketPrice: item.ticketPrice,
+      organizerName: item.organizerName,
+    });
   };
 
   const handleRsvpPress = (id: string, title: string) => {
@@ -143,7 +160,7 @@ export default function EventsScreen() {
   };
 
   const swipeHandlers = useSwipeGesture({
-    enabled: !guestAuthVisible,
+    enabled: !guestAuthVisible && !selectedEventDetail,
     onSwipeLeft: () => {
       router.replace("/(tabs)/marketplace");
     },
@@ -166,56 +183,76 @@ export default function EventsScreen() {
           </View>
         </View>
 
-        <View style={styles.eventsList}>
-          {eventsList.map((item) => {
+        <View style={styles.eventsGrid}>
+          {eventsList.map((item: any) => {
             const isAttending = !!rsvps[item.id];
             return (
               <TouchableOpacity
                 key={item.id}
                 style={styles.eventCard}
-                activeOpacity={0.9}
+                activeOpacity={0.85}
                 onPress={() => handleEventPress(item)}
               >
-                <View style={styles.cardHeader}>
+                <View style={styles.eventImageWrap}>
+                  <Image
+                    source={{
+                      uri:
+                        item.image ||
+                        "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
+                    }}
+                    style={styles.eventImage}
+                    resizeMode="cover"
+                  />
                   <View style={styles.categoryBadge}>
                     <Text style={styles.categoryText}>{item.category}</Text>
                   </View>
-                  <View style={styles.attendeesRow}>
-                    <Users size={14} color="#06b6d4" />
-                    <Text style={styles.attendeesText}>
-                      {item.attendees + (isAttending ? 1 : 0)} attending
-                    </Text>
+                  {isAttending && (
+                    <View style={styles.goingPill}>
+                      <Check size={10} color="#ffffff" />
+                      <Text style={styles.goingPillText}>Going</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.eventBody}>
+                  <Text style={styles.eventTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.infoText} numberOfLines={1}>
+                    {item.date}
+                  </Text>
+                  <View style={styles.cardFooterRow}>
+                    <View style={styles.attendeesRow}>
+                      <Users size={12} color="#06b6d4" />
+                      <Text style={styles.attendeesText}>{item.attendees} going</Text>
+                    </View>
+                    <Text style={styles.detailsLinkText}>Details</Text>
                   </View>
                 </View>
-
-                <Text style={styles.eventTitle}>{item.title}</Text>
-
-                <View style={styles.infoRow}>
-                  <Calendar size={14} color="#f59e0b" />
-                  <Text style={styles.infoText}>{item.date}</Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <MapPin size={14} color="#06b6d4" />
-                  <Text style={styles.infoText}>{item.location}</Text>
-                </View>
-
-                <Text style={styles.description}>{item.description}</Text>
-
-                <TouchableOpacity
-                  style={[styles.rsvpBtn, isAttending && styles.rsvpBtnActive]}
-                  onPress={() => handleRsvpPress(item.id, item.title)}
-                >
-                  {isAttending ? <Check size={16} color="#ffffff" /> : <HeartHandshake size={16} color="#ffffff" />}
-                  <Text style={styles.rsvpBtnText}>
-                    {isAttending ? "I'm Attending ✓" : "RSVP / Join Event"}
-                  </Text>
-                </TouchableOpacity>
               </TouchableOpacity>
             );
           })}
         </View>
       </ScrollView>
+
+      {/* Event Detail Modal */}
+      <EventDetailModal
+        visible={!!selectedEventDetail}
+        event={selectedEventDetail}
+        isAttending={selectedEventDetail ? !!rsvps[selectedEventDetail.id] : false}
+        onClose={() => setSelectedEventDetail(null)}
+        onToggleAttend={(evt) => {
+          handleRsvpPress(evt.id, evt.title);
+          setSelectedEventDetail((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  attendees: Math.max(0, prev.attendees + (!rsvps[evt.id] ? 1 : -1)),
+                }
+              : null
+          );
+        }}
+      />
 
       {/* Guest Authentication Modal */}
       <GuestAuthModal
@@ -253,79 +290,93 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 12,
   },
-  eventsList: {
-    gap: 16,
+  eventsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   eventCard: {
+    width: "48.2%",
     backgroundColor: "#161b22",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#1e293b",
+    marginBottom: 12,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+  eventImageWrap: {
+    width: "100%",
+    height: 118,
+    position: "relative",
+    backgroundColor: "#0d1117",
+  },
+  eventImage: {
+    width: "100%",
+    height: "100%",
   },
   categoryBadge: {
-    backgroundColor: "rgba(6, 182, 212, 0.15)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(13, 17, 23, 0.86)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   categoryText: {
     color: "#06b6d4",
-    fontSize: 12,
-    fontWeight: "bold",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  goingPill: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#10b981",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  goingPillText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  eventBody: {
+    padding: 10,
+  },
+  eventTitle: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  infoText: {
+    color: "#94a3b8",
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  cardFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   attendeesRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   attendeesText: {
-    color: "#94a3b8",
-    fontSize: 12,
-  },
-  eventTitle: {
-    color: "#ffffff",
-    fontSize: 17,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 6,
-  },
-  infoText: {
     color: "#cbd5e1",
-    fontSize: 13,
+    fontSize: 11,
+    fontWeight: "600",
   },
-  description: {
-    color: "#94a3b8",
-    fontSize: 13,
-    lineHeight: 18,
-    marginVertical: 12,
-  },
-  rsvpBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#06b6d4",
-    height: 44,
-    borderRadius: 22,
-  },
-  rsvpBtnActive: {
-    backgroundColor: "#10b981",
-  },
-  rsvpBtnText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "bold",
+  detailsLinkText: {
+    color: "#06b6d4",
+    fontSize: 11,
+    fontWeight: "700",
   },
 });

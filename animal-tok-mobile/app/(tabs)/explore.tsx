@@ -58,6 +58,7 @@ import {
 } from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
 import AttendEventModal from "@/components/AttendEventModal";
+import EventDetailModal, { type EventDetailItem } from "@/components/EventDetailModal";
 import GuestAuthModal from "@/components/GuestAuthModal";
 import { BuyProductModal } from "@/components/BuyProductModal";
 import BookServiceModal from "@/components/BookServiceModal";
@@ -100,12 +101,14 @@ const EVENT_CATEGORIES = [
   { id: "contest", label: "🎉 Contests & Shows" },
 ];
 
-const MARKET_CATEGORIES = [
-  { id: "all", label: "All Items" },
-  { id: "products", label: "📦 Products" },
-  { id: "services", label: "🛎️ Services" },
+const MARKET_PRODUCT_CATEGORIES = [
+  { id: "all", label: "All Products" },
   { id: "food", label: "🥩 Food & Treats" },
   { id: "toys", label: "🧸 Toys & Gear" },
+];
+
+const MARKET_SERVICE_CATEGORIES = [
+  { id: "all", label: "All Services" },
   { id: "grooming", label: "✨ Grooming & Spa" },
   { id: "training", label: "🎓 Training" },
 ];
@@ -245,6 +248,8 @@ export default function ExploreScreen() {
 
   // Selected state
   const [activeTab, setActiveTab] = useState<ExploreTab>("trending");
+  const [marketSubTab, setMarketSubTab] = useState<"products" | "services">("products");
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [selectedPetFilter, setSelectedPetFilter] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -261,6 +266,7 @@ export default function ExploreScreen() {
   const searchAbortRef = useRef<AbortController | null>(null);
   const [hostModalVisible, setHostModalVisible] = useState(false);
   const [selectedAttendEvent, setSelectedAttendEvent] = useState<ExploreEvent | null>(null);
+  const [selectedEventDetail, setSelectedEventDetail] = useState<ExploreEvent | null>(null);
   const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
@@ -427,25 +433,46 @@ export default function ExploreScreen() {
 
   // Reset category when switching tabs
   const handleTabChange = (tab: ExploreTab) => {
+    setMarketDropdownOpen(false);
     setActiveTab(tab);
+    setSelectedCategory("all");
+  };
+
+  const handleSelectMarketOption = (opt: "products" | "services") => {
+    setMarketSubTab(opt);
+    setMarketDropdownOpen(false);
+    setActiveTab("marketplace");
     setSelectedCategory("all");
   };
 
   const handleSwipeLeft = () => {
     setPetDropdownOpen(false);
+    setMarketDropdownOpen(false);
     if (activeTab === "trending") {
       handleTabChange("events");
     } else if (activeTab === "events") {
+      setMarketSubTab("products");
       handleTabChange("marketplace");
     } else if (activeTab === "marketplace") {
-      router.replace("/(tabs)/inbox");
+      if (marketSubTab === "products") {
+        setMarketSubTab("services");
+        setSelectedCategory("all");
+      } else {
+        router.replace("/(tabs)/inbox");
+      }
     }
   };
 
   const handleSwipeRight = () => {
     setPetDropdownOpen(false);
+    setMarketDropdownOpen(false);
     if (activeTab === "marketplace") {
-      handleTabChange("events");
+      if (marketSubTab === "services") {
+        setMarketSubTab("products");
+        setSelectedCategory("all");
+      } else {
+        handleTabChange("events");
+      }
     } else if (activeTab === "events") {
       handleTabChange("trending");
     } else if (activeTab === "trending") {
@@ -499,10 +526,58 @@ export default function ExploreScreen() {
   const [bookServiceModalVisible, setBookServiceModalVisible] = useState(false);
   const [selectedServiceForBook, setSelectedServiceForBook] = useState<ServiceItem | null>(null);
 
+  const handleOpenEventDetail = (event: ExploreEvent) => {
+    if (!user) {
+      setGuestAuthTitle("View Pet Event Details 🎪");
+      setGuestAuthSubtitle("Create a free account to view full event details, venue location, attendees, and RSVP!");
+      setGuestAuthVisible(true);
+      return;
+    }
+    setSelectedEventDetail(event);
+  };
+
+  const handleToggleEventAttendance = (evt: EventDetailItem) => {
+    const matched = eventsList.find((e) => String(e.id) === String(evt.id));
+    if (matched && (rsvps[matched.id] || purchasedTickets[matched.id])) {
+      // Cancel attendance cleanly
+      setRsvps((prev) => ({ ...prev, [matched.id]: false }));
+      setPurchasedTickets((prev) => ({ ...prev, [matched.id]: false }));
+      setEventsList((prev) =>
+        prev.map((e) => (e.id === matched.id ? { ...e, attendees: Math.max(0, (e.attendees || 1) - 1) } : e))
+      );
+      setSelectedEventDetail((prev) =>
+        prev && String(prev.id) === String(matched.id)
+          ? { ...prev, attendees: Math.max(0, (prev.attendees || 1) - 1) }
+          : prev
+      );
+      api.toggleEventRsvp(matched.id);
+      Alert.alert("Attendance Cancelled", `You removed your RSVP for "${matched.title}".`);
+      return;
+    }
+
+    if (matched?.isPaid) {
+      setSelectedEventDetail(null);
+      handleAttendEvent(matched);
+    } else if (matched) {
+      setRsvps((prev) => ({ ...prev, [matched.id]: true }));
+      setEventsList((prev) =>
+        prev.map((e) => (e.id === matched.id ? { ...e, attendees: (e.attendees || 0) + 1 } : e))
+      );
+      setSelectedEventDetail((prev) =>
+        prev && String(prev.id) === String(matched.id)
+          ? { ...prev, attendees: (prev.attendees || 0) + 1 }
+          : prev
+      );
+      api.toggleEventRsvp(matched.id);
+      Alert.alert("RSVP Confirmed! 🎉", `You're attending "${matched.title}".`);
+    }
+  };
+
   const isAnyModalOpen =
     guestAuthVisible ||
     hostModalVisible ||
     !!selectedAttendEvent ||
+    !!selectedEventDetail ||
     !!selectedHandler ||
     buyProductModalVisible ||
     bookServiceModalVisible ||
@@ -859,7 +934,9 @@ export default function ExploreScreen() {
       ? TRENDING_CATEGORIES
       : activeTab === "events"
       ? EVENT_CATEGORIES
-      : MARKET_CATEGORIES;
+      : marketSubTab === "services"
+      ? MARKET_SERVICE_CATEGORIES
+      : MARKET_PRODUCT_CATEGORIES;
 
   const isImageAvatar = (avatar?: string | null) =>
     !!avatar && (avatar.startsWith("http") || avatar.startsWith("data:") || avatar.startsWith("file:") || avatar.startsWith("/"));
@@ -897,7 +974,10 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
         contentContainerStyle={styles.scrollContent}
-        onScrollBeginDrag={() => setPetDropdownOpen(false)}
+        onScrollBeginDrag={() => {
+          setPetDropdownOpen(false);
+          setMarketDropdownOpen(false);
+        }}
       >
         <View style={[styles.stickyHeaderContainer, { paddingTop: topSafeInset + 10 }]}>
           {/* Top Header */}
@@ -906,46 +986,104 @@ export default function ExploreScreen() {
             <Text style={styles.pageSub}>Discover trending pets, live events & marketplace</Text>
           </View>
 
-          {/* 3 Main Tabs: Trending | Events | Marketplace */}
-          <View style={styles.tabsRow}>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === "trending" && styles.tabButtonActive]}
-              onPress={() => {
-                setPetDropdownOpen(false);
-                handleTabChange("trending");
-              }}
-            >
-              <Flame size={16} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
-              <Text style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}>
-                Trending
-              </Text>
-            </TouchableOpacity>
+          {/* 3 Main Tabs: Trending | Events | Marketplace (Dropdown: Products / Services) */}
+          <View style={styles.tabsWrapper}>
+            <View style={styles.tabsRow}>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === "trending" && styles.tabButtonActive]}
+                onPress={() => {
+                  setPetDropdownOpen(false);
+                  handleTabChange("trending");
+                }}
+              >
+                <Flame size={16} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
+                <Text style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}>
+                  Trending
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === "events" && styles.tabButtonActive]}
-              onPress={() => {
-                setPetDropdownOpen(false);
-                handleTabChange("events");
-              }}
-            >
-              <Calendar size={16} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
-              <Text style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}>
-                Events
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === "events" && styles.tabButtonActive]}
+                onPress={() => {
+                  setPetDropdownOpen(false);
+                  handleTabChange("events");
+                }}
+              >
+                <Calendar size={16} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
+                <Text style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}>
+                  Events
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === "marketplace" && styles.tabButtonActive]}
-              onPress={() => {
-                setPetDropdownOpen(false);
-                handleTabChange("marketplace");
-              }}
-            >
-              <Store size={16} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
-              <Text style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}>
-                Marketplace
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === "marketplace" && styles.tabButtonActive]}
+                onPress={() => {
+                  setPetDropdownOpen(false);
+                  setMarketDropdownOpen((prev) => !prev);
+                }}
+              >
+                <Store size={16} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
+                <Text
+                  style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}
+                  numberOfLines={1}
+                >
+                  {activeTab === "marketplace"
+                    ? marketSubTab === "services"
+                      ? "Services"
+                      : "Products"
+                    : "Marketplace"}
+                </Text>
+                <ChevronDown
+                  size={13}
+                  color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"}
+                  style={marketDropdownOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Floating Marketplace Dropdown: Products | Services */}
+            {marketDropdownOpen && (
+              <View style={styles.marketDropdownMenu}>
+                <View style={styles.dropdownHeader}>
+                  <Text style={styles.dropdownHeaderText}>Choose Marketplace</Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.marketDropdownItem,
+                    activeTab === "marketplace" && marketSubTab === "products" && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => handleSelectMarketOption("products")}
+                  activeOpacity={0.75}
+                >
+                  <Package size={16} color="#06b6d4" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.marketDropdownTitle}>Products</Text>
+                    <Text style={styles.marketDropdownSub}>Pet food, toys & accessories</Text>
+                  </View>
+                  {activeTab === "marketplace" && marketSubTab === "products" && (
+                    <Check size={15} color="#06b6d4" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.marketDropdownItem,
+                    activeTab === "marketplace" && marketSubTab === "services" && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => handleSelectMarketOption("services")}
+                  activeOpacity={0.75}
+                >
+                  <Wrench size={16} color="#10b981" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.marketDropdownTitle}>Services</Text>
+                    <Text style={styles.marketDropdownSub}>Grooming, vet consults & training</Text>
+                  </View>
+                  {activeTab === "marketplace" && marketSubTab === "services" && (
+                    <Check size={15} color="#10b981" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Search & Pet Filter Input Group */}
@@ -1187,32 +1325,42 @@ export default function ExploreScreen() {
                 <Text style={styles.emptySub}>Try clearing filters or search terms</Text>
               </View>
             ) : (
-              <View style={styles.mediaGrid}>
+              <View style={styles.productsGrid}>
                 {filteredPosts.map((post) => (
                   <TouchableOpacity
                     key={post.id}
-                    style={styles.gridCard}
+                    style={styles.productCard}
                     onPress={() =>
                       router.push({
                         pathname: "/(tabs)/",
                         params: { focusPostId: String(post.id) },
                       })
                     }
+                    activeOpacity={0.85}
                   >
-                    <Image source={{ uri: post.posterUrl }} style={styles.gridImage} />
-                    <View style={styles.playOverlay}>
-                      <Play size={13} color="#ffffff" fill="#ffffff" />
-                      <Text style={styles.viewCount}>{post.likes} likes</Text>
+                    <View style={styles.uniformCardMediaBox}>
+                      <Image source={{ uri: post.posterUrl }} style={styles.productImage} resizeMode="cover" />
+                      <View style={styles.playOverlay}>
+                        <Play size={11} color="#ffffff" fill="#ffffff" />
+                        <Text style={styles.viewCount}>{post.likes} likes</Text>
+                      </View>
                     </View>
-                    <View style={styles.cardFooter}>
-                      {renderAvatarBubble(post.avatar, 22)}
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>
+                    <View style={styles.productBody}>
+                      <View style={styles.uniformAuthorRow}>
+                        {renderAvatarBubble(post.avatar, 18)}
+                        <Text style={styles.productTag} numberOfLines={1}>
                           {post.displayName}
                         </Text>
-                        <Text style={styles.cardCaption} numberOfLines={1}>
-                          {post.caption}
-                        </Text>
+                      </View>
+                      <Text style={styles.productName} numberOfLines={1}>
+                        {post.caption || "Featured Pet Moment"}
+                      </Text>
+                      <Text style={styles.productSeller} numberOfLines={1}>
+                        {post.hashtags || "#animandler"}
+                      </Text>
+                      <View style={[styles.buyButton, { marginTop: 4 }]}>
+                        <Play size={12} color="#ffffff" fill="#ffffff" />
+                        <Text style={styles.buyButtonText}>Watch Post</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -1223,7 +1371,7 @@ export default function ExploreScreen() {
         )}
 
         {/* ============================================================== */}
-        {/* TAB 2: EVENTS TAB CONTENT                                      */}
+        {/* TAB 2: EVENTS TAB CONTENT (Uniform 2-Column Grid + Modal)      */}
         {/* ============================================================== */}
         {activeTab === "events" && (
           <View style={styles.tabContentContainer}>
@@ -1260,132 +1408,50 @@ export default function ExploreScreen() {
                 <Text style={styles.emptySub}>Select "All Pets" or "All Events" to view all schedule</Text>
               </View>
             ) : (
-              <View style={styles.eventsList}>
+              <View style={styles.productsGrid}>
                 {filteredEvents.map((event) => {
-                  const isAttending = !!rsvps[event.id];
-                  const isExpanded = !!expandedEvents[event.id];
-                  const categoryBadgeColor =
-                    event.category === "mating"
-                      ? "#0d9488"
-                      : event.category === "sports"
-                      ? "#f59e0b"
-                      : event.category === "contest"
-                      ? "#8b5cf6"
-                      : "#06b6d4";
-
+                  const isAttending = !!rsvps[event.id] || !!purchasedTickets[event.id];
                   return (
-                    <View key={event.id} style={styles.eventCard}>
-                      <View style={styles.eventImageWrap}>
-                        <Image source={{ uri: event.image }} style={styles.eventImage} resizeMode="cover" />
+                    <TouchableOpacity
+                      key={event.id}
+                      style={styles.productCard}
+                      onPress={() => handleOpenEventDetail(event)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.uniformCardMediaBox}>
+                        <Image source={{ uri: event.image }} style={styles.productImage} resizeMode="cover" />
                         <View style={event.isPaid ? styles.imagePaidBadge : styles.imageFreeBadge}>
                           <Text style={event.isPaid ? styles.imagePaidBadgeText : styles.imageFreeBadgeText}>
-                            {event.isPaid ? `Ticketed • ${event.ticketPrice}` : "Free Admission"}
+                            {event.isPaid ? event.ticketPrice : "Free"}
                           </Text>
                         </View>
+                        {isAttending && (
+                          <View style={styles.uniformAttendingBadge}>
+                            <Check size={10} color="#ffffff" />
+                            <Text style={styles.uniformAttendingBadgeText}>Going</Text>
+                          </View>
+                        )}
                       </View>
 
-                      <View style={styles.eventBody}>
-                        {/* Badges Row - wraps cleanly on all screen sizes */}
-                        <View style={styles.eventBadgeRow}>
-                          <View style={[styles.categoryBadge, { backgroundColor: `${categoryBadgeColor}18`, borderColor: `${categoryBadgeColor}60` }]}>
-                            <Text style={[styles.categoryBadgeText, { color: categoryBadgeColor }]}>
-                              {event.categoryLabel}
-                            </Text>
+                      <View style={styles.productBody}>
+                        <Text style={styles.productTag} numberOfLines={1}>
+                          {event.categoryLabel}
+                        </Text>
+                        <Text style={styles.productName} numberOfLines={2}>
+                          {event.title}
+                        </Text>
+                        <Text style={styles.productSeller} numberOfLines={1}>
+                          {event.date}
+                        </Text>
+                        <View style={styles.productPriceRow}>
+                          <View style={styles.ratingBox}>
+                            <Users size={11} color="#06b6d4" />
+                            <Text style={styles.ratingText}>{event.attendees} going</Text>
                           </View>
-                          <View style={styles.petTypeBadge}>
-                            <Text style={styles.petTypeBadgeText}>
-                              {event.petType === "dog" ? "🐕 Dog" : event.petType === "cat" ? "🐱 Cat" : event.petType === "bird" ? "🦜 Bird" : "🐾 All Pets"}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Text style={styles.eventTitle}>{event.title}</Text>
-
-                        {/* Date */}
-                        <View style={styles.eventMetaRow}>
-                          <Calendar size={13} color="#06b6d4" />
-                          <Text style={styles.eventMetaText}>{event.date}</Text>
-                        </View>
-
-                        {/* Retractable details: Description & Location */}
-                        {isExpanded ? (
-                          <View style={styles.eventExpandedDetails}>
-                            <Text style={styles.eventDesc}>{event.description}</Text>
-                            <View style={styles.eventMetaRow}>
-                              <MapPin size={13} color="#94a3b8" />
-                              <Text style={styles.eventMetaText} numberOfLines={2}>{event.location}</Text>
-                            </View>
-                          </View>
-                        ) : null}
-
-                        {/* Retract / Expand Toggle Button with down/up arrow */}
-                        <TouchableOpacity
-                          style={styles.expandToggleBtn}
-                          onPress={() => {
-                            if (!user) {
-                              setGuestAuthTitle("View Pet Event Details 🎪");
-                              setGuestAuthSubtitle("Create a free account to view full event schedules, location details, attendees, and RSVP!");
-                              setGuestAuthVisible(true);
-                              return;
-                            }
-                            toggleEventExpand(event.id);
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.expandToggleBtnText}>
-                            {isExpanded ? "Show less" : "See details"}
-                          </Text>
-                          {isExpanded ? (
-                            <ChevronUp size={13} color="#06b6d4" />
-                          ) : (
-                            <ChevronDown size={13} color="#06b6d4" />
-                          )}
-                        </TouchableOpacity>
-
-                        {/* Bottom Actions */}
-                        <View style={styles.eventFooterRow}>
-                          <View style={styles.attendeesBox}>
-                            <Users size={13} color="#94a3b8" />
-                            <Text style={styles.attendeesText}>
-                              {event.attendees + (isAttending ? 1 : 0)} attending
-                            </Text>
-                          </View>
-
-                          {event.isPaid ? (
-                            purchasedTickets[event.id] ? (
-                              <View style={styles.ticketActiveBtn}>
-                                <Check size={13} color="#10b981" />
-                                <Text style={styles.ticketActiveText}>Ticket Active 🎟️</Text>
-                              </View>
-                            ) : (
-                              <TouchableOpacity
-                                style={styles.buyTicketBtn}
-                                onPress={() => handleAttendEvent(event)}
-                                activeOpacity={0.85}
-                              >
-                                <Ticket size={13} color="#ffffff" />
-                                <Text style={styles.buyTicketText}>
-                                  Attend • {event.ticketPrice || "$15"}
-                                </Text>
-                              </TouchableOpacity>
-                            )
-                          ) : isAttending ? (
-                            <View style={styles.ticketActiveBtn}>
-                              <Check size={13} color="#10b981" />
-                              <Text style={styles.ticketActiveText}>Attending ✓</Text>
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              style={styles.rsvpButton}
-                              onPress={() => handleAttendEvent(event)}
-                              activeOpacity={0.85}
-                            >
-                              <Text style={styles.rsvpButtonText}>Attend Event</Text>
-                            </TouchableOpacity>
-                          )}
+                          <Text style={styles.tapDetailsText}>View Details</Text>
                         </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -1394,111 +1460,142 @@ export default function ExploreScreen() {
         )}
 
         {/* ============================================================== */}
-        {/* TAB 3: MARKETPLACE TAB CONTENT                                 */}
+        {/* TAB 3: MARKETPLACE TAB CONTENT (Products OR Services 2-Col Grid) */}
         {/* ============================================================== */}
         {activeTab === "marketplace" && (
           <View style={styles.tabContentContainer}>
-            {/* Products Section */}
-            {filteredProducts.length > 0 && (
-              <View style={styles.marketGroup}>
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <Package size={18} color="#06b6d4" />
-                    <Text style={styles.sectionTitle}>Featured Products</Text>
+            {/* Sub-tab indicator pill bar right above grid for instant switching */}
+            <View style={styles.marketSubBar}>
+              <TouchableOpacity
+                style={[styles.marketSubChip, marketSubTab === "products" && styles.marketSubChipActive]}
+                onPress={() => handleSelectMarketOption("products")}
+              >
+                <Package size={13} color={marketSubTab === "products" ? "#ffffff" : "#94a3b8"} />
+                <Text style={[styles.marketSubChipText, marketSubTab === "products" && styles.marketSubChipTextActive]}>
+                  Products ({filteredProducts.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.marketSubChip, marketSubTab === "services" && styles.marketSubChipServicesActive]}
+                onPress={() => handleSelectMarketOption("services")}
+              >
+                <Wrench size={13} color={marketSubTab === "services" ? "#ffffff" : "#94a3b8"} />
+                <Text style={[styles.marketSubChipText, marketSubTab === "services" && styles.marketSubChipTextActive]}>
+                  Services ({filteredServices.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Products Section (when Products option selected) */}
+            {marketSubTab === "products" && (
+              filteredProducts.length > 0 ? (
+                <View style={styles.marketGroup}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionTitleRow}>
+                      <Package size={18} color="#06b6d4" />
+                      <Text style={styles.sectionTitle}>Featured Products</Text>
+                    </View>
+                    <Text style={styles.resultsCount}>{filteredProducts.length} items</Text>
                   </View>
-                  <Text style={styles.resultsCount}>{filteredProducts.length} items</Text>
-                </View>
 
-                <View style={styles.productsGrid}>
-                  {filteredProducts.map((prod) => (
-                    <TouchableOpacity
-                      key={prod.id}
-                      style={styles.productCard}
-                      onPress={() => handleOpenProductDetail(prod)}
-                      activeOpacity={0.85}
-                    >
-                      <Image source={{ uri: prod.image }} style={styles.productImage} />
-                      <View style={styles.productBody}>
-                        <Text style={styles.productTag}>{prod.category}</Text>
-                        <Text style={styles.productName} numberOfLines={1}>{prod.name}</Text>
-                        <Text style={styles.productSeller} numberOfLines={1}>by {prod.seller}</Text>
+                  <View style={styles.productsGrid}>
+                    {filteredProducts.map((prod) => (
+                      <TouchableOpacity
+                        key={prod.id}
+                        style={styles.productCard}
+                        onPress={() => handleOpenProductDetail(prod)}
+                        activeOpacity={0.85}
+                      >
+                        <Image source={{ uri: prod.image }} style={styles.productImage} />
+                        <View style={styles.productBody}>
+                          <Text style={styles.productTag} numberOfLines={1}>{prod.category}</Text>
+                          <Text style={styles.productName} numberOfLines={1}>{prod.name}</Text>
+                          <Text style={styles.productSeller} numberOfLines={1}>by {prod.seller}</Text>
 
-                        {/* Price hidden from card until clicked */}
-                        <View style={styles.productPriceRow}>
-                          <View style={styles.ratingBox}>
-                            <Star size={11} color="#f59e0b" fill="#f59e0b" />
-                            <Text style={styles.ratingText}>{prod.rating}</Text>
+                          <View style={styles.productPriceRow}>
+                            <View style={styles.ratingBox}>
+                              <Star size={11} color="#f59e0b" fill="#f59e0b" />
+                              <Text style={styles.ratingText}>{prod.rating}</Text>
+                            </View>
+                            <Text style={styles.tapDetailsText}>Tap for Details</Text>
                           </View>
-                          <Text style={styles.tapDetailsText}>Tap for Details</Text>
-                        </View>
 
-                        <TouchableOpacity
-                          style={styles.buyButton}
-                          onPress={() => handleOpenProductDetail(prod)}
-                        >
-                          <ShoppingBag size={13} color="#ffffff" />
-                          <Text style={styles.buyButtonText}>View & Buy</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                          <TouchableOpacity
+                            style={styles.buyButton}
+                            onPress={() => handleOpenProductDetail(prod)}
+                          >
+                            <ShoppingBag size={13} color="#ffffff" />
+                            <Text style={styles.buyButtonText}>View & Buy</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
+              ) : (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyIcon}>🛍️</Text>
+                  <Text style={styles.emptyTitle}>No products found</Text>
+                  <Text style={styles.emptySub}>Try adjusting your pet filter or category pills</Text>
+                </View>
+              )
             )}
 
-            {/* Services Section */}
-            {filteredServices.length > 0 && (
-              <View style={[styles.marketGroup, { marginTop: 16 }]}>
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <Wrench size={18} color="#10b981" />
-                    <Text style={styles.sectionTitle}>Professional Services</Text>
+            {/* Services Section (Uniform 2-Column Grid when Services option selected) */}
+            {marketSubTab === "services" && (
+              filteredServices.length > 0 ? (
+                <View style={styles.marketGroup}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionTitleRow}>
+                      <Wrench size={18} color="#10b981" />
+                      <Text style={styles.sectionTitle}>Professional Services</Text>
+                    </View>
+                    <Text style={styles.resultsCount}>{filteredServices.length} services</Text>
                   </View>
-                  <Text style={styles.resultsCount}>{filteredServices.length} services</Text>
-                </View>
 
-                <View style={styles.servicesList}>
-                  {filteredServices.map((srv) => (
-                    <TouchableOpacity
-                      key={srv.id}
-                      style={styles.serviceCard}
-                      onPress={() => handleOpenServiceDetail(srv)}
-                      activeOpacity={0.85}
-                    >
-                      <Image source={{ uri: srv.image }} style={styles.serviceImage} />
-                      <View style={styles.serviceBody}>
-                        <Text style={styles.serviceName}>{srv.name}</Text>
-                        <Text style={styles.serviceProvider}>Provider: {srv.provider}</Text>
+                  <View style={styles.productsGrid}>
+                    {filteredServices.map((srv) => (
+                      <TouchableOpacity
+                        key={srv.id}
+                        style={styles.productCard}
+                        onPress={() => handleOpenServiceDetail(srv)}
+                        activeOpacity={0.85}
+                      >
+                        <Image source={{ uri: srv.image }} style={styles.productImage} />
+                        <View style={styles.productBody}>
+                          <Text style={[styles.productTag, { color: "#10b981" }]} numberOfLines={1}>
+                            {srv.category || "Care Service"}
+                          </Text>
+                          <Text style={styles.productName} numberOfLines={1}>{srv.name}</Text>
+                          <Text style={styles.productSeller} numberOfLines={1}>by {srv.provider}</Text>
 
-                        {/* Price hidden from card until clicked */}
-                        <View style={styles.servicePriceRow}>
-                          <View style={styles.ratingBox}>
-                            <Star size={11} color="#f59e0b" fill="#f59e0b" />
-                            <Text style={styles.ratingText}>{srv.rating}</Text>
+                          <View style={styles.productPriceRow}>
+                            <View style={styles.ratingBox}>
+                              <Star size={11} color="#f59e0b" fill="#f59e0b" />
+                              <Text style={styles.ratingText}>{srv.rating}</Text>
+                            </View>
+                            <Text style={styles.tapDetailsText}>Tap for Details</Text>
                           </View>
-                          <Text style={styles.tapDetailsText}>Tap for Details</Text>
+
+                          <TouchableOpacity
+                            style={[styles.buyButton, { backgroundColor: "#10b981" }]}
+                            onPress={() => handleOpenServiceDetail(srv)}
+                          >
+                            <Calendar size={13} color="#ffffff" />
+                            <Text style={styles.buyButtonText}>View & Book</Text>
+                          </TouchableOpacity>
                         </View>
-
-                        <TouchableOpacity
-                          style={styles.bookButton}
-                          onPress={() => handleOpenServiceDetail(srv)}
-                        >
-                          <Calendar size={13} color="#ffffff" />
-                          <Text style={styles.bookButtonText}>View & Book</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
-
-            {filteredProducts.length === 0 && filteredServices.length === 0 && (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyIcon}>🛍️</Text>
-                <Text style={styles.emptyTitle}>No marketplace items found</Text>
-                <Text style={styles.emptySub}>Try adjusting your pet filter or category pills</Text>
-              </View>
+              ) : (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyIcon}>🛎️</Text>
+                  <Text style={styles.emptyTitle}>No services found</Text>
+                  <Text style={styles.emptySub}>Try adjusting your pet filter or category pills</Text>
+                </View>
+              )
             )}
           </View>
         )}
@@ -1531,6 +1628,16 @@ export default function ExploreScreen() {
             ...prev,
           ]);
         }}
+      />
+
+      {/* Event Detail Popup Modal */}
+      <EventDetailModal
+        visible={!!selectedEventDetail}
+        event={selectedEventDetail}
+        isAttending={selectedEventDetail ? !!rsvps[selectedEventDetail.id] : false}
+        hasPurchasedTicket={selectedEventDetail ? !!purchasedTickets[selectedEventDetail.id] : false}
+        onClose={() => setSelectedEventDetail(null)}
+        onToggleAttend={handleToggleEventAttendance}
       />
 
       {/* Attend Event Form Modal */}
@@ -2712,6 +2819,104 @@ const styles = StyleSheet.create({
   handlerModalMsgText: {
     color: "#ffffff",
     fontSize: 14,
+    fontWeight: "800",
+  },
+  tabsWrapper: {
+    position: "relative",
+    zIndex: 1005,
+  },
+  marketDropdownMenu: {
+    position: "absolute",
+    top: 52,
+    right: 0,
+    width: 245,
+    backgroundColor: "#161b22",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#334155",
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    elevation: 25,
+    zIndex: 1010,
+  },
+  marketDropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  marketDropdownTitle: {
+    color: "#ffffff",
+    fontSize: 13.5,
+    fontWeight: "700",
+  },
+  marketDropdownSub: {
+    color: "#94a3b8",
+    fontSize: 11,
+    marginTop: 1,
+  },
+  marketSubBar: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 14,
+  },
+  marketSubChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  marketSubChipActive: {
+    backgroundColor: "#06b6d4",
+    borderColor: "#06b6d4",
+  },
+  marketSubChipServicesActive: {
+    backgroundColor: "#10b981",
+    borderColor: "#10b981",
+  },
+  marketSubChipText: {
+    color: "#94a3b8",
+    fontSize: 12.5,
+    fontWeight: "700",
+  },
+  marketSubChipTextActive: {
+    color: "#ffffff",
+  },
+  uniformCardMediaBox: {
+    width: "100%",
+    position: "relative",
+  },
+  uniformAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  uniformAttendingBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#10b981",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  uniformAttendingBadgeText: {
+    color: "#ffffff",
+    fontSize: 10,
     fontWeight: "800",
   },
 });

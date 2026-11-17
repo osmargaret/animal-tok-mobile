@@ -44,7 +44,7 @@ const PET_TYPES = [
 ];
 
 export default function HostEventModal({ visible, onClose, onEventCreated }: HostEventModalProps) {
-  const { user } = useAuth();
+  const { user, activeProfile } = useAuth();
 
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("Saturday, Dec 12 • 10:00 AM");
@@ -102,8 +102,8 @@ export default function HostEventModal({ visible, onClose, onEventCreated }: Hos
         petType,
         description: description.trim() || `Join us for ${title}! All friendly pets welcome.`,
         image: finalImageUrl || "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&fit=crop",
-        organizerId: user?.id || "u_1",
-        organizerName: user?.name || "Community Host",
+        organizerId: activeProfile?.id || user?.id || "u_1",
+        organizerName: activeProfile?.name || user?.name || "Community Host",
         isPaid: Boolean(isPaid && cleanPrice > 0),
         ticketPrice: formattedPrice,
         capacity: isPaid ? parseInt(capacity) || 50 : 100,

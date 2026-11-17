@@ -396,6 +396,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         username: user.username,
         avatar: user.avatar,
         type: "handler",
+        role: user.role,
+        clinicName: user.clinicName,
+        bio: (user as any).bio,
+        coverImage: (user as any).coverImage,
       });
     }
   };
