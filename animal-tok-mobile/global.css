@@ -13,3 +13,14 @@ body {
   margin: 0;
   padding: 0;
 }
+
+input,
+textarea,
+input:focus,
+textarea:focus,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}

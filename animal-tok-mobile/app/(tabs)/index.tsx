@@ -114,6 +114,14 @@ export default function FeedScreen() {
         }
       }
 
+      if (focusPostId) {
+        const focusIdx = merged.findIndex((p) => String(p.id) === String(focusPostId));
+        if (focusIdx > 0) {
+          const [focusedItem] = merged.splice(focusIdx, 1);
+          merged.unshift(focusedItem);
+        }
+      }
+
       if (resetPage) {
         setDisplayPosts(merged);
         setPage(1);
@@ -136,7 +144,7 @@ export default function FeedScreen() {
     } catch (e) {
       // Fallback stays in displayPosts
     }
-  }, [page]);
+  }, [page, focusPostId]);
 
   const loadMorePosts = async () => {
     if (isLoadingMore || !hasMore) return;

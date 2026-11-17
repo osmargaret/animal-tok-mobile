@@ -389,6 +389,11 @@ const styles = StyleSheet.create({
     height: 40,
     color: "#ffffff",
     fontSize: 14,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    ...(Platform.OS === "web"
+      ? ({ outlineStyle: "none", outlineWidth: 0, outlineColor: "transparent", boxShadow: "none" } as any)
+      : {}),
   },
   listContent: {
     paddingHorizontal: 16,

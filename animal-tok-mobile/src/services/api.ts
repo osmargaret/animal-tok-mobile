@@ -148,6 +148,87 @@ export interface AnimalProfileData {
   photos: string[];
 }
 
+export interface SearchPetSummary {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  breed?: string;
+  age?: string;
+  location?: string;
+  bio?: string;
+  handlerId?: string;
+  handlerName?: string;
+  followersCount?: number;
+  isVerified?: boolean;
+}
+
+export interface SearchHandlerResult {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio?: string;
+  role?: string;
+  accountType?: string;
+  clinicName?: string;
+  businessName?: string;
+  specialization?: string;
+  pets: SearchPetSummary[];
+}
+
+export interface ExploreSearchResponse {
+  query: string;
+  handlers: SearchHandlerResult[];
+  pets: SearchPetSummary[];
+  posts: FeedPost[];
+  events: any[];
+  products: any[];
+  services: any[];
+}
+
+function mapServerPostToFeedPost(p: any): FeedPost {
+  return {
+    id: p.id,
+    animalId: p.animalId || p.animal_id,
+    username: p.animalUsername || `@${(p.animalName || "pet").toLowerCase().replace(/\s+/g, "")}`,
+    displayName: p.animalName || "Pet",
+    avatar: normalizeMediaUrl(p.animalAvatar) || p.animalAvatar || "🐾",
+    time: formatRelativeTime(p.createdAt || p.created_at || p.time, p.id),
+    createdAt: p.createdAt || p.created_at,
+    caption: p.caption || "",
+    hashtags: Array.isArray(p.tags)
+      ? p.tags.map((t: string) => `#${String(t).replace(/^#/, "")}`).join(" ")
+      : p.tags || "#Animandler",
+    videoUrl: normalizeMediaUrl(p.videoUrl) || "",
+    posterUrl:
+      normalizeMediaUrl(p.imageUrl || p.videoUrl) ||
+      "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=700&fit=crop",
+    imageUrl: normalizeMediaUrl(p.imageUrl) || "",
+    audioUrl: normalizeMediaUrl(p.audioUrl) || p.audioUrl,
+    audioName: p.audioName,
+    likes: p.likesCount || 0,
+    comments: p.commentsCount || 0,
+    saves: p.sharesCount || 0,
+    commentsList: [],
+    isAd: Boolean(p.isAd),
+    adType: p.adType || (p.videoUrl ? "video" : p.audioUrl ? "audio" : "image"),
+    title: p.title,
+    advertiserName: p.advertiserName || p.animalName,
+    advertiserAvatar: normalizeMediaUrl(p.advertiserAvatar || p.animalAvatar) || p.advertiserAvatar,
+    sponsorBadge: p.sponsorBadge || "Sponsored",
+    ctaText: p.ctaText || "Learn More",
+    ctaUrl: p.ctaUrl,
+    category: p.category,
+    mediaUrl: normalizeMediaUrl(p.mediaUrl) || p.mediaUrl,
+    filterId: p.filterId || p.filter_id,
+    filterName: p.filterName || p.filter_name,
+    filterColor: p.filterColor || p.filter_color,
+    filterOpacity: p.filterOpacity ?? p.filter_opacity,
+    filterCss: p.filterCss || p.filter_css,
+  };
+}
+
 export const api = {
   /**
    * Connect to the real-time websocket
@@ -626,42 +707,7 @@ export const api = {
       const data = await response.json();
       if (!Array.isArray(data)) return page === 1 ? feedPosts : [];
       if (data.length === 0 && page === 1) return feedPosts;
-      return data.map((p: any) => ({
-        id: p.id,
-        animalId: p.animalId || p.animal_id,
-        username: p.animalUsername || `@${(p.animalName || 'pet').toLowerCase().replace(/\s+/g, '')}`,
-        displayName: p.animalName || "Pet",
-        avatar: normalizeMediaUrl(p.animalAvatar) || p.animalAvatar || "🐾",
-        time: formatRelativeTime(p.createdAt || p.created_at || p.time, p.id),
-        createdAt: p.createdAt || p.created_at,
-        caption: p.caption || "",
-        hashtags: Array.isArray(p.tags) ? p.tags.map((t: string) => `#${t.replace(/^#/, '')}`).join(' ') : (p.tags || "#AnimalTok"),
-        videoUrl: normalizeMediaUrl(p.videoUrl) || "",
-        posterUrl: normalizeMediaUrl(p.imageUrl || p.videoUrl) || "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=700&fit=crop",
-        imageUrl: normalizeMediaUrl(p.imageUrl) || "",
-        audioUrl: normalizeMediaUrl(p.audioUrl) || p.audioUrl,
-        audioName: p.audioName,
-        likes: p.likesCount || 0,
-        comments: p.commentsCount || 0,
-        saves: p.sharesCount || 0,
-        commentsList: [],
-        // Sponsored Ad properties
-        isAd: Boolean(p.isAd),
-        adType: p.adType || (p.videoUrl ? 'video' : p.audioUrl ? 'audio' : 'image'),
-        title: p.title,
-        advertiserName: p.advertiserName || p.animalName,
-        advertiserAvatar: normalizeMediaUrl(p.advertiserAvatar || p.animalAvatar) || p.advertiserAvatar,
-        sponsorBadge: p.sponsorBadge || 'Sponsored',
-        ctaText: p.ctaText || 'Learn More',
-        ctaUrl: p.ctaUrl,
-        category: p.category,
-        mediaUrl: normalizeMediaUrl(p.mediaUrl) || p.mediaUrl,
-        filterId: p.filterId || p.filter_id,
-        filterName: p.filterName || p.filter_name,
-        filterColor: p.filterColor || p.filter_color,
-        filterOpacity: p.filterOpacity ?? p.filter_opacity,
-        filterCss: p.filterCss || p.filter_css
-      }));
+      return data.map(mapServerPostToFeedPost);
     } catch (e) {
       console.warn("Backend feed fetch failed, using fallback mock", e);
       return page === 1 ? feedPosts : [];
@@ -1103,5 +1149,97 @@ export const api = {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Failed to resend code.");
     return data;
+  },
+
+  /**
+   * Real-time unified search across handlers, pets, posts, events, products, and services
+   */
+  searchExplore: async (
+    query: string,
+    petType = "all",
+    signal?: AbortSignal
+  ): Promise<ExploreSearchResponse | null> => {
+    try {
+      const params = new URLSearchParams({
+        q: query.trim(),
+        petType: petType || "all",
+        limit: "25",
+      });
+      const response = await fetch(`${BASE_URL}/search?${params.toString()}`, { signal });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return {
+        query: data.query || query,
+        handlers: Array.isArray(data.handlers)
+          ? data.handlers.map((h: any) => ({
+              ...h,
+              avatar: normalizeMediaUrl(h.avatar) || h.avatar || "🐾",
+              pets: Array.isArray(h.pets)
+                ? h.pets.map((p: any) => ({
+                    ...p,
+                    avatar: normalizeMediaUrl(p.avatar) || p.avatar || "🐾",
+                  }))
+                : [],
+            }))
+          : [],
+        pets: Array.isArray(data.pets)
+          ? data.pets.map((p: any) => ({
+              ...p,
+              avatar: normalizeMediaUrl(p.avatar) || p.avatar || "🐾",
+            }))
+          : [],
+        posts: Array.isArray(data.posts) ? data.posts.map(mapServerPostToFeedPost) : [],
+        events: Array.isArray(data.events)
+          ? data.events.map((e: any) => ({
+              id: e.id,
+              title: e.title,
+              date: e.date ? `${e.date}${e.time ? ` • ${e.time}` : ""}` : e.time || "Upcoming",
+              location: e.location || "Community Park",
+              attendees: Number(e.attendeesCount ?? e.attendees ?? 0),
+              category: String(e.category || "meetup").toLowerCase(),
+              categoryLabel: e.category || "Meetup",
+              petType: String(e.petType || "all").toLowerCase(),
+              description: e.description || "",
+              image: normalizeMediaUrl(e.image) || e.image,
+              isPaid: Boolean(e.isPaid),
+              ticketPrice: e.ticketPrice ? String(e.ticketPrice) : "Free",
+              capacity: e.capacity,
+              organizerName: e.organizerName,
+            }))
+          : [],
+        products: Array.isArray(data.products)
+          ? data.products.map((p: any) => ({
+              id: p.id,
+              name: p.title || p.name || "Pet Product",
+              price: typeof p.price === "number" ? `$${p.price.toFixed(2)}` : p.price || "$19.99",
+              rating: String(p.rating || "5.0"),
+              seller: p.sellerName || p.seller || "Verified Seller",
+              image:
+                normalizeMediaUrl(p.image) ||
+                p.image ||
+                "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=500&auto=format&fit=crop&q=80",
+              category: p.category || "General",
+            }))
+          : [],
+        services: Array.isArray(data.services)
+          ? data.services.map((s: any) => ({
+              id: s.id,
+              name: s.title || s.name || "Pet Service",
+              price: s.price || "$40/session",
+              rating: String(s.rating || "5.0"),
+              provider: s.providerName || s.provider || "Top Rated Pro",
+              image:
+                normalizeMediaUrl(s.image) ||
+                s.image ||
+                "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&auto=format&fit=crop&q=80",
+              category: s.category || "Care",
+            }))
+          : [],
+      };
+    } catch (e: any) {
+      if (e?.name === "AbortError") return null;
+      console.warn("Real-time explore search failed:", e);
+      return null;
+    }
   },
 };

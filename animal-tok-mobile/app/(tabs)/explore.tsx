@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Alert,
   Platform,
   StatusBar,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -39,12 +41,21 @@ import {
   Plus,
   ShieldCheck,
   Ticket,
+  MessageSquare,
+  PawPrint,
+  User as UserIcon,
 } from "lucide-react-native";
 import { feedPosts, type FeedPost } from "@/data/feedData";
 import { marketProducts, marketServices, type ProductItem, type ServiceItem } from "@/data/marketData";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  api,
+  type SearchHandlerResult,
+  type SearchPetSummary,
+  type ExploreSearchResponse,
+} from "@/services/api";
 import HostEventModal from "@/components/HostEventModal";
 import AttendEventModal from "@/components/AttendEventModal";
 import GuestAuthModal from "@/components/GuestAuthModal";
@@ -230,16 +241,24 @@ export default function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topSafeInset = Math.max(insets.top, Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 20);
-  const { activeProfile, user } = useAuth();
+  const { activeProfile, user, pets: myPets } = useAuth();
 
   // Selected state
   const [activeTab, setActiveTab] = useState<ExploreTab>("trending");
   const [selectedPetFilter, setSelectedPetFilter] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [rsvps, setRsvps] = useState<Record<string, boolean>>({});
   const [petDropdownOpen, setPetDropdownOpen] = useState(false);
+  const [livePosts, setLivePosts] = useState<FeedPost[]>(feedPosts);
   const [eventsList, setEventsList] = useState<ExploreEvent[]>(EXPLORE_EVENTS);
+  const [liveProducts, setLiveProducts] = useState<ProductItem[]>(marketProducts);
+  const [liveServices, setLiveServices] = useState<ServiceItem[]>(marketServices);
+  const [remoteSearch, setRemoteSearch] = useState<ExploreSearchResponse | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedHandler, setSelectedHandler] = useState<SearchHandlerResult | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
   const [hostModalVisible, setHostModalVisible] = useState(false);
   const [selectedAttendEvent, setSelectedAttendEvent] = useState<ExploreEvent | null>(null);
   const [purchasedTickets, setPurchasedTickets] = useState<Record<string, boolean>>({});
@@ -255,55 +274,151 @@ export default function ExploreScreen() {
   const [guestAuthTitle, setGuestAuthTitle] = useState("Join Animandler 🐾");
   const [guestAuthSubtitle, setGuestAuthSubtitle] = useState("");
 
+  const syncExploreData = useCallback(async () => {
+    try {
+      const [serverFeed, serverEvents, serverProds, serverSrvs] = await Promise.all([
+        api.getFeedPosts(1, 50).catch(() => []),
+        api.getEvents().catch(() => null),
+        api.getMarketplaceProducts().catch(() => null),
+        api.getMarketplaceServices().catch(() => null),
+      ]);
+
+      // Merge Posts (local custom + server + fallback)
+      let customPosts: FeedPost[] = [];
+      try {
+        const storedPosts = await AsyncStorage.getItem("animaltok_custom_posts");
+        if (storedPosts) customPosts = JSON.parse(storedPosts);
+      } catch {}
+
+      const mergedPosts: FeedPost[] = [];
+      const seenPostIds = new Set<string>();
+      for (const p of [...customPosts, ...(Array.isArray(serverFeed) ? serverFeed : []), ...feedPosts]) {
+        const key = String(p.id);
+        if (!seenPostIds.has(key) && !(p as any).isAd) {
+          seenPostIds.add(key);
+          mergedPosts.push(p);
+        }
+      }
+      setLivePosts(mergedPosts);
+
+      // Merge Products
+      let customProds: any[] = [];
+      try {
+        const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
+        if (storedProds) customProds = JSON.parse(storedProds);
+      } catch {}
+      const mergedProds: ProductItem[] = [];
+      const seenProdIds = new Set<string>();
+      for (const cp of [...customProds, ...(Array.isArray(serverProds) ? serverProds : []), ...marketProducts]) {
+        const key = String(cp.id);
+        if (!seenProdIds.has(key)) {
+          seenProdIds.add(key);
+          mergedProds.push(cp);
+        }
+      }
+      setLiveProducts(mergedProds);
+
+      // Merge Services
+      let customSrvs: any[] = [];
+      try {
+        const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
+        if (storedSrvs) customSrvs = JSON.parse(storedSrvs);
+      } catch {}
+      const mergedSrvs: ServiceItem[] = [];
+      const seenSrvIds = new Set<string>();
+      for (const cs of [...customSrvs, ...(Array.isArray(serverSrvs) ? serverSrvs : []), ...marketServices]) {
+        const key = String(cs.id);
+        if (!seenSrvIds.has(key)) {
+          seenSrvIds.add(key);
+          mergedSrvs.push(cs);
+        }
+      }
+      setLiveServices(mergedSrvs);
+
+      // Merge Events
+      let customEvts: any[] = [];
+      try {
+        const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
+        if (storedEvts) customEvts = JSON.parse(storedEvts);
+      } catch {}
+      const mergedEvts: ExploreEvent[] = [];
+      const seenEvtIds = new Set<string>();
+      for (const ce of [...customEvts, ...(Array.isArray(serverEvents) ? serverEvents : []), ...EXPLORE_EVENTS]) {
+        const key = String(ce.id);
+        if (!seenEvtIds.has(key)) {
+          seenEvtIds.add(key);
+          mergedEvts.push({
+            ...ce,
+            category: String(ce.category || "meetup").toLowerCase(),
+            categoryLabel: ce.categoryLabel || ce.category || "Meetup",
+            petType: String(ce.petType || "all").toLowerCase(),
+          });
+        }
+      }
+      setEventsList(mergedEvts);
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      console.warn("Explore sync warning:", e);
+    }
+  }, []);
+
   useFocusEffect(
     React.useCallback(() => {
-      const syncMarketplace = async () => {
-        try {
-          const storedProds = await AsyncStorage.getItem("animaltok_custom_products");
-          if (storedProds) {
-            const custom = JSON.parse(storedProds);
-            if (Array.isArray(custom)) {
-              custom.forEach((cp) => {
-                if (!marketProducts.some((p) => p.id === cp.id)) {
-                  marketProducts.unshift(cp);
-                }
-              });
-            }
-          }
-          const storedSrvs = await AsyncStorage.getItem("animaltok_custom_services");
-          if (storedSrvs) {
-            const custom = JSON.parse(storedSrvs);
-            if (Array.isArray(custom)) {
-              custom.forEach((cs) => {
-                if (!marketServices.some((s) => s.id === cs.id)) {
-                  marketServices.unshift(cs);
-                }
-              });
-            }
-          }
-          const storedEvts = await AsyncStorage.getItem("animaltok_custom_events");
-          if (storedEvts) {
-            const custom = JSON.parse(storedEvts);
-            if (Array.isArray(custom)) {
-              setEventsList((prev) => {
-                const merged = [...prev];
-                custom.forEach((ce) => {
-                  if (!merged.some((e) => String(e.id) === String(ce.id))) {
-                    merged.unshift(ce);
-                  }
-                });
-                return merged;
-              });
-            }
-          }
-          setRefreshKey((k) => k + 1);
-        } catch (e) {
-          console.warn("Marketplace sync warning:", e);
-        }
-      };
-      syncMarketplace();
-    }, [])
+      syncExploreData();
+    }, [syncExploreData])
   );
+
+  // Real-time Socket.IO sync so newly published posts, pets, or handlers appear live
+  useEffect(() => {
+    const socket = api.connectSocket(user?.id);
+    if (!socket) return;
+
+    const refreshAll = () => {
+      syncExploreData();
+    };
+
+    socket.on("post_created", refreshAll);
+    socket.on("post_deleted", refreshAll);
+    socket.on("animal_created", refreshAll);
+    socket.on("animal_updated", refreshAll);
+
+    return () => {
+      socket.off("post_created", refreshAll);
+      socket.off("post_deleted", refreshAll);
+      socket.off("animal_created", refreshAll);
+      socket.off("animal_updated", refreshAll);
+    };
+  }, [user?.id, syncExploreData]);
+
+  // Real-time debounced search against /api/search
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+      setRemoteSearch(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
+      const res = await api.searchExplore(trimmed, selectedPetFilter, controller.signal);
+      if (!controller.signal.aborted) {
+        if (res) setRemoteSearch(res);
+        setIsSearching(false);
+      }
+    }, 180);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery, selectedPetFilter]);
 
   const currentPet = useMemo(
     () => PET_FILTERS.find((p) => p.id === selectedPetFilter) || PET_FILTERS[0],
@@ -388,6 +503,7 @@ export default function ExploreScreen() {
     guestAuthVisible ||
     hostModalVisible ||
     !!selectedAttendEvent ||
+    !!selectedHandler ||
     buyProductModalVisible ||
     bookServiceModalVisible ||
     detailModalVisible;
@@ -444,87 +560,247 @@ export default function ExploreScreen() {
     setBookServiceModalVisible(true);
   };
 
-  // Filtered Trending Posts
+  const matchesQuery = useCallback((queryStr: string, ...fields: (string | undefined | null)[]) => {
+    const trimmed = queryStr.trim().toLowerCase();
+    if (!trimmed) return true;
+    const clean = trimmed.replace(/^[@#]+/, "");
+    const hay = fields.filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(trimmed) || (clean.length > 0 && hay.includes(clean));
+  }, []);
+
+  // Matching Handlers (Live server search + local profile fallback)
+  const matchedHandlers = useMemo<SearchHandlerResult[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const results: SearchHandlerResult[] = [];
+    const seenIds = new Set<string>();
+
+    if (remoteSearch?.handlers) {
+      for (const h of remoteSearch.handlers) {
+        if (!seenIds.has(String(h.id))) {
+          seenIds.add(String(h.id));
+          results.push(h);
+        }
+      }
+    }
+
+    if (
+      user &&
+      !seenIds.has(String(user.id)) &&
+      matchesQuery(
+        searchQuery,
+        user.name,
+        user.username,
+        user.clinicName,
+        user.specialization,
+        user.accountType
+      )
+    ) {
+      seenIds.add(String(user.id));
+      results.push({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar || "🐾",
+        role: user.role,
+        accountType: user.accountType,
+        clinicName: user.clinicName,
+        specialization: user.specialization,
+        pets: myPets.map((p) => ({
+          id: p.id,
+          name: p.name,
+          username: p.username,
+          avatar: p.avatar,
+          breed: p.breed,
+          age: p.age,
+        })),
+      });
+    }
+
+    return results;
+  }, [searchQuery, remoteSearch, user, myPets, matchesQuery]);
+
+  // Matching Pets (Live server search + local posts/myPets fallback)
+  const matchedPets = useMemo<SearchPetSummary[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const results: SearchPetSummary[] = [];
+    const seenIds = new Set<string>();
+
+    if (remoteSearch?.pets) {
+      for (const p of remoteSearch.pets) {
+        const key = String(p.id).toLowerCase();
+        if (!seenIds.has(key)) {
+          seenIds.add(key);
+          results.push(p);
+        }
+      }
+    }
+
+    for (const p of myPets) {
+      const key = String(p.id).toLowerCase();
+      if (!seenIds.has(key) && matchesQuery(searchQuery, p.name, p.username, p.breed, p.bio)) {
+        seenIds.add(key);
+        results.push({
+          id: p.id,
+          name: p.name,
+          username: p.username,
+          avatar: p.avatar,
+          breed: p.breed,
+          age: p.age,
+          handlerName: user?.name,
+        });
+      }
+    }
+
+    for (const post of livePosts) {
+      const pid = String(post.animalId || post.username?.replace(/^@+/, "") || post.id);
+      const key = pid.toLowerCase();
+      if (
+        !seenIds.has(key) &&
+        matchesQuery(searchQuery, post.displayName, post.username, (post as any).handlerName, post.hashtags)
+      ) {
+        seenIds.add(key);
+        results.push({
+          id: pid,
+          name: post.displayName,
+          username: post.username,
+          avatar: post.avatar,
+          handlerName: (post as any).handlerName,
+        });
+      }
+    }
+
+    return results;
+  }, [searchQuery, remoteSearch, myPets, livePosts, user?.name, matchesQuery]);
+
+  // Filtered Trending Posts (real-time server results + local live feed)
   const filteredPosts = useMemo(() => {
-    return feedPosts.filter((post) => {
-      // Search filter
-      const matchesSearch =
-        !searchQuery ||
-        post.caption.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.hashtags.toLowerCase().includes(searchQuery.toLowerCase());
+    const sourcePosts: FeedPost[] = [];
+    const seen = new Set<string>();
+    const pool = searchQuery.trim() && remoteSearch?.posts ? [...remoteSearch.posts, ...livePosts] : livePosts;
+    for (const p of pool) {
+      const key = String(p.id);
+      if (!seen.has(key) && !(p as any).isAd) {
+        seen.add(key);
+        sourcePosts.push(p);
+      }
+    }
+
+    const filtered = sourcePosts.filter((post) => {
+      const matchesSearch = matchesQuery(
+        searchQuery,
+        post.caption,
+        post.displayName,
+        post.username,
+        post.hashtags,
+        post.audioName,
+        (post as any).handlerName
+      );
 
       // Pet Type filter
+      const petHay = `${post.caption || ""} ${post.hashtags || ""} ${post.displayName || ""} ${post.username || ""}`;
       let matchesPet = true;
       if (selectedPetFilter === "dog") {
-        matchesPet = post.avatar === "🐕" || /dog|pup|retriever|husky|lab/i.test(post.caption + post.hashtags);
+        matchesPet =
+          post.avatar === "🐕" ||
+          post.avatar === "🐕‍🦺" ||
+          post.avatar === "🐩" ||
+          /dog|pup|retriever|husky|lab|shepherd|doodle|canine/i.test(petHay);
       } else if (selectedPetFilter === "cat") {
-        matchesPet = post.avatar === "🐈" || /cat|feline|kitten|maine/i.test(post.caption + post.hashtags);
+        matchesPet = post.avatar === "🐈" || /cat|feline|kitten|maine|bengal|ragdoll/i.test(petHay);
       } else if (selectedPetFilter === "bird") {
-        matchesPet = post.avatar === "🦜" || /bird|parrot|avian/i.test(post.caption + post.hashtags);
+        matchesPet = post.avatar === "🦜" || /bird|parrot|avian/i.test(petHay);
       } else if (selectedPetFilter === "rabbit") {
-        matchesPet = post.avatar === "🐇" || /rabbit|bunny/i.test(post.caption + post.hashtags);
+        matchesPet = post.avatar === "🐇" || post.avatar === "🐰" || /rabbit|bunny/i.test(petHay);
       } else if (selectedPetFilter === "exotic") {
-        matchesPet = /reptile|gecko|snake|exotic/i.test(post.caption + post.hashtags);
+        matchesPet = post.avatar === "🦎" || /reptile|gecko|snake|exotic|lizard/i.test(petHay);
+      } else if (selectedPetFilter === "horse") {
+        matchesPet = post.avatar === "🐎" || /horse|equine|pony/i.test(petHay);
       }
 
       // Category filter
       let matchesCategory = true;
+      const catHay = `${post.caption || ""} ${post.hashtags || ""}`;
       if (selectedCategory === "sports") {
-        matchesCategory = /sport|agility|run|park|fetch|jump/i.test(post.caption + post.hashtags);
+        matchesCategory = /sport|agility|run|park|fetch|jump|sprint|zoomies/i.test(catHay);
       } else if (selectedCategory === "mating") {
-        matchesCategory = /mate|pedigree|breed|champion/i.test(post.caption + post.hashtags);
+        matchesCategory = /mate|mating|pedigree|breed|champion|stud/i.test(catHay);
       } else if (selectedCategory === "viral") {
-        matchesCategory = post.likes > 2000;
+        matchesCategory = true; // Sorted by top trending below so live viral clips always surface
       } else if (selectedCategory === "funny") {
-        matchesCategory = /funny|box|fail|derp|haha|smile/i.test(post.caption + post.hashtags);
+        matchesCategory = /funny|box|fail|derp|haha|smile|comedy/i.test(catHay);
       } else if (selectedCategory === "tricks") {
-        matchesCategory = /trick|skill|clever|smart/i.test(post.caption + post.hashtags);
+        matchesCategory = /trick|skill|clever|smart|whistle/i.test(catHay);
       } else if (selectedCategory === "cute") {
-        matchesCategory = /cute|baby|puppy|kitten|sweet/i.test(post.caption + post.hashtags);
+        matchesCategory = /cute|baby|puppy|kitten|sweet|cozy|nap/i.test(catHay);
       }
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
 
-  // Filtered Events
+    if (selectedCategory === "viral") {
+      return [...filtered].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    }
+    return filtered;
+  }, [searchQuery, remoteSearch, livePosts, selectedPetFilter, selectedCategory, matchesQuery, refreshKey]);
+
+  // Filtered Events (real-time server results + local events)
   const filteredEvents = useMemo(() => {
-    return eventsList.filter((evt) => {
-      // Search
-      const matchesSearch =
-        !searchQuery ||
-        evt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        evt.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        evt.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const pool: ExploreEvent[] = [];
+    const seen = new Set<string>();
+    const raw = searchQuery.trim() && remoteSearch?.events ? [...remoteSearch.events, ...eventsList] : eventsList;
+    for (const e of raw) {
+      const key = String(e.id);
+      if (!seen.has(key)) {
+        seen.add(key);
+        pool.push({
+          ...e,
+          category: String(e.category || "meetup").toLowerCase(),
+          petType: String(e.petType || "all").toLowerCase(),
+        });
+      }
+    }
 
-      // Pet Type
+    return pool.filter((evt) => {
+      const matchesSearch = matchesQuery(
+        searchQuery,
+        evt.title,
+        evt.location,
+        evt.description,
+        evt.organizerName,
+        evt.categoryLabel
+      );
+
       const matchesPet =
         selectedPetFilter === "all" ||
         evt.petType === "all" ||
         evt.petType === selectedPetFilter;
 
-      // Category
       const matchesCategory =
-        selectedCategory === "all" || evt.category === selectedCategory;
+        selectedCategory === "all" || evt.category.toLowerCase().includes(selectedCategory);
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
+  }, [searchQuery, remoteSearch, eventsList, selectedPetFilter, selectedCategory, matchesQuery, refreshKey]);
 
   // Filtered Marketplace (Products & Services)
   const filteredProducts = useMemo(() => {
     if (selectedCategory === "services" || selectedCategory === "grooming" || selectedCategory === "training") {
       return [];
     }
-    return marketProducts.filter((prod) => {
-      const matchesSearch =
-        !searchQuery ||
-        prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prod.seller.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prod.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const pool: ProductItem[] = [];
+    const seen = new Set<string>();
+    const raw = searchQuery.trim() && remoteSearch?.products ? [...remoteSearch.products, ...liveProducts] : liveProducts;
+    for (const p of raw) {
+      const key = String(p.id);
+      if (!seen.has(key)) {
+        seen.add(key);
+        pool.push(p);
+      }
+    }
 
-      // Pet Type
+    return pool.filter((prod) => {
+      const matchesSearch = matchesQuery(searchQuery, prod.name, prod.seller, prod.category);
+
       let matchesPet = true;
       if (selectedPetFilter === "dog") {
         matchesPet = !/feather|cat/i.test(prod.name + prod.category);
@@ -532,7 +808,6 @@ export default function ExploreScreen() {
         matchesPet = !/collar|bark/i.test(prod.name) || /feather|feline|cat/i.test(prod.name + prod.seller);
       }
 
-      // Category
       let matchesCategory = true;
       if (selectedCategory === "food") {
         matchesCategory = /food|treat/i.test(prod.category);
@@ -542,25 +817,31 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
+  }, [searchQuery, remoteSearch, liveProducts, selectedPetFilter, selectedCategory, matchesQuery, refreshKey]);
 
   const filteredServices = useMemo(() => {
     if (selectedCategory === "products" || selectedCategory === "food" || selectedCategory === "toys") {
       return [];
     }
-    return marketServices.filter((srv) => {
-      const matchesSearch =
-        !searchQuery ||
-        srv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        srv.provider.toLowerCase().includes(searchQuery.toLowerCase());
+    const pool: ServiceItem[] = [];
+    const seen = new Set<string>();
+    const raw = searchQuery.trim() && remoteSearch?.services ? [...remoteSearch.services, ...liveServices] : liveServices;
+    for (const s of raw) {
+      const key = String(s.id);
+      if (!seen.has(key)) {
+        seen.add(key);
+        pool.push(s);
+      }
+    }
 
-      // Pet Type
+    return pool.filter((srv) => {
+      const matchesSearch = matchesQuery(searchQuery, srv.name, srv.provider, srv.category);
+
       let matchesPet = true;
       if (selectedPetFilter === "cat") {
         matchesPet = !/puppy|canine|bark/i.test(srv.name + srv.provider);
       }
 
-      // Category
       let matchesCategory = true;
       if (selectedCategory === "grooming") {
         matchesCategory = /groom|spa|bath/i.test(srv.name);
@@ -570,7 +851,7 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesPet && matchesCategory;
     });
-  }, [searchQuery, selectedPetFilter, selectedCategory, refreshKey]);
+  }, [searchQuery, remoteSearch, liveServices, selectedPetFilter, selectedCategory, matchesQuery, refreshKey]);
 
   // Active Category list
   const currentCategories =
@@ -579,6 +860,36 @@ export default function ExploreScreen() {
       : activeTab === "events"
       ? EVENT_CATEGORIES
       : MARKET_CATEGORIES;
+
+  const isImageAvatar = (avatar?: string | null) =>
+    !!avatar && (avatar.startsWith("http") || avatar.startsWith("data:") || avatar.startsWith("file:") || avatar.startsWith("/"));
+
+  const renderAvatarBubble = (avatar: string | undefined, size: number, fallback = "🐾") =>
+    isImageAvatar(avatar) ? (
+      <Image source={{ uri: avatar }} style={{ width: size, height: size, borderRadius: size / 2 }} resizeMode="cover" />
+    ) : (
+      <Text style={{ fontSize: Math.round(size * 0.56) }}>{avatar || fallback}</Text>
+    );
+
+  const handleMessageHandler = (handler: SearchHandlerResult) => {
+    setSelectedHandler(null);
+    if (!user) {
+      setGuestAuthTitle(`Message ${handler.name} 💬`);
+      setGuestAuthSubtitle("Create a free account to message handlers, pet parents, and care providers directly!");
+      setGuestAuthVisible(true);
+      return;
+    }
+    const threadId = `dm_${handler.id}`;
+    router.push({
+      pathname: "/(tabs)/message/[id]",
+      params: {
+        id: threadId,
+        recipientId: handler.id,
+        name: handler.name,
+        avatar: handler.avatar || "🐾",
+      },
+    });
+  };
 
   return (
     <View style={styles.container} {...swipeHandlers}>
@@ -639,23 +950,29 @@ export default function ExploreScreen() {
 
           {/* Search & Pet Filter Input Group */}
           <View style={styles.inputGroupWrapper}>
-            <View style={styles.inputGroupContainer}>
+            <View style={[styles.inputGroupContainer, searchFocused && styles.inputGroupContainerFocused]}>
               {/* Left: Search Bar */}
               <View style={styles.searchLeftBox}>
-                <Search size={17} color="#94a3b8" />
+                <Search size={17} color={searchFocused ? "#06b6d4" : "#94a3b8"} />
                 <TextInput
                   style={styles.searchInput}
                   placeholder={
                     activeTab === "trending"
-                      ? "Search videos, tags, pets..."
+                      ? "Search handlers, pets, videos, tags..."
                       : activeTab === "events"
-                      ? "Search mating, agility, events..."
-                      : "Search products, grooming..."
+                      ? "Search events, handlers, breeds..."
+                      : "Search products, services, sellers..."
                   }
                   placeholderTextColor="#64748b"
+                  selectionColor="#06b6d4"
+                  underlineColorAndroid="transparent"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  onFocus={() => setPetDropdownOpen(false)}
+                  onFocus={() => {
+                    setPetDropdownOpen(false);
+                    setSearchFocused(true);
+                  }}
+                  onBlur={() => setSearchFocused(false)}
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity
@@ -740,6 +1057,90 @@ export default function ExploreScreen() {
           </ScrollView>
         </View>
 
+        {/* Real-time Handlers & Pets Search Results */}
+        {searchQuery.trim().length > 0 && (isSearching || matchedHandlers.length > 0 || matchedPets.length > 0) && (
+          <View style={styles.searchPeopleSection}>
+            <View style={styles.searchPeopleHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Users size={16} color="#06b6d4" />
+                <Text style={styles.searchPeopleTitle}>Handlers & Pets</Text>
+                {isSearching && <ActivityIndicator size="small" color="#06b6d4" style={{ marginLeft: 4 }} />}
+              </View>
+              <Text style={styles.resultsCount}>
+                {matchedHandlers.length + matchedPets.length} matches
+              </Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.peopleCardsScroll}
+            >
+              {matchedHandlers.map((handler) => (
+                <TouchableOpacity
+                  key={`h_${handler.id}`}
+                  style={styles.peopleCard}
+                  onPress={() => setSelectedHandler(handler)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.peopleAvatarCircle}>
+                    {renderAvatarBubble(handler.avatar, 40)}
+                  </View>
+                  <View style={styles.peopleCardBody}>
+                    <View style={styles.peopleNameRow}>
+                      <Text style={styles.peopleName} numberOfLines={1}>
+                        {handler.name}
+                      </Text>
+                      <ShieldCheck size={12} color="#2dd4bf" />
+                    </View>
+                    <Text style={styles.peopleHandle} numberOfLines={1}>
+                      {handler.username.startsWith("@") ? handler.username : `@${handler.username}`}
+                    </Text>
+                    <View style={styles.peopleRoleBadge}>
+                      <UserIcon size={10} color="#06b6d4" />
+                      <Text style={styles.peopleRoleText} numberOfLines={1}>
+                        {handler.accountType === "vet"
+                          ? "Vet"
+                          : handler.accountType === "business"
+                          ? "Store"
+                          : "Handler"}
+                        {handler.pets?.length ? ` • ${handler.pets.length} pet${handler.pets.length > 1 ? "s" : ""}` : ""}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+              {matchedPets.map((pet) => (
+                <TouchableOpacity
+                  key={`p_${pet.id}`}
+                  style={[styles.peopleCard, styles.petResultCard]}
+                  onPress={() => router.push(`/(tabs)/animal/${pet.id}` as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.peopleAvatarCircle, { borderColor: "#2dd4bf" }]}>
+                    {renderAvatarBubble(pet.avatar, 40)}
+                  </View>
+                  <View style={styles.peopleCardBody}>
+                    <View style={styles.peopleNameRow}>
+                      <Text style={styles.peopleName} numberOfLines={1}>
+                        {pet.name}
+                      </Text>
+                      <PawPrint size={11} color="#2dd4bf" />
+                    </View>
+                    <Text style={styles.peopleHandle} numberOfLines={1}>
+                      {pet.breed || (pet.username?.startsWith("@") ? pet.username : `@${pet.username || "pet"}`)}
+                    </Text>
+                    <Text style={styles.peopleSubNote} numberOfLines={1}>
+                      {pet.handlerName ? `Handler: ${pet.handlerName}` : "View Pet Profile"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* ============================================================== */}
         {/* TAB 1: TRENDING TAB CONTENT                                    */}
         {/* ============================================================== */}
@@ -791,7 +1192,12 @@ export default function ExploreScreen() {
                   <TouchableOpacity
                     key={post.id}
                     style={styles.gridCard}
-                    onPress={() => router.push("/(tabs)/")}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/",
+                        params: { focusPostId: String(post.id) },
+                      })
+                    }
                   >
                     <Image source={{ uri: post.posterUrl }} style={styles.gridImage} />
                     <View style={styles.playOverlay}>
@@ -799,7 +1205,7 @@ export default function ExploreScreen() {
                       <Text style={styles.viewCount}>{post.likes} likes</Text>
                     </View>
                     <View style={styles.cardFooter}>
-                      <Text style={styles.cardAvatar}>{post.avatar}</Text>
+                      {renderAvatarBubble(post.avatar, 22)}
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cardTitle} numberOfLines={1}>
                           {post.displayName}
@@ -1189,6 +1595,96 @@ export default function ExploreScreen() {
         title={guestAuthTitle}
         subtitle={guestAuthSubtitle}
       />
+
+      {/* Handler Quick Profile & Pets Modal */}
+      <Modal
+        visible={!!selectedHandler}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedHandler(null)}
+      >
+        <View style={styles.handlerModalBackdrop}>
+          <View style={styles.handlerModalCard}>
+            <View style={styles.handlerModalHeader}>
+              <View style={styles.handlerModalTitleRow}>
+                <View style={styles.handlerModalAvatar}>
+                  {selectedHandler && renderAvatarBubble(selectedHandler.avatar, 50)}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.handlerModalName} numberOfLines={1}>
+                      {selectedHandler?.name}
+                    </Text>
+                    <ShieldCheck size={15} color="#2dd4bf" />
+                  </View>
+                  <Text style={styles.handlerModalUsername}>
+                    {selectedHandler?.username?.startsWith("@")
+                      ? selectedHandler.username
+                      : `@${selectedHandler?.username || "handler"}`}
+                  </Text>
+                  <View style={styles.handlerModalRolePill}>
+                    <Text style={styles.handlerModalRoleText}>
+                      {selectedHandler?.clinicName ||
+                        selectedHandler?.businessName ||
+                        (selectedHandler?.accountType === "vet"
+                          ? "Verified Veterinarian"
+                          : selectedHandler?.accountType === "business"
+                          ? "Pet Business Partner"
+                          : "Verified Pet Handler")}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedHandler(null)} hitSlop={10}>
+                <X size={20} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedHandler?.bio ? (
+              <Text style={styles.handlerModalBio}>{selectedHandler.bio}</Text>
+            ) : selectedHandler?.specialization ? (
+              <Text style={styles.handlerModalBio}>Specialization: {selectedHandler.specialization}</Text>
+            ) : null}
+
+            {selectedHandler?.pets && selectedHandler.pets.length > 0 ? (
+              <View style={styles.handlerModalPetsSection}>
+                <Text style={styles.handlerModalPetsTitle}>
+                  Pets ({selectedHandler.pets.length})
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                  {selectedHandler.pets.map((pet) => (
+                    <TouchableOpacity
+                      key={pet.id}
+                      style={styles.handlerModalPetChip}
+                      onPress={() => {
+                        setSelectedHandler(null);
+                        router.push(`/(tabs)/animal/${pet.id}` as any);
+                      }}
+                    >
+                      <View style={styles.handlerModalPetAvatar}>
+                        {renderAvatarBubble(pet.avatar, 32)}
+                      </View>
+                      <View>
+                        <Text style={styles.handlerModalPetName}>{pet.name}</Text>
+                        <Text style={styles.handlerModalPetBreed}>{pet.breed || "Pet Profile"}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.handlerModalMsgBtn}
+              onPress={() => selectedHandler && handleMessageHandler(selectedHandler)}
+              activeOpacity={0.85}
+            >
+              <MessageSquare size={16} color="#ffffff" />
+              <Text style={styles.handlerModalMsgText}>Message {selectedHandler?.name}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1239,6 +1735,9 @@ const styles = StyleSheet.create({
     height: 48,
     paddingHorizontal: 12,
   },
+  inputGroupContainerFocused: {
+    borderColor: "#06b6d4",
+  },
   searchLeftBox: {
     flex: 1,
     flexDirection: "row",
@@ -1250,6 +1749,11 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 13,
     paddingVertical: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    ...(Platform.OS === "web"
+      ? ({ outlineStyle: "none", outlineWidth: 0, outlineColor: "transparent", boxShadow: "none" } as any)
+      : {}),
   },
   inputGroupDivider: {
     width: 1,
@@ -2002,5 +2506,212 @@ const styles = StyleSheet.create({
     color: "#e2e8f0",
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  // Real-Time Handlers & Pets Search Results
+  searchPeopleSection: {
+    marginBottom: 16,
+  },
+  searchPeopleHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  searchPeopleTitle: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  peopleCardsScroll: {
+    gap: 10,
+    paddingBottom: 2,
+  },
+  peopleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    borderRadius: 14,
+    padding: 10,
+    width: 215,
+  },
+  petResultCard: {
+    borderColor: "rgba(45, 212, 191, 0.35)",
+  },
+  peopleAvatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#0d1117",
+    borderWidth: 1.5,
+    borderColor: "#06b6d4",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  peopleCardBody: {
+    flex: 1,
+  },
+  peopleNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  peopleName: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  peopleHandle: {
+    color: "#94a3b8",
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  peopleRoleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  peopleRoleText: {
+    color: "#06b6d4",
+    fontSize: 10.5,
+    fontWeight: "600",
+  },
+  peopleSubNote: {
+    color: "#2dd4bf",
+    fontSize: 10.5,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+
+  // Handler Quick Profile Modal
+  handlerModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    justifyContent: "flex-end",
+  },
+  handlerModalCard: {
+    backgroundColor: "#161b22",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    padding: 20,
+    paddingBottom: 34,
+  },
+  handlerModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  handlerModalTitleRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  handlerModalAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#0d1117",
+    borderWidth: 2,
+    borderColor: "#06b6d4",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  handlerModalName: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "800",
+    flexShrink: 1,
+  },
+  handlerModalUsername: {
+    color: "#94a3b8",
+    fontSize: 13,
+    marginTop: 2,
+  },
+  handlerModalRolePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(6, 182, 212, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.35)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  handlerModalRoleText: {
+    color: "#06b6d4",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  handlerModalBio: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 14,
+  },
+  handlerModalPetsSection: {
+    marginTop: 16,
+  },
+  handlerModalPetsTitle: {
+    color: "#94a3b8",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  handlerModalPetChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#0d1117",
+    borderWidth: 1,
+    borderColor: "rgba(45, 212, 191, 0.35)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  handlerModalPetAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#161b22",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  handlerModalPetName: {
+    color: "#ffffff",
+    fontSize: 12.5,
+    fontWeight: "700",
+  },
+  handlerModalPetBreed: {
+    color: "#94a3b8",
+    fontSize: 11,
+  },
+  handlerModalMsgBtn: {
+    marginTop: 18,
+    backgroundColor: "#06b6d4",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  handlerModalMsgText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "800",
   },
 });
