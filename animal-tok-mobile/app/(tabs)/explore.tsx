@@ -990,39 +990,45 @@ export default function ExploreScreen() {
           <View style={styles.tabsWrapper}>
             <View style={styles.tabsRow}>
               <TouchableOpacity
-                style={[styles.tabButton, activeTab === "trending" && styles.tabButtonActive]}
+                style={[styles.tabButton, { flex: 0.95 }, activeTab === "trending" && styles.tabButtonActive]}
                 onPress={() => {
                   setPetDropdownOpen(false);
                   handleTabChange("trending");
                 }}
               >
-                <Flame size={16} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
-                <Text style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}>
+                <Flame size={13} color={activeTab === "trending" ? "#06b6d4" : "#94a3b8"} />
+                <Text
+                  style={[styles.tabButtonText, activeTab === "trending" && styles.tabButtonTextActive]}
+                  numberOfLines={1}
+                >
                   Trending
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.tabButton, activeTab === "events" && styles.tabButtonActive]}
+                style={[styles.tabButton, { flex: 0.85 }, activeTab === "events" && styles.tabButtonActive]}
                 onPress={() => {
                   setPetDropdownOpen(false);
                   handleTabChange("events");
                 }}
               >
-                <Calendar size={16} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
-                <Text style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}>
+                <Calendar size={13} color={activeTab === "events" ? "#06b6d4" : "#94a3b8"} />
+                <Text
+                  style={[styles.tabButtonText, activeTab === "events" && styles.tabButtonTextActive]}
+                  numberOfLines={1}
+                >
                   Events
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.tabButton, activeTab === "marketplace" && styles.tabButtonActive]}
+                style={[styles.tabButton, { flex: 1.25 }, activeTab === "marketplace" && styles.tabButtonActive]}
                 onPress={() => {
                   setPetDropdownOpen(false);
                   setMarketDropdownOpen((prev) => !prev);
                 }}
               >
-                <Store size={16} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
+                <Store size={13} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
                 <Text
                   style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}
                   numberOfLines={1}
@@ -1034,7 +1040,7 @@ export default function ExploreScreen() {
                     : "Marketplace"}
                 </Text>
                 <ChevronDown
-                  size={13}
+                  size={11}
                   color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"}
                   style={marketDropdownOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
                 />
@@ -1091,7 +1097,7 @@ export default function ExploreScreen() {
             <View style={[styles.inputGroupContainer, searchFocused && styles.inputGroupContainerFocused]}>
               {/* Left: Search Bar */}
               <View style={styles.searchLeftBox}>
-                <Search size={17} color={searchFocused ? "#06b6d4" : "#94a3b8"} />
+                <Search size={15} color={searchFocused ? "#06b6d4" : "#94a3b8"} />
                 <TextInput
                   style={styles.searchInput}
                   placeholder={
@@ -1200,8 +1206,8 @@ export default function ExploreScreen() {
           <View style={styles.searchPeopleSection}>
             <View style={styles.searchPeopleHeader}>
               <View style={styles.sectionTitleRow}>
-                <Users size={16} color="#06b6d4" />
-                <Text style={styles.searchPeopleTitle}>Handlers & Pets</Text>
+                <Users size={14} color="#06b6d4" />
+                <Text style={styles.searchPeopleTitle} numberOfLines={1}>Handlers & Pets</Text>
                 {isSearching && <ActivityIndicator size="small" color="#06b6d4" style={{ marginLeft: 4 }} />}
               </View>
               <Text style={styles.resultsCount}>
@@ -1287,8 +1293,8 @@ export default function ExploreScreen() {
             {/* Trending Hashtags Bar */}
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Flame size={18} color="#f59e0b" />
-                <Text style={styles.sectionTitle}>Trending Tags</Text>
+                <Flame size={14} color="#f59e0b" />
+                <Text style={styles.sectionTitle} numberOfLines={1}>Trending Tags</Text>
               </View>
             </View>
 
@@ -1308,8 +1314,8 @@ export default function ExploreScreen() {
             {/* Video Posts Grid */}
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <TrendingUp size={18} color="#06b6d4" />
-                <Text style={styles.sectionTitle}>
+                <TrendingUp size={14} color="#06b6d4" />
+                <Text style={styles.sectionTitle} numberOfLines={1}>
                   {selectedCategory !== "all"
                     ? currentCategories.find((c) => c.id === selectedCategory)?.label
                     : "Popular Videos"}
@@ -1377,10 +1383,10 @@ export default function ExploreScreen() {
           <View style={styles.tabContentContainer}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Calendar size={18} color="#06b6d4" />
-                <Text style={styles.sectionTitle}>Upcoming Pet Events</Text>
+                <Calendar size={14} color="#06b6d4" />
+                <Text style={styles.sectionTitle} numberOfLines={1}>Upcoming Pet Events</Text>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 }}>
                 <TouchableOpacity
                   style={styles.hostEventBtn}
                   onPress={() => {
@@ -1394,7 +1400,7 @@ export default function ExploreScreen() {
                   }}
                   activeOpacity={0.8}
                 >
-                  <Plus size={13} color="#ffffff" />
+                  <Plus size={11} color="#ffffff" />
                   <Text style={styles.hostEventBtnText}>Host Event</Text>
                 </TouchableOpacity>
                 <Text style={styles.resultsCount}>{filteredEvents.length} events</Text>
@@ -1492,8 +1498,8 @@ export default function ExploreScreen() {
                 <View style={styles.marketGroup}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionTitleRow}>
-                      <Package size={18} color="#06b6d4" />
-                      <Text style={styles.sectionTitle}>Featured Products</Text>
+                      <Package size={14} color="#06b6d4" />
+                      <Text style={styles.sectionTitle} numberOfLines={1}>Featured Products</Text>
                     </View>
                     <Text style={styles.resultsCount}>{filteredProducts.length} items</Text>
                   </View>
@@ -1547,8 +1553,8 @@ export default function ExploreScreen() {
                 <View style={styles.marketGroup}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionTitleRow}>
-                      <Wrench size={18} color="#10b981" />
-                      <Text style={styles.sectionTitle}>Professional Services</Text>
+                      <Wrench size={14} color="#10b981" />
+                      <Text style={styles.sectionTitle} numberOfLines={1}>Professional Services</Text>
                     </View>
                     <Text style={styles.resultsCount}>{filteredServices.length} services</Text>
                   </View>
@@ -1807,40 +1813,41 @@ const styles = StyleSheet.create({
   },
   stickyHeaderContainer: {
     backgroundColor: "#0d1117",
-    paddingBottom: 8,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: "#1e293b",
     zIndex: 999,
   },
   topHeader: {
     paddingTop: 0,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   pageTitle: {
     color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900",
+    fontSize: 19,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   pageSub: {
     color: "#64748b",
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 11.5,
+    marginTop: 1,
   },
   // Input Group & Dropdown Styles
   inputGroupWrapper: {
     position: "relative",
     zIndex: 999,
-    marginBottom: 14,
+    marginBottom: 10,
   },
   inputGroupContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#161b22",
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#1e293b",
-    height: 48,
-    paddingHorizontal: 12,
+    height: 42,
+    paddingHorizontal: 10,
   },
   inputGroupContainerFocused: {
     borderColor: "#06b6d4",
@@ -1849,12 +1856,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 7,
   },
   searchInput: {
     flex: 1,
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 12,
     paddingVertical: 0,
     borderWidth: 0,
     backgroundColor: "transparent",
@@ -1884,11 +1891,11 @@ const styles = StyleSheet.create({
     borderColor: "#06b6d4",
   },
   dropdownTriggerIcon: {
-    fontSize: 14,
+    fontSize: 13,
   },
   dropdownTriggerText: {
     color: "#cbd5e1",
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "600",
   },
   dropdownMenu: {
@@ -1950,9 +1957,9 @@ const styles = StyleSheet.create({
   tabsRow: {
     flexDirection: "row",
     backgroundColor: "#161b22",
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 14,
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "#1e293b",
   },
@@ -1961,9 +1968,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
+    gap: 4,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
+    borderRadius: 9,
   },
   tabButtonActive: {
     backgroundColor: "rgba(6, 182, 212, 0.15)",
@@ -1972,7 +1980,7 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     color: "#94a3b8",
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: "700",
   },
   tabButtonTextActive: {
@@ -1981,26 +1989,26 @@ const styles = StyleSheet.create({
 
   filterSectionLabel: {
     color: "#64748b",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: 6,
   },
 
   // Category Pills
   categorySection: {
-    paddingTop: 14,
-    marginBottom: 16,
+    paddingTop: 10,
+    marginBottom: 12,
   },
   categoryScroll: {
-    gap: 8,
+    gap: 7,
     paddingBottom: 4,
   },
   categoryChip: {
-    paddingHorizontal: 13,
-    paddingVertical: 7,
-    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 5.5,
+    borderRadius: 15,
     backgroundColor: "#161b22",
     borderWidth: 1,
     borderColor: "#1e293b",
@@ -2011,7 +2019,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     color: "#94a3b8",
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "600",
   },
   categoryTextActive: {
@@ -2027,36 +2035,41 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 10,
   },
   sectionTitleRow: {
+    flex: 1,
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   sectionTitle: {
     color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 13.5,
+    fontWeight: "700",
+    flexShrink: 1,
   },
   resultsCount: {
     color: "#64748b",
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: "500",
+    flexShrink: 0,
   },
   hostEventBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: "#06b6d4",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   hostEventBtnText: {
     color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "bold",
+    fontSize: 10.5,
+    fontWeight: "700",
   },
 
   // Hashtags
@@ -2408,39 +2421,40 @@ const styles = StyleSheet.create({
     height: 120,
   },
   productBody: {
-    padding: 10,
+    padding: 9,
   },
   productTag: {
     color: "#06b6d4",
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: "700",
     marginBottom: 2,
   },
   productName: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
     marginBottom: 2,
   },
   productSeller: {
     color: "#64748b",
-    fontSize: 11,
+    fontSize: 10.5,
     marginBottom: 6,
   },
   productPriceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   productPrice: {
     color: "#10b981",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
   },
   tapDetailsText: {
     color: "#06b6d4",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "600",
   },
   ratingBox: {
@@ -2450,7 +2464,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: "#cbd5e1",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "600",
   },
   buyButton: {
@@ -2458,13 +2472,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingVertical: 7,
+    gap: 4,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   buyButtonText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
 
@@ -2627,8 +2641,8 @@ const styles = StyleSheet.create({
   },
   searchPeopleTitle: {
     color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "800",
+    fontSize: 13.5,
+    fontWeight: "700",
   },
   peopleCardsScroll: {
     gap: 10,
@@ -2862,19 +2876,19 @@ const styles = StyleSheet.create({
   marketSubBar: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   marketSubChip: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 5,
     backgroundColor: "#161b22",
     borderWidth: 1,
     borderColor: "#1e293b",
-    borderRadius: 12,
-    paddingVertical: 8,
+    borderRadius: 10,
+    paddingVertical: 6.5,
   },
   marketSubChipActive: {
     backgroundColor: "#06b6d4",
@@ -2886,7 +2900,7 @@ const styles = StyleSheet.create({
   },
   marketSubChipText: {
     color: "#94a3b8",
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: "700",
   },
   marketSubChipTextActive: {

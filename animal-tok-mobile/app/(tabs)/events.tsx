@@ -173,13 +173,13 @@ export default function EventsScreen() {
     <SafeAreaView style={styles.container} {...swipeHandlers}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBox}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 8 }}>
-            <ArrowLeft size={28} color="#ffffff" />
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 4 }}>
+            <ArrowLeft size={20} color="#ffffff" />
           </TouchableOpacity>
-          <Calendar size={28} color="#06b6d4" />
-          <View>
-            <Text style={styles.headerTitle}>Local Pet Events & Meetups</Text>
-            <Text style={styles.headerSub}>Connect with pet parents in your community</Text>
+          <Calendar size={18} color="#06b6d4" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle} numberOfLines={1}>Local Pet Events & Meetups</Text>
+            <Text style={styles.headerSub} numberOfLines={1}>Connect with pet parents in your community</Text>
           </View>
         </View>
 
@@ -277,18 +277,18 @@ const styles = StyleSheet.create({
   headerBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 14,
     marginTop: Platform.OS === "android" ? 36 : 10,
   },
   headerTitle: {
     color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 16.5,
+    fontWeight: "800",
   },
   headerSub: {
     color: "#64748b",
-    fontSize: 12,
+    fontSize: 11,
   },
   eventsGrid: {
     flexDirection: "row",
@@ -346,18 +346,19 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   eventBody: {
-    padding: 10,
+    padding: 9,
   },
   eventTitle: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   infoText: {
     color: "#94a3b8",
-    fontSize: 11,
-    marginBottom: 6,
+    fontSize: 10.5,
+    marginBottom: 5,
   },
   cardFooterRow: {
     flexDirection: "row",
@@ -371,12 +372,12 @@ const styles = StyleSheet.create({
   },
   attendeesText: {
     color: "#cbd5e1",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "600",
   },
   detailsLinkText: {
     color: "#06b6d4",
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "700",
   },
 });

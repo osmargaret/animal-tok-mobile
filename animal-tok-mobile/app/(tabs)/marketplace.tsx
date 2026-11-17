@@ -238,26 +238,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   pageTitle: {
     color: "#ffffff",
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "800",
   },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     backgroundColor: "#06b6d4",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   addBtnText: {
     color: "#ffffff",
-    fontSize: 13,
-    fontWeight: "bold",
+    fontSize: 11,
+    fontWeight: "700",
   },
   tabToggleRow: {
     flexDirection: "row",
@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 10,
+    gap: 6,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   toggleBtnActive: {
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     color: "#94a3b8",
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: "600",
   },
   toggleTextActive: {
@@ -335,14 +335,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 2,
   },
   sellerName: {
     color: "#64748b",
-    fontSize: 11,
-    marginBottom: 10,
+    fontSize: 10.5,
+    marginBottom: 8,
   },
   priceRow: {
     flexDirection: "row",
@@ -351,18 +351,18 @@ const styles = StyleSheet.create({
   },
   priceText: {
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
   },
   buyBtn: {
     backgroundColor: "#06b6d4",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 10,
   },
   buyBtnText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "bold",
   },
   servicesList: {

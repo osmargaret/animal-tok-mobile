@@ -949,22 +949,42 @@ export default function ProfileScreen() {
                     style={styles.tabActionBtn}
                     onPress={() => router.push("/add-product")}
                   >
-                    <Plus size={14} color="#ffffff" />
+                    <Plus size={12} color="#ffffff" />
                     <Text style={styles.tabActionBtnText}>List Product</Text>
                   </TouchableOpacity>
                 </View>
 
                 {userProducts.length > 0 ? (
-                  <View style={styles.hubProductsGrid}>
+                  <View style={styles.uniformGrid}>
                     {userProducts.map((prod) => (
-                      <View key={prod.id} style={styles.hubProductCard}>
-                        <Image source={{ uri: prod.image }} style={styles.hubProductImg} />
-                        <View style={styles.hubProductBody}>
-                          <Text style={styles.hubProductTag}>{prod.category}</Text>
-                          <Text style={styles.hubProductTitle} numberOfLines={1}>{prod.name}</Text>
-                          <Text style={styles.hubProductPrice}>{prod.price}</Text>
+                      <TouchableOpacity
+                        key={prod.id}
+                        style={styles.uniformMediaCard}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(tabs)/product/[id]",
+                            params: {
+                              id: String(prod.id),
+                              name: prod.name,
+                              price: prod.price,
+                              rating: String(prod.rating || "4.9"),
+                              seller: prod.seller || activeProfile?.name || "Seller",
+                              image: prod.image,
+                              category: prod.category || "Pet Supply",
+                            },
+                          })
+                        }
+                      >
+                        <Image source={{ uri: prod.image }} style={styles.uniformProductImg} resizeMode="cover" />
+                        <View style={styles.uniformCardBody}>
+                          <Text style={styles.uniformCardTag} numberOfLines={1}>{prod.category}</Text>
+                          <Text style={styles.uniformCardTitle} numberOfLines={1}>{prod.name}</Text>
+                          <Text style={[styles.uniformCardMeta, { color: "#10b981", fontWeight: "800" }]}>
+                            {prod.price}
+                          </Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 ) : (
@@ -1001,7 +1021,7 @@ export default function ProfileScreen() {
                       style={[styles.tabActionBtn, isVet && { backgroundColor: "#10b981" }]}
                       onPress={() => router.push({ pathname: "/add-product", params: { type: "service" } })}
                     >
-                      <Plus size={14} color="#ffffff" />
+                      <Plus size={12} color="#ffffff" />
                       <Text style={styles.tabActionBtnText}>
                         {isVet ? "Add Vet Service" : "Add Service"}
                       </Text>
@@ -1086,7 +1106,7 @@ export default function ProfileScreen() {
                     style={styles.tabActionBtn}
                     onPress={() => setHostEventModalVisible(true)}
                   >
-                    <Plus size={14} color="#ffffff" />
+                    <Plus size={12} color="#ffffff" />
                     <Text style={styles.tabActionBtnText}>Host Event</Text>
                   </TouchableOpacity>
                 </View>
@@ -1340,7 +1360,7 @@ const styles = StyleSheet.create({
   },
   barTitle: {
     color: "#ffffff",
-    fontSize: 20,
+    fontSize: 17.5,
     fontWeight: "800",
   },
   topBarActions: {
@@ -1513,12 +1533,12 @@ const styles = StyleSheet.create({
   },
   profileName: {
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   profileUsername: {
     color: "#94a3b8",
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 1,
     marginBottom: 4,
   },
@@ -1760,23 +1780,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   uniformCardBody: {
-    padding: 9,
+    padding: 8,
   },
   uniformCardTag: {
     color: "#06b6d4",
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: "700",
     marginBottom: 2,
   },
   uniformCardTitle: {
     color: "#ffffff",
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: "700",
     marginBottom: 2,
   },
   uniformCardMeta: {
     color: "#94a3b8",
-    fontSize: 11,
+    fontSize: 10.5,
   },
   gridImg: {
     width: "100%",
@@ -1976,33 +1996,33 @@ const styles = StyleSheet.create({
   },
   ordersLinkText: {
     color: "#06b6d4",
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: "700",
     textDecorationLine: "underline",
   },
   tabSectionTitle: {
     color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "bold",
+    fontSize: 13.5,
+    fontWeight: "700",
   },
   tabSectionSub: {
     color: "#94a3b8",
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 1,
   },
   tabActionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
     backgroundColor: "#06b6d4",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   tabActionBtnText: {
     color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "bold",
+    fontSize: 11,
+    fontWeight: "700",
   },
   hubProductsGrid: {
     flexDirection: "row",

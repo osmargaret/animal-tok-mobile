@@ -289,10 +289,10 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#ffffff",
-    fontSize: 19,
+    fontSize: 16.5,
     fontWeight: "800",
-    lineHeight: 25,
-    marginBottom: 12,
+    lineHeight: 22,
+    marginBottom: 10,
   },
   metaRow: {
     flexDirection: "row",
@@ -374,3 +374,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+
