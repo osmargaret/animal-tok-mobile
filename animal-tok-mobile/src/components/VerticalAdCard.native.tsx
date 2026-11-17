@@ -156,13 +156,13 @@ export default function VerticalAdCard({ post, isActive }: VerticalAdCardProps) 
 
   const handleCtaPress = async () => {
     api.recordAdClick(String(post.id));
-    const targetUrl = post.ctaUrl || "https://animandler.app";
+    const targetUrl = post.ctaUrl || "https://animandler.com";
     try {
       const supported = await Linking.canOpenURL(targetUrl);
       if (supported) {
         await Linking.openURL(targetUrl);
       } else {
-        await Linking.openURL("https://animandler.app");
+        await Linking.openURL("https://animandler.com");
       }
     } catch (e) {
       console.warn("Failed to open CTA URL:", e);
@@ -173,7 +173,7 @@ export default function VerticalAdCard({ post, isActive }: VerticalAdCardProps) 
     try {
       await Share.share({
         title: post.title || post.advertiserName || "Animandler Partner",
-        message: `Check out ${post.advertiserName} on Animandler: ${post.caption} - ${post.ctaUrl || 'https://animandler.app'}`,
+        message: `Check out ${post.advertiserName} on Animandler: ${post.caption} - ${post.ctaUrl || 'https://animandler.com'}`,
       });
     } catch (e) {}
   };

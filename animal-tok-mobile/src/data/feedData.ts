@@ -201,7 +201,7 @@ export const feedPosts: FeedPost[] = [
     posterUrl: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=800&auto=format&fit=crop&q=80",
     imageUrl: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=800&auto=format&fit=crop&q=80",
     ctaText: "Book Appointment 🩺",
-    ctaUrl: "https://animandler.app",
+    ctaUrl: "https://animandler.com",
     likes: 980,
     comments: 122,
     saves: 41,
