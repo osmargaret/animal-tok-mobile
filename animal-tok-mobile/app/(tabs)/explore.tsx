@@ -1374,11 +1374,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: 8,
   },
 
   // Category Pills
   categorySection: {
+    paddingTop: 14,
     marginBottom: 16,
   },
   categoryScroll: {

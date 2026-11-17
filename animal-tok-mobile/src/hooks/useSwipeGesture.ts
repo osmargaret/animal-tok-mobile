@@ -66,3 +66,4 @@ export function useSwipeGesture(options: SwipeOptions) {
 
   return panResponder.panHandlers;
 }
+
