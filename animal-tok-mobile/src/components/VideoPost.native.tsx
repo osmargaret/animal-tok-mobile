@@ -14,6 +14,7 @@ import {
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Audio } from "expo-av";
 import { Heart, MessageCircle, Share2, Music, Play, Volume2, VolumeX, Sparkles, Bookmark } from "lucide-react-native";
+import Svg, { Defs, LinearGradient, Stop, Rect } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import type { FeedPost } from "@/data/feedData";
@@ -425,6 +426,8 @@ export default function VideoPost({
 
   const filterDef = getFilterById(post.filterId);
   const hasFilter = (post.filterId && post.filterId !== "normal") || (post.filterColor && post.filterColor !== "transparent");
+  const scrimGradientId = `feedScrim_${String(post.id || "item").replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const scrimWidth = Math.max(Math.ceil(windowWidth || 420), 420);
 
   return (
     <View style={[styles.container, { width: '100%', height: '100%' }]}>
@@ -485,25 +488,40 @@ export default function VideoPost({
         )}
       </TouchableOpacity>
 
-      {/* Smooth multi-stop dark bottom scrim so overlay text stays razor-sharp on bright footage */}
+      {/* Seamless continuous bottom gradient so overlay text stays crisp with zero visible lines */}
       {Platform.OS === "web" ? (
         <View
           style={[
             styles.gradientOverlay,
             {
               background:
-                "linear-gradient(to top, rgba(6, 10, 18, 0.92) 0%, rgba(8, 13, 22, 0.72) 52%, rgba(10, 15, 25, 0.28) 82%, transparent 100%)",
+                "linear-gradient(to top, rgba(6, 10, 18, 0.88) 0%, rgba(6, 10, 18, 0.56) 44%, rgba(6, 10, 18, 0.16) 78%, rgba(6, 10, 18, 0) 100%)",
             } as any,
           ]}
           pointerEvents="none"
         />
       ) : (
         <View style={styles.gradientOverlayNative} pointerEvents="none">
-          <View style={{ flex: 1, backgroundColor: "rgba(6, 10, 18, 0.06)" }} />
-          <View style={{ flex: 1, backgroundColor: "rgba(6, 10, 18, 0.22)" }} />
-          <View style={{ flex: 1.1, backgroundColor: "rgba(6, 10, 18, 0.44)" }} />
-          <View style={{ flex: 1.2, backgroundColor: "rgba(6, 10, 18, 0.66)" }} />
-          <View style={{ flex: 1.3, backgroundColor: "rgba(6, 10, 18, 0.86)" }} />
+          <Svg width={scrimWidth} height={300}>
+            <Defs>
+              <LinearGradient
+                id={scrimGradientId}
+                gradientUnits="userSpaceOnUse"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="300"
+              >
+                <Stop offset="0" stopColor="#060a12" stopOpacity="0" />
+                <Stop offset="0.22" stopColor="#060a12" stopOpacity="0.06" />
+                <Stop offset="0.46" stopColor="#060a12" stopOpacity="0.26" />
+                <Stop offset="0.7" stopColor="#060a12" stopOpacity="0.54" />
+                <Stop offset="0.88" stopColor="#060a12" stopOpacity="0.76" />
+                <Stop offset="1" stopColor="#060a12" stopOpacity="0.88" />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width={scrimWidth} height={300} fill={`url(#${scrimGradientId})`} />
+          </Svg>
         </View>
       )}
 
@@ -674,16 +692,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 260,
-    backgroundColor: "rgba(13, 17, 23, 0.58)",
+    height: 300,
+    backgroundColor: "transparent",
   },
   gradientOverlayNative: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: 260,
-    flexDirection: "column",
+    height: 300,
+    overflow: "hidden",
+    backgroundColor: "transparent",
   },
   actionSidebar: {
     position: "absolute",
