@@ -252,7 +252,6 @@ export default function ExploreScreen() {
   // Selected state
   const [activeTab, setActiveTab] = useState<ExploreTab>("trending");
   const [marketSubTab, setMarketSubTab] = useState<"products" | "services">("products");
-  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [selectedPetFilter, setSelectedPetFilter] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -436,39 +435,31 @@ export default function ExploreScreen() {
 
   // Reset category when switching tabs
   const handleTabChange = (tab: ExploreTab) => {
-    setMarketDropdownOpen(false);
     setActiveTab(tab);
     setSelectedCategory("all");
   };
 
   const handleSelectMarketOption = (opt: "products" | "services") => {
     setMarketSubTab(opt);
-    setMarketDropdownOpen(false);
     setActiveTab("marketplace");
     setSelectedCategory("all");
   };
 
   const handleSwipeLeft = () => {
     setPetDropdownOpen(false);
-    setMarketDropdownOpen(false);
     if (activeTab === "trending") {
       handleTabChange("events");
     } else if (activeTab === "events") {
       setMarketSubTab("products");
       handleTabChange("marketplace");
-    } else if (activeTab === "marketplace") {
-      if (marketSubTab === "products") {
-        setMarketSubTab("services");
-        setSelectedCategory("all");
-      } else {
-        router.replace("/(tabs)/inbox");
-      }
+    } else if (activeTab === "marketplace" && marketSubTab === "products") {
+      setMarketSubTab("services");
+      setSelectedCategory("all");
     }
   };
 
   const handleSwipeRight = () => {
     setPetDropdownOpen(false);
-    setMarketDropdownOpen(false);
     if (activeTab === "marketplace") {
       if (marketSubTab === "services") {
         setMarketSubTab("products");
@@ -478,8 +469,6 @@ export default function ExploreScreen() {
       }
     } else if (activeTab === "events") {
       handleTabChange("trending");
-    } else if (activeTab === "trending") {
-      router.replace("/(tabs)/");
     }
   };
 
@@ -969,7 +958,6 @@ export default function ExploreScreen() {
         contentContainerStyle={styles.scrollContent}
         onScrollBeginDrag={() => {
           setPetDropdownOpen(false);
-          setMarketDropdownOpen(false);
         }}
       >
         <View style={[styles.stickyHeaderContainer, { paddingTop: topSafeInset + 10 }]}>
@@ -979,7 +967,7 @@ export default function ExploreScreen() {
             <Text style={styles.pageSub}>Discover trending pets, live events & marketplace</Text>
           </View>
 
-          {/* 3 Main Tabs: Trending | Events | Marketplace (Dropdown: Products / Services) */}
+          {/* 3 Main Tabs: Trending | Events | Marketplace */}
           <View style={styles.tabsWrapper}>
             <View style={styles.tabsRow}>
               <TouchableOpacity
@@ -1015,10 +1003,10 @@ export default function ExploreScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.tabButton, { flex: 1.25 }, activeTab === "marketplace" && styles.tabButtonActive]}
+                style={[styles.tabButton, { flex: 1.15 }, activeTab === "marketplace" && styles.tabButtonActive]}
                 onPress={() => {
                   setPetDropdownOpen(false);
-                  setMarketDropdownOpen((prev) => !prev);
+                  handleTabChange("marketplace");
                 }}
               >
                 <Store size={13} color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"} />
@@ -1026,63 +1014,10 @@ export default function ExploreScreen() {
                   style={[styles.tabButtonText, activeTab === "marketplace" && styles.tabButtonTextActive]}
                   numberOfLines={1}
                 >
-                  {activeTab === "marketplace"
-                    ? marketSubTab === "services"
-                      ? "Services"
-                      : "Products"
-                    : "Marketplace"}
+                  Marketplace
                 </Text>
-                <ChevronDown
-                  size={11}
-                  color={activeTab === "marketplace" ? "#06b6d4" : "#94a3b8"}
-                  style={marketDropdownOpen ? { transform: [{ rotate: "180deg" }] } : undefined}
-                />
               </TouchableOpacity>
             </View>
-
-            {/* Floating Marketplace Dropdown: Products | Services */}
-            {marketDropdownOpen && (
-              <View style={styles.marketDropdownMenu}>
-                <View style={styles.dropdownHeader}>
-                  <Text style={styles.dropdownHeaderText}>Choose Marketplace</Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.marketDropdownItem,
-                    activeTab === "marketplace" && marketSubTab === "products" && styles.dropdownItemActive,
-                  ]}
-                  onPress={() => handleSelectMarketOption("products")}
-                  activeOpacity={0.75}
-                >
-                  <Package size={16} color="#06b6d4" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.marketDropdownTitle}>Products</Text>
-                    <Text style={styles.marketDropdownSub}>Pet food, toys & accessories</Text>
-                  </View>
-                  {activeTab === "marketplace" && marketSubTab === "products" && (
-                    <Check size={15} color="#06b6d4" />
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.marketDropdownItem,
-                    activeTab === "marketplace" && marketSubTab === "services" && styles.dropdownItemActive,
-                  ]}
-                  onPress={() => handleSelectMarketOption("services")}
-                  activeOpacity={0.75}
-                >
-                  <Wrench size={16} color="#10b981" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.marketDropdownTitle}>Services</Text>
-                    <Text style={styles.marketDropdownSub}>Grooming, vet consults & training</Text>
-                  </View>
-                  {activeTab === "marketplace" && marketSubTab === "services" && (
-                    <Check size={15} color="#10b981" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
           {/* Search & Pet Filter Input Group */}
@@ -2834,40 +2769,6 @@ const styles = StyleSheet.create({
   tabsWrapper: {
     position: "relative",
     zIndex: 1005,
-  },
-  marketDropdownMenu: {
-    position: "absolute",
-    top: 52,
-    right: 0,
-    width: 245,
-    backgroundColor: "#161b22",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#334155",
-    paddingVertical: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
-    elevation: 25,
-    zIndex: 1010,
-  },
-  marketDropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  marketDropdownTitle: {
-    color: "#ffffff",
-    fontSize: 13.5,
-    fontWeight: "700",
-  },
-  marketDropdownSub: {
-    color: "#94a3b8",
-    fontSize: 11,
-    marginTop: 1,
   },
   marketSubBar: {
     flexDirection: "row",

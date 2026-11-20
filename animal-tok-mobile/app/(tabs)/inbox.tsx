@@ -20,7 +20,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import { formatRelativeTime } from "@/utils/timeAgo";
-import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { localThreadsStorageKey } from "@/utils/conversationHelper";
 
 interface ThreadItem {
@@ -199,18 +198,9 @@ export default function InboxScreen() {
     });
   };
 
-  const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: () => {
-      router.replace("/(tabs)/profile");
-    },
-    onSwipeRight: () => {
-      router.replace("/(tabs)/explore");
-    },
-  });
-
   if (!user) {
     return (
-      <View style={[styles.safeArea, { paddingTop: topSafeInset + 16 }]} {...swipeHandlers}>
+      <View style={[styles.safeArea, { paddingTop: topSafeInset + 16 }]}>
         <View style={styles.guestContainer}>
           <View style={styles.guestIconCircle}>
             <MessageSquare size={38} color="#06b6d4" />
@@ -239,7 +229,7 @@ export default function InboxScreen() {
   }
 
   return (
-    <View style={styles.safeArea} {...swipeHandlers}>
+    <View style={styles.safeArea}>
       {/* Top Header */}
       <View style={[styles.header, { paddingTop: topSafeInset + 14 }]}>
         <Text style={styles.headerTitle}>Direct Messages</Text>

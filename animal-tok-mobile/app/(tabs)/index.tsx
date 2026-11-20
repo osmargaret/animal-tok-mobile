@@ -27,7 +27,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { formatRelativeTime } from "@/utils/timeAgo";
-import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -292,24 +291,10 @@ export default function FeedScreen() {
     [feedHeight, displayPosts.length, activeIndex]
   );
 
-  const isAnyModalOpen =
-    commentsVisible ||
-    profileSwitcherVisible ||
-    notificationsVisible ||
-    guestAuthVisible;
-
-  const swipeHandlers = useSwipeGesture({
-    enabled: !isAnyModalOpen,
-    onSwipeLeft: () => {
-      router.replace("/(tabs)/explore");
-    },
-  });
-
   return (
     <View 
       style={styles.container}
       onLayout={(e) => setFeedHeight(e.nativeEvent.layout.height)}
-      {...swipeHandlers}
     >
       {/* Floating Header */}
       <View style={[styles.topHeader, { top: topSafeInset + 14 }]}>

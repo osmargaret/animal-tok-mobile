@@ -165,11 +165,8 @@ export default function EventsScreen() {
 
   const swipeHandlers = useSwipeGesture({
     enabled: !guestAuthVisible && !selectedEventDetail && !selectedAttendEvent,
-    onSwipeLeft: () => {
-      router.replace("/(tabs)/marketplace");
-    },
     onSwipeRight: () => {
-      router.replace("/(tabs)/explore");
+      router.back();
     },
   });
 

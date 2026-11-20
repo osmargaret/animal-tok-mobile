@@ -80,8 +80,6 @@ export default function MarketplaceScreen() {
   const handleSwipeLeft = () => {
     if (activeTab === "products") {
       setActiveTab("services");
-    } else {
-      router.replace("/(tabs)/inbox");
     }
   };
 
@@ -89,7 +87,7 @@ export default function MarketplaceScreen() {
     if (activeTab === "services") {
       setActiveTab("products");
     } else {
-      router.replace("/(tabs)/explore");
+      router.back();
     }
   };
 

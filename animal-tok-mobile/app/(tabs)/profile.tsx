@@ -546,8 +546,6 @@ export default function ProfileScreen() {
     const idx = PROFILE_TABS.indexOf(activeTab);
     if (idx > 0) {
       setActiveTab(PROFILE_TABS[idx - 1]);
-    } else if (idx === 0) {
-      router.replace("/(tabs)/inbox");
     }
   };
 
@@ -559,15 +557,9 @@ export default function ProfileScreen() {
     onSwipeRight: handleProfileSwipeRight,
   });
 
-  const guestSwipeHandlers = useSwipeGesture({
-    onSwipeRight: () => {
-      router.replace("/(tabs)/inbox");
-    },
-  });
-
   if (!user) {
     return (
-      <View style={[styles.container, { paddingTop: topSafeInset + 16 }]} {...guestSwipeHandlers}>
+      <View style={[styles.container, { paddingTop: topSafeInset + 16 }]}>
         <View style={styles.guestProfileBox}>
           <Text style={{ fontSize: 60, marginBottom: 16 }}>🐾</Text>
           <Text style={styles.guestTitle}>Your Pet Journey Starts Here</Text>
